@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="es">
+<head><script type="application/json" data-od-external-dependencies>["https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&display=swap"]</script>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sleepy3 — Principal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&display=swap" rel="stylesheet" />
+<style>
+/* OD-LAYOUT-PRIMITIVES v1 — structure only */
+@layer od-layout {
+  :where(.od-stack,.od-row,.od-row-top,.od-cluster,.od-grid,.od-field,.od-stat,.od-cell,.od-tile) > :where(*) { min-width: 0; }
+  .od-stack   { display: flex; flex-direction: column; gap: var(--od-gap, 8px); }
+  .od-row     { display: flex; align-items: center; gap: var(--od-gap, 8px); }
+  .od-row-top { display: flex; align-items: flex-start; gap: var(--od-gap, 8px); }
+  .od-cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--od-gap, 8px); }
+  .od-fill    { flex: 1 1 0; min-width: 0; }
+  .od-fixed   { flex: none; }
+  .od-grid    { display: grid; gap: var(--od-gap, 12px); grid-template-columns: repeat(var(--od-cols, 3), minmax(0, 1fr)); }
+  .od-stat, .od-field, .od-cell { display: grid; gap: var(--od-gap, 2px); }
+  :where(.od-stat,.od-field,.od-cell) > :where(*) { display: block; }
+  .od-tile { display: grid; grid-template-rows: auto 1fr; }
+  :where(.od-tile) > :where(*) { display: block; }
+  .od-media { display: block; width: 100%; height: auto; aspect-ratio: var(--od-ratio, auto); }
+  .od-media-cover { object-fit: cover; }
+  .od-icon { display: inline-block; inline-size: var(--od-icon-size, 1em); block-size: var(--od-icon-size, 1em); flex: none; }
+  .od-truncate { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .od-nowrap  { white-space: nowrap; }
+  .od-screen { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
+  .od-scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+  .od-touch  { min-width: 44px; min-height: 44px; }
+}
+/* /OD-LAYOUT-PRIMITIVES v1 */
+
+:root{
+  --s-surface:#F5F4EF;
+  --s-container:#EAE8DF;
+  --s-card:#FFFFFF;
+  --s-on-surface:#1D1B16;
+  --s-on-variant:#5C5645;
+  --s-line:#D8D3C2;
+  --s-primary:#2B3A8F;
+  --s-primary-container:#1E2560;
+  --s-on-primary-container:#E2E4FF;
+  --s-tertiary-container:#FBE3B4;
+  --s-on-tertiary:#442303;
+  --s-disabled:#DBD6C8;
+  --s-disabled-fg:#8A8474;
+  --s-night:#1B2350;
+  --s-night-2:#2E3A7E;
+  --font: "Roboto Flex", Roboto, "Noto Sans", system-ui, sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{min-height:100dvh;display:grid;place-items:center;padding:32px;
+  background:radial-gradient(circle at 50% 14%, rgba(255,255,255,.95), transparent 36%),#e8eaee;
+  color:#191a1d;font-family:var(--font)}
+.phone-frame{position:relative;width:calc(412px + 20px);height:calc(915px + 20px);padding:10px;border-radius:46px;
+  background:linear-gradient(145deg, rgba(255,255,255,.2), transparent 18%),linear-gradient(155deg,#414348 0%,#23252a 44%,#0c0d10 100%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.13),inset 0 0 0 2px rgba(0,0,0,.84),0 34px 72px -22px rgba(8,10,14,.56),0 11px 25px -10px rgba(8,10,14,.34);isolation:isolate}
+.phone-frame::before,.phone-frame::after{content:"";position:absolute;z-index:-1;top:92px;bottom:92px;width:2px;
+  background:linear-gradient(to bottom,transparent,rgba(255,255,255,.14) 18%,transparent 32%,transparent 72%,rgba(255,255,255,.07) 88%,transparent)}
+.phone-frame::before{left:0}.phone-frame::after{right:0}
+.hardware-button{position:absolute;right:-3px;width:4px;border-radius:3px;background:linear-gradient(90deg,#08090b,#2d3036 62%,#08090b)}
+.hardware-button.volume{top:205px;height:92px}.hardware-button.power{top:322px;height:70px;background:linear-gradient(90deg,#08090b,#3c424c 62%,#08090b)}
+.phone-screen{position:relative;width:412px;height:915px;overflow:hidden;border-radius:38px;background:var(--s-surface)}
+.phone-content{position:absolute;inset:0;overflow:hidden;padding-top:52px;padding-bottom:28px;background:var(--s-surface)}
+.punch-hole{position:absolute;z-index:20;top:14px;left:50%;width:14px;height:14px;transform:translateX(-50%);border-radius:50%;
+  background:radial-gradient(circle at 38% 35%,#283343 0 10%,#090b0f 30%,#000 72%);pointer-events:none}
+.status-bar{position:absolute;z-index:15;inset:0 0 auto;height:52px;display:grid;grid-template-columns:minmax(0,1fr) 64px minmax(0,1fr);align-items:start;padding:14px 19px 0;color:#17181a;pointer-events:none}
+.status-time{justify-self:start;font-size:14px;font-weight:600;line-height:1}
+.status-cutout-zone{width:64px}
+.status-icons{justify-self:end;display:inline-flex;align-items:center;height:16px;gap:5px}
+.status-icons svg{display:block;fill:currentColor}
+.gesture-indicator{position:absolute;z-index:20;left:50%;bottom:8px;width:108px;height:4px;transform:translateX(-50%);border-radius:99px;background:#17181a;opacity:.86;pointer-events:none}
+@media (max-height:998px){.phone-frame{zoom:.9}}
+@media (max-height:904px){.phone-frame{zoom:.82}}
+@media (max-height:829px){.phone-frame{zoom:.74}}
+@media (max-height:754px){.phone-frame{zoom:.66}}
+@media (max-width:480px){body{padding:0;display:block}.phone-frame{width:100%;height:100dvh;padding:0;border-radius:0;background:none;box-shadow:none;zoom:1}
+.phone-frame::before,.phone-frame::after,.hardware-button{display:none}.phone-screen{width:100%;height:100%;border-radius:0}}
+
+/* --- Sleepy3 minimal --- */
+.app{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr) auto;background:var(--s-surface);color:var(--s-on-surface)}
+.topbar{padding:12px 20px 4px;text-align:center}
+/* Títulos en md.sys.typescale.emphasized (opt-in por elemento):
+   From M3: mismo tamaño/alto de línea que el estilo base, mayor peso + ajuste menor de tracking.
+   Decisión de diseño (no en M3): pesos 800–850 y tracking -0.02–-0.04em con Roboto Flex. */
+.brand-name,.clock,.track-btn .t-label{font-family:"Roboto Flex",Roboto,"Noto Sans",system-ui,sans-serif}
+.brand-name{font-size:32px;font-weight:950;letter-spacing:-.025em;line-height:1.1}
+.brand-state{font-size:12.5px;color:var(--s-on-variant);font-weight:600}
+.content{padding:4px 20px 8px;min-height:0;display:flex;flex-direction:column;gap:12px;justify-content:center;height:100%}
+.hero{text-align:center;padding:6px 0 0}
+.hero-scene{display:flex;justify-content:center}
+.hero-scene svg{width:168px;height:100px;display:block}
+.clock{margin:2px 0 0;font-size:52px;line-height:1;font-weight:950;letter-spacing:-.04em;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"lnum" 1}
+.clock small{font-size:20px;font-weight:950;font-stretch:70%;letter-spacing:.02em}
+.clock small{font-size:22px;font-weight:700}
+.date-line{margin:2px 0 0;font-size:13.5px;color:var(--s-on-variant)}
+.session-line{margin:6px 0 0;font-size:13px;font-weight:600;color:var(--s-on-variant)}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:2px}
+.track-btn{border:none;cursor:pointer;display:grid;gap:6px;justify-items:center;align-content:center;text-align:center;
+  padding:18px 8px;min-height:168px;border-radius:32px;font-family:inherit;
+  transition:transform 200ms ease-out, background-color 200ms ease-out}
+.track-btn:active{transform:scale(.97)}
+.track-btn:focus-visible,.nav-item:focus-visible{outline:3px solid var(--s-primary);outline-offset:2px}
+.track-btn .t-icon{width:60px;height:60px;border-radius:50%;display:grid;place-items:center}
+.track-btn .t-icon .od-icon{--od-icon-size:32px}
+.track-btn .t-label{font-size:18px;font-weight:900;letter-spacing:-.02em;line-height:1.1}
+.track-btn .t-sub{font-size:11.5px;line-height:1.35;opacity:.8;max-width:15ch}
+.btn-sleep{background:var(--s-primary-container);color:var(--s-on-primary-container)}
+.btn-sleep .t-icon{background:rgba(255,255,255,.14)}
+.btn-wake{background:var(--s-tertiary-container);color:var(--s-on-tertiary)}
+.btn-wake .t-icon{background:#fff;border:1px solid rgba(68,35,3,.16)}
+.track-btn:disabled{background:var(--s-disabled);color:var(--s-disabled-fg);cursor:not-allowed}
+.track-btn:disabled .t-icon{background:rgba(255,255,255,.55);border:none}
+.mini{background:var(--s-container);border:1px solid var(--s-line);border-radius:20px;padding:12px 14px}
+.mini-head{font-size:13px;font-weight:800;letter-spacing:.02em;color:var(--s-on-surface);margin-bottom:8px}
+.mini-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.od-stat{text-align:left;display:grid;gap:2px}
+.od-stat .d{font-size:11.5px;font-weight:700;color:var(--s-on-variant);text-transform:uppercase;letter-spacing:.05em}
+.od-stat .h{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}
+.bar{height:6px;border-radius:99px;background:rgba(29,27,22,.12);overflow:hidden;margin-top:4px}
+.bar i{display:block;height:100%;border-radius:99px;background:var(--s-primary)}
+.navwrap{padding:0 20px 4px;background:transparent}
+.navbar{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--s-container);
+  border:1px solid var(--s-line);border-radius:999px;padding:8px 12px;
+  box-shadow:0 16px 36px -14px rgba(29,27,22,.4),0 2px 8px rgba(29,27,22,.12)}
+.nav-item{border:none;background:none;font-family:inherit;color:var(--s-on-variant);display:grid;justify-items:center;gap:2px;
+  font-size:12px;font-weight:700;padding:6px 4px;border-radius:16px;cursor:pointer;min-height:58px}
+.nav-item .od-icon{--od-icon-size:24px}
+.nav-item.active{color:var(--s-on-surface)}
+.nav-pill{display:grid;place-items:center;width:64px;height:32px;border-radius:99px}
+.nav-item.active .nav-pill{background:var(--s-primary-container);color:var(--s-on-primary-container)}
+@media (prefers-reduced-motion: reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+<div class="phone-frame" data-phone-shell data-platform="android">
+<span class="hardware-button volume" aria-hidden="true"></span>
+<span class="hardware-button power" aria-hidden="true"></span>
+<section class="phone-screen" data-phone-screen>
+<main class="phone-content" data-phone-content>
+<!-- APP CONTENT START -->
+<div class="app od-screen">
+  <header class="topbar">
+    <div class="brand-name">Sleepy3</div>
+    <div class="brand-state" id="dayNightChip">Noche · a descansar</div>
+  </header>
+
+  <div class="content">
+    <section class="hero" aria-label="Hora actual">
+      <div class="hero-scene" id="scene" aria-hidden="true"></div>
+      <p class="clock"><span id="clock">00:00:00</span> <small id="ampm">AM</small></p>
+      <p class="date-line" id="dateLine">—</p>
+      <p class="session-line" id="sessionLine">Pulsa Dormir al apagar la luz</p>
+    </section>
+
+    <div class="actions" role="group" aria-label="Registrar sueño">
+      <button class="track-btn btn-sleep" id="btnSleep">
+        <span class="t-icon" aria-hidden="true">
+          <svg class="od-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13.2A8.2 8.2 0 0 1 10.8 4 8.2 8.2 0 1 0 20 13.2Z"/></svg>
+        </span>
+        <span class="t-label">Dormir</span>
+        <span class="t-sub" id="sleepSub">Hora de dormir</span>
+      </button>
+      <button class="track-btn btn-wake" id="btnWake" disabled>
+        <span class="t-icon" aria-hidden="true">
+          <svg class="od-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V5.5"/><path d="M6.3 10.3 4.8 8.8"/><path d="m17.7 10.3 1.5-1.5"/><path d="M7.5 17a4.5 4.5 0 0 1 9 0"/><path d="M3.5 17h17"/><path d="M3.5 20.5h17"/></svg>
+        </span>
+        <span class="t-label">Despertar</span>
+        <span class="t-sub" id="wakeSub">Hora de despertar</span>
+      </button>
+    </div>
+
+    <section class="mini" aria-label="Últimos 3 días">
+      <div class="mini-head">Últimos 3 días · 7h 24m prom.</div>
+      <div class="mini-grid">
+        <div class="od-stat">
+          <span class="d">Hoy</span>
+          <span class="h od-nowrap">7h 52m</span>
+          <span class="bar"><i style="width:92%"></i></span>
+        </div>
+        <div class="od-stat">
+          <span class="d">Ayer</span>
+          <span class="h od-nowrap">6h 48m</span>
+          <span class="bar"><i style="width:70%"></i></span>
+        </div>
+        <div class="od-stat">
+          <span class="d">Hace 2 d.</span>
+          <span class="h od-nowrap">7h 35m</span>
+          <span class="bar"><i style="width:83%"></i></span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="navwrap">
+    <nav class="navbar" aria-label="Navegación principal">
+      <button class="nav-item active" aria-current="page">
+        <span class="nav-pill"><svg class="od-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3.5 3.5 10v10.5h5.5v-6h6v6h5.5V10L12 3.5Z"/></svg></span>
+        <span>Inicio</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-pill"><svg class="od-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-8"/><path d="M22 20H2"/></svg></span>
+        <span>Stats</span>
+      </button>
+      <button class="nav-item">
+        <span class="nav-pill"><svg class="od-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></span>
+        <span>Ajustes</span>
+      </button>
+    </nav>
+  </footer>
+</div>
+<!-- APP CONTENT END -->
+</main>
+<div class="status-bar" aria-hidden="true">
+<span class="status-time">9:41</span><span class="status-cutout-zone"></span>
+<span class="status-icons">
+<svg width="15" height="12" viewBox="0 0 16 12"><path d="M8 11.4 6.55 9.95a2.05 2.05 0 0 1 2.9 0L8 11.4Zm3.58-3.55-1.16 1.16a3.43 3.43 0 0 0-4.84 0L4.42 7.85a5.08 5.08 0 0 1 7.16 0Zm3-2.95-1.16 1.16a7.67 7.67 0 0 0-10.84 0L1.42 4.9a9.31 9.31 0 0 1 13.16 0Z" fill="currentColor"/></svg>
+<svg width="14" height="12" viewBox="0 0 14 12"><path d="M1 11h2V8.5H1V11Zm3.35 0h2V6H4.35v5Zm3.35 0h2V3.5h-2V11Zm3.35 0h2V1h-2v10Z" fill="currentColor"/></svg>
+<svg width="9" height="14" viewBox="0 0 9 14"><path d="M3 0h3v1H3V0ZM2 1.5h5a1.25 1.25 0 0 1 1.25 1.25v9.75A1.5 1.5 0 0 1 6.75 14h-4.5a1.5 1.5 0 0 1-1.5-1.5V2.75A1.25 1.25 0 0 1 2 1.5Z" fill="currentColor"/></svg>
+</span>
+</div>
+<div class="punch-hole" aria-hidden="true"></div>
+<div class="gesture-indicator" aria-hidden="true"></div>
+</section>
+</div>
+<script>
+(function(){
+  var clock=document.getElementById('clock'),ampm=document.getElementById('ampm'),dateLine=document.getElementById('dateLine'),
+      scene=document.getElementById('scene'),chip=document.getElementById('dayNightChip'),
+      btnSleep=document.getElementById('btnSleep'),btnWake=document.getElementById('btnWake'),
+      sleepSub=document.getElementById('sleepSub'),wakeSub=document.getElementById('wakeSub'),
+      sessionLine=document.getElementById('sessionLine');
+  var nightSVG='<svg viewBox="0 0 196 118" role="img" aria-label="Luna con estrellas y nubes"><circle cx="98" cy="50" r="28" fill="#F4EFD8"/><circle cx="88" cy="44" r="24" fill="#1B2350" opacity=".92"/><g fill="#fff"><circle cx="40" cy="22" r="1.8"/><circle cx="140" cy="16" r="1.8"/><circle cx="162" cy="34" r="1.3"/><circle cx="30" cy="52" r="1.3"/><path d="M52 30l1.4 3.4 3.4 1.4-3.4 1.4L52 39.6l-1.4-3.4-3.4-1.4 3.4-1.4L52 30Z"/></g><g fill="#E9E4D6"><ellipse cx="62" cy="96" rx="30" ry="11"/><ellipse cx="88" cy="90" rx="22" ry="10"/><ellipse cx="132" cy="96" rx="30" ry="11"/></g></svg>';
+  var daySVG='<svg viewBox="0 0 196 118" role="img" aria-label="Sol con nubes"><circle cx="98" cy="48" r="26" fill="#FFC53D"/><g stroke="#FFC53D" stroke-width="5" stroke-linecap="round"><path d="M98 8v8M60 20l6 6M136 20l-6 6M42 48h9M145 48h9"/></g><g fill="#FFFFFF"><ellipse cx="60" cy="94" rx="30" ry="11"/><ellipse cx="86" cy="88" rx="22" ry="10"/><ellipse cx="132" cy="94" rx="30" ry="11"/></g></svg>';
+  function pad(n){return (n<10?'0':'')+n}
+  function fmt(d){var h=d.getHours(),ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(d.getMinutes())+':'+pad(d.getSeconds())+' '+ap}
+  function fmtShort(d){var h=d.getHours(),ap=h>=12?'PM':'AM';h=h%12||12;return h+':'+pad(d.getMinutes())+' '+ap}
+  var sleepStart=null;
+  function tick(){
+    var now=new Date();
+    var h24=now.getHours();
+    clock.textContent=(h24%12||12)+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
+    ampm.textContent=h24>=12?'PM':'AM';
+    var days=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    var months=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    dateLine.textContent=days[now.getDay()]+' '+now.getDate()+' '+months[now.getMonth()];
+    var h=now.getHours(), isDay=h>=7&&h<19;
+    scene.innerHTML=isDay?daySVG:nightSVG;
+    chip.textContent=isDay?'Día · listo para despertar':'Noche · a descansar';
+    if(!sleepStart) sessionLine.textContent=isDay?'Sin sesión activa':'Pulsa Dormir al apagar la luz';
+  }
+  btnSleep.addEventListener('click',function(){
+    if(sleepStart) return;
+    sleepStart=new Date();
+    btnSleep.disabled=true;btnWake.disabled=false;
+    sleepSub.textContent='Desde '+fmtShort(sleepStart);
+    wakeSub.textContent='Pulsa al despertar';
+    sessionLine.textContent='Durmiendo desde '+fmt(sleepStart);
+  });
+  btnWake.addEventListener('click',function(){
+    if(!sleepStart) return;
+    var end=new Date(),ms=end-sleepStart,h=Math.floor(ms/36e5),m=Math.round(ms%36e5/6e4);
+    btnSleep.disabled=false;btnWake.disabled=true;
+    sleepSub.textContent='Hora de dormir';wakeSub.textContent='Hora de despertar';
+    sessionLine.textContent='Guardado: '+h+'h '+m+'m esta noche';
+    sleepStart=null;
+  });
+  document.querySelectorAll('.nav-item').forEach(function(b){b.addEventListener('click',function(){
+    document.querySelectorAll('.nav-item').forEach(function(x){x.classList.remove('active');x.removeAttribute('aria-current')});
+    b.classList.add('active');b.setAttribute('aria-current','page');
+  })});
+  tick();setInterval(tick,1000);
+})();
+</script>
+</body>
+</html>
