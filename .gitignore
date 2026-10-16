@@ -7,8 +7,11 @@ local.properties
 .idea/
 .DS_Store
 
-# Local skills (solo tu PC, no se sube)
+# Local skills (this machine only, never commit)
 .agent-skills/
+
+# Local agent docs (this machine only, never commit)
+.opencode/
 
 # Keystores (nunca subir claves)
 *.jks
