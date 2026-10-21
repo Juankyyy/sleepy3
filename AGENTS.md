@@ -12,6 +12,9 @@ Sleepy3 is a Flutter Android app for zero-friction sleep tracking: two large but
   under `android/app/src/main/kotlin/com/sleepy3/app/`.
 - Platform features that cannot run in Flutter (the widget, Health Connect manifest
   entries) stay in the Android layer behind small, documented bridges.
+- Current state: the home screen and sleep state machine work in memory. Drift
+  persistence, the Glance widget and Health Connect are next; do not assume a
+  session survives an app restart yet.
 
 ## Commands
 
@@ -44,6 +47,12 @@ lib/
     └── widget/          # home_widget bridge and pending events
 ```
 
+- UI imports: use `package:material_ui/material_ui.dart` and
+  `package:material_3_expressive/material_3_expressive.dart`; do not import
+  `package:flutter/material.dart` in app code.
+- `material_ui` is pinned to 1.7.0 because 1.8.0's `RoundedPolygon` conflicts with
+  `material_new_shapes` used by `material_3_expressive` 1.1.7. Do not bump it until
+  the packages are compatible.
 - State management: Riverpod.
 - Local persistence: Drift over SQLite.
 - Background work: WorkManager for Flutter.

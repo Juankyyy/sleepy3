@@ -16,40 +16,51 @@ Zero-friction sleep tracking for Android: two buttons, no forms.
 Sleepy3 records the exact time you fall asleep and wake up with two large buttons,
 available from the main app and from a home-screen widget.
 
-Sessions are stored locally and synced to Google Health Connect as
+The target is to keep sessions locally and sync them to Google Health Connect as
 `SleepSessionRecord`.
 
 ## Status
 
 - [x] Flutter project scaffold (`flutter create --empty`)
-- [ ] Two-button home screen and sleep state machine
-- [ ] Local persistence
+- [x] Two-button home screen and sleep state machine (in-memory)
+- [x] Material 3 Expressive theme with dynamic color
+- [x] Unit and widget tests for the state machine and home screen
+- [ ] Local persistence (Drift); sessions are currently lost on restart
 - [ ] Home-screen widget (Dormir / Despertar without opening the app)
 - [ ] Health Connect sync and background retry
 - [ ] Recent history and 3-day summary
-- [ ] Material 3 Expressive polish
-- [ ] Widget, unit and integration tests
+- [ ] Widget and Health Connect integration tests
+- [ ] M3 Expressive motion and accessibility polish
 
 ## Features
 
+Implemented:
+
 - Large Sleep / Wake actions with clear enabled-state feedback.
-- Session summary line (e.g. duration slept last night).
-- Recent history with a 3-day mini summary.
+- Session line that shows the current start time or the last duration.
+- Material 3 Expressive with dynamic color (light / dark).
+- Accessible labels and visible focus through the M3E components.
+
+Planned:
+
+- Local persistence and recent history with a 3-day mini summary.
 - Home-screen widget to log timestamps without opening the app.
 - Health Connect sync with background retry.
-- Material Design 3 Expressive with dynamic color (light / dark).
-- Accessible: content descriptions, visible focus, minimum touch targets.
 
 ## Tech stack
 
 | Layer | Technology |
 |---|---|
-| UI | Flutter, Material 3 |
-| State | Riverpod (planned) |
+| UI | Flutter + Material 3 Expressive (`material_3_expressive`) |
+| State | Riverpod |
 | Local storage | Drift over SQLite (planned) |
 | Health | Health Connect `SleepSessionRecord` |
 | Background | WorkManager for Flutter (planned) |
 | Widget | `home_widget` + native Kotlin / Jetpack Glance |
+
+`material_ui` is pinned to 1.7.0. Version 1.8.0 introduced a `RoundedPolygon`
+symbol that conflicts with `material_new_shapes`, which `material_3_expressive`
+1.1.7 uses. Remove the pin once the package supports 1.8.0.
 
 The Android home-screen widget is native code: Android renders widgets with
 `RemoteViews`, outside the Flutter engine. Flutter and the widget share state through
@@ -122,9 +133,8 @@ Flutter hot reload works from the terminal or any editor, without Android Studio
 Material Design 3 Expressive:
 
 - Dynamic color on Android 12+ with a seeded fallback.
-- Large shapes, clear type hierarchy and spring-driven press feedback.
+- Large shapes, clear type hierarchy and spring-driven M3E button feedback.
 - Light and dark themes.
-- Reduced motion respected.
 
 The local M3 spec lives in `.agent-skills/m3-expressive/`; read
 `.agent-skills/m3-expressive/SKILL.md` before changing UI.

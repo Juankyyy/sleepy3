@@ -1,0 +1,79 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
+import 'package:material_ui/material_ui.dart';
+
+import '../application/sleep_tracking_controller.dart';
+import '../domain/sleep_duration.dart';
+import 'widgets/track_buttons_row.dart';
+
+class SleepHomeScreen extends ConsumerWidget {
+  const SleepHomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(sleepTrackingControllerProvider);
+    final controller = ref.read(sleepTrackingControllerProvider.notifier);
+    final theme = M3ETheme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Scaffold(
+      backgroundColor: scheme.surface,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Spacer(),
+              Semantics(
+                header: true,
+                child: Text(
+                  'Sleepy3',
+                  textAlign: TextAlign.center,
+                  style: theme.typography.emphasized.headlineLarge.copyWith(
+                    color: scheme.onSurface,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _sessionLine(context, state),
+                textAlign: TextAlign.center,
+                style: theme.typography.baseline.bodyMedium.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+              const Spacer(),
+              TrackButtonsRow(
+                isSleeping: state.isSleeping,
+                onSleep: controller.sleep,
+                onWake: controller.wake,
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _sessionLine(BuildContext context, SleepTrackingState state) {
+    final localizations = MaterialLocalizations.of(context);
+    final open = state.openSession;
+
+    if (open != null) {
+      final time = localizations.formatTimeOfDay(
+        TimeOfDay.fromDateTime(open.startedAt),
+        alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+      );
+      return 'Durmiendo desde $time';
+    }
+
+    final last = state.lastSession;
+    if (last != null) {
+      return 'Última sesión: ${formatSleepDuration(last.duration)}';
+    }
+
+    return 'Toca Dormir para empezar';
+  }
+}
