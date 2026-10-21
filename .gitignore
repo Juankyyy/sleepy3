@@ -57,3 +57,6 @@ app.*.map.json
 *.jks
 *.keystore
 
+# Local release notes (never commit)
+/release-notes/
+
