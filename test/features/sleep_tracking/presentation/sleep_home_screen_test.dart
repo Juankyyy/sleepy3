@@ -25,27 +25,27 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Toca Dormir para empezar'), findsOneWidget);
+    expect(find.text('Tap Sleep to start'), findsOneWidget);
 
     var buttons = tester.widgetList<M3EButton>(find.byType(M3EButton)).toList();
     expect(buttons, hasLength(2));
     expect(buttons[0].enabled, isTrue);
     expect(buttons[1].enabled, isFalse);
 
-    await tester.tap(find.text('Dormir'));
+    await tester.tap(find.text('Sleep'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Durmiendo desde'), findsOneWidget);
+    expect(find.textContaining('Sleeping since'), findsOneWidget);
     expect(store.starts, hasLength(1));
     buttons = tester.widgetList<M3EButton>(find.byType(M3EButton)).toList();
     expect(buttons[0].enabled, isFalse);
     expect(buttons[1].enabled, isTrue);
 
     now = now.add(const Duration(hours: 7, minutes: 45));
-    await tester.tap(find.text('Despertar'));
+    await tester.tap(find.text('Wake'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Última sesión: 7h 45m'), findsOneWidget);
+    expect(find.text('Last session: 7h 45m'), findsOneWidget);
     expect(store.finishes, hasLength(1));
     buttons = tester.widgetList<M3EButton>(find.byType(M3EButton)).toList();
     expect(buttons[0].enabled, isTrue);
@@ -69,7 +69,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Durmiendo desde'), findsOneWidget);
+    expect(find.textContaining('Sleeping since'), findsOneWidget);
     final buttons = tester
         .widgetList<M3EButton>(find.byType(M3EButton))
         .toList();
@@ -96,7 +96,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    for (final label in ['Dormir', 'Despertar']) {
+    for (final label in ['Sleep', 'Wake']) {
       final paragraph = tester.renderObject<RenderParagraph>(find.text(label));
       expect(
         paragraph.didExceedMaxLines,

@@ -1,7 +1,7 @@
 /// One sleep session.
 ///
-/// A session starts when the user taps "Dormir" and ends when they tap
-/// "Despertar". An open session has no [endedAt] yet.
+/// A session starts when the user taps "Sleep" and ends when they tap
+/// "Wake". An open session has no [endedAt] yet.
 class SleepSession {
   const SleepSession({required this.startedAt, this.endedAt});
 

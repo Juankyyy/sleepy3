@@ -68,14 +68,14 @@ class SleepHomeScreen extends ConsumerWidget {
         TimeOfDay.fromDateTime(open.startedAt),
         alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
       );
-      return 'Durmiendo desde $time';
+      return 'Sleeping since $time';
     }
 
     final last = state.lastSession;
     if (last != null) {
-      return 'Última sesión: ${formatSleepDuration(last.duration)}';
+      return 'Last session: ${formatSleepDuration(last.duration)}';
     }
 
-    return 'Toca Dormir para empezar';
+    return 'Tap Sleep to start';
   }
 }

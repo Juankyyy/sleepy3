@@ -15,9 +15,9 @@ class Sleepy3App extends StatelessWidget {
       autoTheming: true,
       dynamicColoring: true,
       drawUnderSystemBars: true,
-      locale: const Locale('es', 'CO'),
+      locale: const Locale('en', 'US'),
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      supportedLocales: const [Locale('es', 'CO'), Locale('en', 'US')],
+      supportedLocales: const [Locale('en', 'US')],
       home: const SleepHomeScreen(),
     );
   }

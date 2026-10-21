@@ -25,7 +25,7 @@ Sessions are stored locally and restored on launch. Health Connect sync is plann
 - [x] Material 3 Expressive theme with dynamic color
 - [x] Local persistence (Drift) and session restore on launch
 - [x] Unit, widget and persistence tests
-- [ ] Home-screen widget (Dormir / Despertar without opening the app)
+- [ ] Home-screen widget (Sleep / Wake without opening the app)
 - [ ] Health Connect sync and background retry
 - [ ] Recent history and 3-day summary
 - [ ] Widget and Health Connect integration tests

@@ -2,7 +2,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// The two primary actions. At most one is enabled at a time: when the user is
-/// awake only "Dormir" is available, and while sleeping only "Despertar" is.
+/// awake only "Sleep" is available, and while sleeping only "Wake" is.
 class TrackButtonsRow extends StatelessWidget {
   const TrackButtonsRow({
     super.key,
@@ -23,13 +23,13 @@ class TrackButtonsRow extends StatelessWidget {
         final stack = constraints.maxWidth < 320 || textScale > 1.3;
 
         final sleepButton = _TrackButton(
-          label: 'Dormir',
+          label: 'Sleep',
           icon: M3EIcons.bedtime_rounded,
           enabled: !isSleeping,
           onPressed: onSleep,
         );
         final wakeButton = _TrackButton(
-          label: 'Despertar',
+          label: 'Wake',
           icon: M3EIcons.wb_sunny_rounded,
           enabled: isSleeping,
           onPressed: onWake,
