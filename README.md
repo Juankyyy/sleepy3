@@ -13,19 +13,18 @@ Zero-friction sleep tracking for Android: two buttons, no forms.
 
 ## About
 
-Sleepy3 records the exact time you fall asleep and wake up with two large buttons,
-available from the main app and from a home-screen widget.
+Sleepy3 records the exact time you fall asleep and wake up with two large buttons
+in the main app. A home-screen widget is planned.
 
-The target is to keep sessions locally and sync them to Google Health Connect as
-`SleepSessionRecord`.
+Sessions are stored locally and restored on launch. Health Connect sync is planned.
 
 ## Status
 
 - [x] Flutter project scaffold (`flutter create --empty`)
-- [x] Two-button home screen and sleep state machine (in-memory)
+- [x] Two-button home screen and sleep state machine
 - [x] Material 3 Expressive theme with dynamic color
-- [x] Unit and widget tests for the state machine and home screen
-- [ ] Local persistence (Drift); sessions are currently lost on restart
+- [x] Local persistence (Drift) and session restore on launch
+- [x] Unit, widget and persistence tests
 - [ ] Home-screen widget (Dormir / Despertar without opening the app)
 - [ ] Health Connect sync and background retry
 - [ ] Recent history and 3-day summary
@@ -38,12 +37,13 @@ Implemented:
 
 - Large Sleep / Wake actions with clear enabled-state feedback.
 - Session line that shows the current start time or the last duration.
+- Local persistence; a sleep in progress is restored after a restart.
 - Material 3 Expressive with dynamic color (light / dark).
 - Accessible labels and visible focus through the M3E components.
 
 Planned:
 
-- Local persistence and recent history with a 3-day mini summary.
+- Recent history with a 3-day mini summary.
 - Home-screen widget to log timestamps without opening the app.
 - Health Connect sync with background retry.
 
@@ -53,7 +53,7 @@ Planned:
 |---|---|
 | UI | Flutter + Material 3 Expressive (`material_3_expressive`) |
 | State | Riverpod |
-| Local storage | Drift over SQLite (planned) |
+| Local storage | Drift over SQLite |
 | Health | Health Connect `SleepSessionRecord` |
 | Background | WorkManager for Flutter (planned) |
 | Widget | `home_widget` + native Kotlin / Jetpack Glance |
@@ -61,6 +61,19 @@ Planned:
 `material_ui` is pinned to 1.7.0. Version 1.8.0 introduced a `RoundedPolygon`
 symbol that conflicts with `material_new_shapes`, which `material_3_expressive`
 1.1.7 uses. Remove the pin once the package supports 1.8.0.
+
+### Persistence
+
+Sessions live in `sleepy3.sqlite` in the app documents directory, managed by
+Drift. Generated code is committed; after changing the schema run:
+
+```bash
+dart run build_runner build
+```
+
+The store restores an open session on launch, so a sleep that started before the
+app was killed is still shown as running. The controller updates the UI first and
+serializes disk writes behind it.
 
 The Android home-screen widget is native code: Android renders widgets with
 `RemoteViews`, outside the Flutter engine. Flutter and the widget share state through

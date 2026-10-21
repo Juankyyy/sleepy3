@@ -4,14 +4,22 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:sleepy3/app/sleepy3_app.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
+import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
+import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
+
+import '../fakes.dart';
 
 void main() {
   testWidgets('the two actions drive the sleep state machine', (tester) async {
     var now = DateTime(2026, 10, 20, 22, 30);
+    final store = FakeSleepSessionStore();
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [sleepClockProvider.overrideWithValue(() => now)],
+        overrides: [
+          sleepClockProvider.overrideWithValue(() => now),
+          sleepSessionStoreProvider.overrideWithValue(store),
+        ],
         child: const Sleepy3App(),
       ),
     );
@@ -28,6 +36,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Durmiendo desde'), findsOneWidget);
+    expect(store.starts, hasLength(1));
     buttons = tester.widgetList<M3EButton>(find.byType(M3EButton)).toList();
     expect(buttons[0].enabled, isFalse);
     expect(buttons[1].enabled, isTrue);
@@ -37,9 +46,35 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Última sesión: 7h 45m'), findsOneWidget);
+    expect(store.finishes, hasLength(1));
     buttons = tester.widgetList<M3EButton>(find.byType(M3EButton)).toList();
     expect(buttons[0].enabled, isTrue);
     expect(buttons[1].enabled, isFalse);
+  });
+
+  testWidgets('restores a sleeping session on launch', (tester) async {
+    final now = DateTime(2026, 10, 20, 23, 10);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sleepClockProvider.overrideWithValue(() => now),
+          sleepSessionStoreProvider.overrideWithValue(FakeSleepSessionStore()),
+          initialSleepSnapshotProvider.overrideWithValue(
+            SleepSnapshot(openSession: SleepSession(startedAt: now)),
+          ),
+        ],
+        child: const Sleepy3App(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Durmiendo desde'), findsOneWidget);
+    final buttons = tester
+        .widgetList<M3EButton>(find.byType(M3EButton))
+        .toList();
+    expect(buttons[0].enabled, isFalse);
+    expect(buttons[1].enabled, isTrue);
   });
 
   testWidgets('both action labels fit on a 360dp phone', (tester) async {
@@ -54,6 +89,7 @@ void main() {
           sleepClockProvider.overrideWithValue(
             () => DateTime(2026, 10, 20, 22, 30),
           ),
+          sleepSessionStoreProvider.overrideWithValue(FakeSleepSessionStore()),
         ],
         child: const Sleepy3App(),
       ),

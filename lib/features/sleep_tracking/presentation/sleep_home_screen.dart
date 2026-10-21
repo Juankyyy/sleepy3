@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
@@ -46,8 +48,8 @@ class SleepHomeScreen extends ConsumerWidget {
               const Spacer(),
               TrackButtonsRow(
                 isSleeping: state.isSleeping,
-                onSleep: controller.sleep,
-                onWake: controller.wake,
+                onSleep: () => unawaited(controller.sleep()),
+                onWake: () => unawaited(controller.wake()),
               ),
               const SizedBox(height: 24),
             ],
