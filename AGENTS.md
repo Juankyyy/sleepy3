@@ -81,3 +81,28 @@ Never state a number, token name, or component name from memory. Look it up:
 
 If a value genuinely isn't in M3, say so and label it "my design decision (not in M3)"
 rather than presenting it as spec.
+
+## Convenciones
+
+- **Idioma**: código, comentarios, mensajes de commit, la UI y notas de release en **inglés**
+- **Commits**: convencionales, en inglés, con scope (`feat(ui): …`, `fix(core): …`,
+  `docs(spec): …`, `chore`, `ci`, `refactor`).
+
+## Flujo de trabajo (acordado con el usuario)
+
+Detalle completo en `SPEC.md §1`.
+
+1. Todo el trabajo nuevo en la rama `dev`; `main` permanece estable.
+2. **Paso a paso**: espera a que el usuario pida módulos o cambios concretos; no generes la
+   app entera de golpe. Al terminar, indica qué debe probar el usuario.
+3. **Aviso previo**: no se hacen commits ni pushes sin avisar antes. Propón el mensaje y
+   espera el OK. «Haz los commits» autoriza commit **y push a `dev`** a la vez: el trabajo
+   nunca se queda solo en local.
+4. **`main` y releases, solo a petición**: el merge a `main` y los tags se hacen únicamente
+   cuando el usuario lo pide, tras verificar el bloque/funcionalidad en su máquina.
+5. **Releases**: el usuario decide la versión; el tag `vX.Y.Z` se corta desde `main`. El
+   workflow planificado de GitHub Actions (SPEC §1) publicará el instalador con notas
+   autogeneradas. Las notas curadas viven solo en local (`release-notes/`, ignorado por
+   git) y se aplican después con `gh release edit --notes-file`.
+6. **Documentación como parte del cambio**: actualiza SPEC.md si cambia el comportamiento o
+   la arquitectura, y README.md si el cambio es visible para el usuario.
