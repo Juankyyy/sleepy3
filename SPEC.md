@@ -137,7 +137,7 @@ Reglas:
 - El toque registra la hora sin abrir la app.
 - Los eventos se escriben en una cola de pendientes.
 - La app reconcilia la cola al abrirse o volver al primer plano.
-- El widget refleja el estado actual (despierto/durmiendo) y los colores dinámicos.
+- El widget refleja el estado actual (despierto/durmiendo) con los roles del tema M3.
 
 ### 3.4 Health Connect (planificado)
 
@@ -160,10 +160,19 @@ Reglas:
 
 ## 4. UX y diseño visual
 
-- Material Design 3 Expressive con color dinámico en Android 12+.
-- Tema claro y oscuro; el modo sigue al sistema.
-- Fallback de color con semilla `#6750A4` cuando no hay color dinámico.
-- Tipografía enfatizada de M3E para el título y el cuerpo.
+- Material Design 3 Expressive con **tema fijo**. Sin color dinámico (Material You).
+- Esquema claro y oscuro generados por separado desde la misma semilla azul Sleepy3
+  (`#2B3A8F`). El oscuro no se deriva del `primary` del claro.
+- El modo sigue al sistema (claro/oscuro); no hay selector manual por ahora.
+- Tipografía **Roboto Flex variable** empaquetada como asset (`assets/fonts/`, OFL).
+  Se usan los tamaños, pesos y tracking de la escala M3; no se usan pesos 850/950.
+- Mapeo tipográfico:
+  - reloj: `displayLarge` emphasized;
+  - marca: `headlineLarge` emphasized;
+  - fecha y copy de apoyo: `bodyMedium` (la línea de sesión, emphasized);
+  - chip día/noche: `labelMedium`;
+  - cabecera y tarjeta de resumen: `titleMedium`, `labelMedium`, `bodyMedium`.
+- La ilustración de luna/sol del prototipo no forma parte de la UI.
 - Pantalla principal:
   - Título `Sleepy3`.
   - Línea de sesión.
@@ -190,6 +199,8 @@ Reglas:
 |---|---|
 | UI | Flutter 3.47.x / Dart 3.13.x |
 | Diseño | `material_ui` 1.7.0 + `material_3_expressive` 1.1.7 |
+| Tipografía | Roboto Flex variable, asset OFL (`assets/fonts/`) |
+| Fechas | `intl` 0.20 |
 | Estado | Riverpod |
 | Persistencia | Drift + SQLite (`drift_flutter`, `sqlite3`) |
 | Widget | `home_widget` + Jetpack Glance nativo |
@@ -308,7 +319,7 @@ dart run build_runner build
 - El widget se actualiza cuando la app cambia el estado.
 - La app aplica los eventos pendientes al arrancar o al volver al primer plano.
 - Si el evento es inválido (por ejemplo, Wake sin Sleep), se descarta de forma segura.
-- El diseño usa los colores del sistema y respeta el tema claro/oscuro.
+- El diseño usa los roles del tema M3 y respeta el tema claro/oscuro.
 - Test pendiente: taps con la app cerrada, evento aplicado una sola vez, estado visual.
 
 ---
@@ -348,6 +359,7 @@ dart run build_runner build
 - Máquina de estados: inicio, Sleep, Wake, doble toque, clock skew.
 - Persistencia: alta, cierre, restauración, sesiones abiertas duplicadas.
 - UI: estado inicial, cambio Sleep/Wake, restauración y layout a 360 dp.
+- Tema: claro/oscuro desde la misma semilla, roles M3 y tipografía Roboto Flex.
 - Build Android debug correcto.
 
 ### Cobertura pendiente
@@ -374,7 +386,8 @@ dart run build_runner build
 
 - Scaffold Flutter Android.
 - Pantalla principal con dos botones y estado Sleep/Wake.
-- Tema M3 Expressive con color dinámico.
+- Tema M3 Expressive fijo: esquemas claro/oscuro desde la misma semilla y Roboto Flex
+  empaquetada.
 - Persistencia Drift y restauración de sesión abierta.
 - Tests de estado, persistencia y UI.
 

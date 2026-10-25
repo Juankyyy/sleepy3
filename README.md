@@ -32,8 +32,10 @@ a night, close it, and find it intact after restarting the phone.
 - Two-button home screen with a clear awake / sleeping state.
 - Exact session times with a duration line for the last night.
 - Local persistence; an open session survives the app being closed or killed.
-- Material 3 Expressive theme with dynamic color on Android 12+.
-- Accessible labels, visible focus and a layout that adapts to large text.
+- Fixed Material 3 Expressive theme with matching light and dark schemes that follow
+  the system setting.
+- Bundled Roboto Flex typeface, accessible labels, visible focus and a layout that
+  adapts to large text.
 
 **Coming next**
 
@@ -111,6 +113,7 @@ Health Connect support is planned. Each completed session will be written as a
 | Layer | Technology |
 |---|---|
 | UI | Flutter 3.47 + Material 3 Expressive (`material_3_expressive` 1.1.7) |
+| Type | Roboto Flex variable, bundled (`assets/fonts/`, OFL) |
 | State | Riverpod (`flutter_riverpod` 3.x) |
 | Persistence | Drift over SQLite (`drift`, `drift_flutter`) |
 | Widget | `home_widget` + native Kotlin / Jetpack Glance |
@@ -132,6 +135,8 @@ lib/
         ├── data/          # Drift database and store implementation
         ├── application/   # Riverpod controller and state
         └── presentation/  # home screen and buttons
+assets/
+└── fonts/             # Roboto Flex variable font and its OFL license
 android/
 └── app/src/main/kotlin/com/sleepy3/app/
     └── MainActivity.kt    # native widget and platform bridges land here
@@ -176,9 +181,18 @@ Project conventions worth knowing:
 
 ## Design
 
-Material Design 3 Expressive with dynamic color on Android 12+ and the seed color
-`#6750A4` as a fallback. Buttons are 96 dp tall and stack when the screen is narrow or
-the system text size is large. Light and dark themes follow the system setting.
+Sleepy3 uses a fixed Material 3 Expressive color scheme generated from one Sleepy3
+blue seed. Light and dark are generated independently from that seed and follow the
+system setting; dynamic color (Material You) is intentionally off, so the app looks
+the same on every device.
+
+Type is **Roboto Flex**, bundled in the APK and applied across the M3 type scale. The
+prototype's 850/950 weights are gone: display, headline, body and label roles use the
+published M3 sizes, weights and tracking. Buttons are 96 dp tall and stack when the
+screen is narrow or the system text size is large.
+
+Roboto Flex is distributed under the SIL Open Font License; the license text ships with
+the app at `assets/fonts/OFL.txt`.
 
 The local M3 spec lives in `.agent-skills/m3-expressive/`; read its `SKILL.md` before
 changing UI.

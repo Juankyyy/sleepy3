@@ -12,6 +12,7 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_riverpod: ^3.4.3
+  intl: ^0.20.3
   material_3_expressive: ^1.1.7
   # 1.8.0 introduced a RoundedPolygon symbol that conflicts with
   # material_new_shapes; pin until material_3_expressive supports it.
@@ -26,3 +27,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/fonts/OFL.txt
+  fonts:
+    - family: RobotoFlex
+      fonts:
+        - asset: assets/fonts/RobotoFlex-VariableFont.ttf
