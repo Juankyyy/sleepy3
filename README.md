@@ -30,6 +30,8 @@ a night, close it, and find it intact after restarting the phone.
 **Working today**
 
 - Two-button home screen with a clear awake / sleeping state.
+- Three-tab Material 3 shell: Home, Stats and Settings, with placeholders ready for
+  the history and preferences screens.
 - Exact session times with a duration line for the last night.
 - Local persistence; an open session survives the app being closed or killed.
 - Fixed Material 3 Expressive theme with matching light and dark schemes that follow
@@ -75,6 +77,8 @@ open it.
 1. Open Sleepy3 and tap **Sleep** when you go to bed.
 2. Tap **Wake** when you get up.
 3. The line under the title tells you what is happening.
+4. Use the bottom bar to open **Stats** or **Settings**. Both are placeholders for now;
+   the system back gesture returns to Home.
 
 | Situation | What you see |
 |---|---|

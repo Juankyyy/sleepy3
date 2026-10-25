@@ -2,7 +2,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/theme/sleepy3_theme.dart';
-import '../features/sleep_tracking/presentation/sleep_home_screen.dart';
+import 'sleepy3_shell.dart';
 
 /// Runs the app with the Sleepy3 scheme for the current system brightness.
 ///
@@ -58,7 +58,7 @@ class _Sleepy3AppState extends State<Sleepy3App> with WidgetsBindingObserver {
       locale: const Locale('en', 'US'),
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       supportedLocales: const [Locale('en', 'US')],
-      home: const SleepHomeScreen(),
+      home: const Sleepy3Shell(),
     );
   }
 }

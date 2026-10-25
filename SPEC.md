@@ -124,14 +124,26 @@ Reglas:
 - Las escrituras a disco se serializan: un Wake inmediatamente después de Sleep no puede
   adelantarse al inicio.
 
-### 3.2 Historial (planificado)
+### 3.2 Navegación
+
+- Barra de navegación M3 flexible (`M3ENavigationBar`, 64 dp) con tres destinos de
+  igual importancia: `Home`, `Stats` y `Settings`.
+- `Home` es el destino inicial. `Stats` y `Settings` son placeholders con un empty
+  state M3 (icono, headline y texto de apoyo) hasta que se diseñe su contenido.
+- El destino activo usa icono relleno, etiqueta en negrita y la píldora de selección;
+  los inactivos usan icono outline.
+- Un `IndexedStack` conserva el estado de cada pestaña al cambiar de destino.
+- Atrás desde `Stats` o `Settings` vuelve a `Home`; atrás desde `Home` sale de la app.
+
+### 3.3 Historial (planificado)
 
 - Lista de sesiones recientes, ordenadas de más nueva a más vieja.
 - Resumen de los últimos 3 días.
 - Cada fila muestra inicio, fin y duración.
 - Sin edición en la primera versión.
+- La pestaña `Stats` mostrará este historial cuando se diseñe.
 
-### 3.3 Widget de pantalla de inicio (planificado)
+### 3.4 Widget de pantalla de inicio (planificado)
 
 - Dos acciones: **Sleep** y **Wake**.
 - El toque registra la hora sin abrir la app.
@@ -139,7 +151,7 @@ Reglas:
 - La app reconcilia la cola al abrirse o volver al primer plano.
 - El widget refleja el estado actual (despierto/durmiendo) con los roles del tema M3.
 
-### 3.4 Health Connect (planificado)
+### 3.5 Health Connect (planificado)
 
 - Sincronizar cada sesión cerrada como `SleepSessionRecord`.
 - Pedir permisos en el momento adecuado, no en el primer arranque.
@@ -148,7 +160,7 @@ Reglas:
 - Reintentar fallos transitorios con WorkManager.
 - Evitar duplicados al reintentar.
 
-### 3.5 Accesibilidad
+### 3.6 Accesibilidad
 
 - Objetivo táctil mínimo de 48 × 48 dp.
 - Etiquetas visibles y descripciones accesibles.
@@ -173,6 +185,12 @@ Reglas:
   - chip día/noche: `labelMedium`;
   - cabecera y tarjeta de resumen: `titleMedium`, `labelMedium`, `bodyMedium`.
 - La ilustración de luna/sol del prototipo no forma parte de la UI.
+- Navegación:
+  - Barra M3 flexible de 64 dp, a todo el ancho, con `surfaceContainer` y sin borde
+    ni sombra.
+  - Tres destinos: `Home`, `Stats` y `Settings`. El activo usa la píldora de selección
+    y un icono relleno; los inactivos, icono outline.
+  - `Stats` y `Settings` muestran un empty state M3 hasta que se diseñen.
 - Pantalla principal:
   - Título `Sleepy3`.
   - Línea de sesión.
@@ -187,6 +205,7 @@ Reglas:
 | Sin sesión | `Tap Sleep to start` |
 | Durmiendo | `Sleeping since {time}` |
 | Sesión anterior | `Last session: {duration}` |
+| Destinos de navegación | `Home`, `Stats`, `Settings` |
 
 - No usar formularios, diálogos de confirmación ni pasos extra para registrar.
 - La app no debe depender de gestos ocultos.
@@ -226,17 +245,25 @@ Notas:
 lib/
 ├── main.dart
 ├── app/
-│   └── sleepy3_app.dart
+│   ├── sleepy3_app.dart
+│   ├── sleepy3_shell.dart
+│   └── navigation/
+│       └── sleepy3_destination.dart
 ├── core/
-│   └── theme/
+│   ├── theme/
+│   └── widgets/
 └── features/
     ├── sleep_tracking/
     │   ├── domain/
     │   ├── data/
     │   ├── application/
     │   └── presentation/
-    ├── health/          # planificado
-    └── widget/          # planificado
+    ├── stats/
+    │   └── presentation/   # placeholder
+    ├── settings/
+    │   └── presentation/   # placeholder
+    ├── health/             # planificado
+    └── widget/             # planificado
 ```
 
 ### Arranque

@@ -44,6 +44,22 @@ abstract final class Sleepy3Theme {
         // would push emphasized styles off the published scale.
         emphasizedGrad: 0,
       ),
+      navigationBarTheme: const _Sleepy3NavigationBarTheme(),
     );
   }
+}
+
+/// Flexible navigation bar roles from the M3 Expressive spec.
+///
+/// The package defaults to the baseline bar's `surfaceContainerHigh` container
+/// and `onSurface` active label. The flexible bar uses `surfaceContainer` for
+/// the container and `secondary` for the active label.
+class _Sleepy3NavigationBarTheme extends M3ENavigationBarTheme {
+  const _Sleepy3NavigationBarTheme();
+
+  @override
+  Color containerColor(M3EColorScheme scheme) => scheme.surfaceContainer;
+
+  @override
+  Color activeLabelColor(M3EColorScheme scheme) => scheme.secondary;
 }

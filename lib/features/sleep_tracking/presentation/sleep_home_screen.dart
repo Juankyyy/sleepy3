@@ -8,6 +8,7 @@ import '../application/sleep_tracking_controller.dart';
 import '../domain/sleep_duration.dart';
 import 'widgets/track_buttons_row.dart';
 
+/// The Home destination: brand, session line and the two tracking actions.
 class SleepHomeScreen extends ConsumerWidget {
   const SleepHomeScreen({super.key});
 
@@ -18,43 +19,38 @@ class SleepHomeScreen extends ConsumerWidget {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
 
-    return Scaffold(
-      backgroundColor: scheme.surface,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Spacer(),
-              Semantics(
-                header: true,
-                child: Text(
-                  'Sleepy3',
-                  textAlign: TextAlign.center,
-                  style: theme.typography.emphasized.headlineLarge.copyWith(
-                    color: scheme.onSurface,
-                  ),
-                ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Spacer(),
+          Semantics(
+            header: true,
+            child: Text(
+              'Sleepy3',
+              textAlign: TextAlign.center,
+              style: theme.typography.emphasized.headlineLarge.copyWith(
+                color: scheme.onSurface,
               ),
-              const SizedBox(height: 8),
-              Text(
-                _sessionLine(context, state),
-                textAlign: TextAlign.center,
-                style: theme.typography.baseline.bodyMedium.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
-              ),
-              const Spacer(),
-              TrackButtonsRow(
-                isSleeping: state.isSleeping,
-                onSleep: () => unawaited(controller.sleep()),
-                onWake: () => unawaited(controller.wake()),
-              ),
-              const SizedBox(height: 24),
-            ],
+            ),
           ),
-        ),
+          const SizedBox(height: 8),
+          Text(
+            _sessionLine(context, state),
+            textAlign: TextAlign.center,
+            style: theme.typography.baseline.bodyMedium.copyWith(
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+          const Spacer(),
+          TrackButtonsRow(
+            isSleeping: state.isSleeping,
+            onSleep: () => unawaited(controller.sleep()),
+            onWake: () => unawaited(controller.wake()),
+          ),
+          const SizedBox(height: 24),
+        ],
       ),
     );
   }

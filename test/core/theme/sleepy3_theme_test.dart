@@ -47,6 +47,31 @@ void main() {
       }
     });
 
+    test('uses the flexible navigation bar roles', () {
+      for (final theme in [Sleepy3Theme.light(), Sleepy3Theme.dark()]) {
+        final scheme = theme.colorScheme;
+        final navigationBar = theme.navigationBarTheme;
+
+        expect(navigationBar.containerColor(scheme), scheme.surfaceContainer);
+        expect(navigationBar.activeLabelColor(scheme), scheme.secondary);
+        expect(
+          navigationBar.selectedColor(scheme),
+          scheme.onSecondaryContainer,
+        );
+        expect(navigationBar.indicatorColor(scheme), scheme.secondaryContainer);
+        expect(navigationBar.unselectedColor(scheme), scheme.onSurfaceVariant);
+        expect(navigationBar.elevation, 0);
+        expect(
+          _contrast(scheme.secondary, scheme.surfaceContainer),
+          greaterThanOrEqualTo(4.5),
+        );
+        expect(
+          _contrast(scheme.onSurfaceVariant, scheme.surfaceContainer),
+          greaterThanOrEqualTo(4.5),
+        );
+      }
+    });
+
     test('uses the M3 type scale with bundled Roboto Flex', () {
       final theme = Sleepy3Theme.light();
       final baseline = theme.typography.baseline;
