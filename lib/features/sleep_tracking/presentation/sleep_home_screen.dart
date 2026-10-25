@@ -6,13 +6,15 @@ import 'package:material_ui/material_ui.dart';
 import '../../../core/time/clock_format.dart';
 import '../../../core/time/day_phase.dart';
 import '../application/sleep_tracking_controller.dart';
+import '../domain/recent_sleep_summary.dart';
 import '../domain/sleep_duration.dart';
 import 'widgets/home_clock.dart';
 import 'widgets/home_header.dart';
 import 'widgets/live_clock.dart';
+import 'widgets/recent_sleep_summary.dart';
 import 'widgets/track_buttons_row.dart';
 
-/// The Home destination: brand, live clock, session line and tracking actions.
+/// The Home destination: brand, live clock, session line, actions and summary.
 class SleepHomeScreen extends ConsumerWidget {
   const SleepHomeScreen({super.key});
 
@@ -54,6 +56,14 @@ class SleepHomeScreen extends ConsumerWidget {
                               isSleeping: state.isSleeping,
                               onSleep: () => unawaited(controller.sleep()),
                               onWake: () => unawaited(controller.wake()),
+                            ),
+                            // 16dp between the actions and the summary.
+                            const SizedBox(height: 16),
+                            RecentSleepSummaryCard(
+                              summary: buildRecentSleepSummary(
+                                now: now,
+                                sessions: state.recentSessions,
+                              ),
                             ),
                           ],
                         ),

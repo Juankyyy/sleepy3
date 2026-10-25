@@ -17,6 +17,8 @@ accounts, no onboarding.
 
 - **Two taps, nothing to fill in.** One button starts the night, the other ends it.
   Sleepy3 stores the real start and end times, not a rounded guess.
+- **See the last three nights at a glance.** Closed sessions are grouped by the day you
+  woke up, with a three-day average and bars against an eight-hour goal.
 - **Your data stays yours.** Sessions live in a local SQLite database. There is no
   backend, no account and no cloud of our own.
 - **Designed for 3 a.m.** Large targets, one-hand use, light and dark themes, and a
@@ -35,6 +37,8 @@ a night, close it, and find it intact after restarting the phone.
 - Three-tab Material 3 shell: Home, Stats and Settings, with placeholders ready for
   the history and preferences screens.
 - Exact session times with a duration line for the last night.
+- A three-day summary card on Home: today, yesterday and two days ago grouped by wake
+  day, with a real average and bars against an eight-hour goal.
 - Local persistence; an open session survives the app being closed or killed.
 - Fixed Material 3 Expressive theme with matching light and dark schemes that follow
   the system setting.
@@ -45,7 +49,7 @@ a night, close it, and find it intact after restarting the phone.
 
 - Home-screen widget to log Sleep / Wake without opening the app.
 - Health Connect sync with background retry.
-- Recent history with a 3-day summary.
+- Full history in Stats and the Settings screen.
 - Motion and accessibility polish, then automated releases.
 
 The native Android prototype that came before this app is preserved at the Git tag
@@ -211,6 +215,13 @@ the app is in the background and catches up on resume. The two actions are extra
 padding is reduced to 16 dp so both fit on a 360 dp phone; they stack when the screen is
 narrower than 320 dp or the system text size is above 130%.
 
+Below the actions, an outlined card summarizes the last three local days. Each closed
+session counts entirely on the day it ended, so a night that crosses midnight belongs to
+the wake day. The card shows today, yesterday and two days ago, the average of the days
+with data, and one 4 dp bar per day against an eight-hour goal, capped at 100%. With no
+sessions it shows em dashes and empty bars. The summary is rebuilt with the injected
+clock, so it moves to the next day without restarting the app.
+
 Roboto Flex is distributed under the SIL Open Font License; the license text ships with
 the app at `assets/fonts/OFL.txt`.
 
@@ -221,7 +232,7 @@ changing UI.
 
 - [ ] Home-screen widget with Sleep / Wake actions and a pending-events queue.
 - [ ] Health Connect sync with retries and idempotent writes.
-- [ ] Recent history and a 3-day summary.
+- [ ] Full history in Stats and the Settings screen.
 - [ ] Widget and Health Connect integration tests.
 - [ ] Motion and accessibility polish.
 - [ ] GitHub Actions release workflow with generated notes.

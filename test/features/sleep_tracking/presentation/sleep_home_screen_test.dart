@@ -50,6 +50,7 @@ void main() {
     expect(find.text('PM'), findsOneWidget);
     expect(find.text('Tuesday, October 20'), findsOneWidget);
     expect(find.text('Tap Sleep when you turn off the lights'), findsOneWidget);
+    expect(find.text('Last 3 days · — avg'), findsOneWidget);
 
     var buttons = tester.widgetList<M3EButton>(find.byType(M3EButton)).toList();
     expect(buttons, hasLength(2));
@@ -74,6 +75,8 @@ void main() {
     expect(find.text('6:15:00'), findsOneWidget);
     expect(find.text('AM'), findsOneWidget);
     expect(find.text('Wednesday, October 21'), findsOneWidget);
+    expect(find.text('Last 3 days · 7h 45m avg'), findsOneWidget);
+    expect(find.text('Today'), findsOneWidget);
     expect(store.finishes, hasLength(1));
     buttons = tester.widgetList<M3EButton>(find.byType(M3EButton)).toList();
     expect(buttons[0].enabled, isTrue);
@@ -96,6 +99,36 @@ void main() {
         .toList();
     expect(buttons[0].enabled, isFalse);
     expect(buttons[1].enabled, isTrue);
+  });
+
+  testWidgets('shows the three-day summary from the startup snapshot', (
+    tester,
+  ) async {
+    final today = DateTime(2026, 10, 21);
+    await pumpHome(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(
+        recentSessions: [
+          SleepSession(
+            startedAt: today,
+            endedAt: today.add(const Duration(hours: 8)),
+          ),
+          SleepSession(
+            startedAt: DateTime(2026, 10, 20),
+            endedAt: DateTime(2026, 10, 20, 7),
+          ),
+        ],
+      ),
+    );
+
+    expect(find.text('Last 3 days · 7h 30m avg'), findsOneWidget);
+    expect(find.text('Today'), findsOneWidget);
+    expect(find.text('Yesterday'), findsOneWidget);
+    expect(find.text('2 days ago'), findsOneWidget);
+    expect(find.text('8h 0m'), findsOneWidget);
+    expect(find.text('7h 0m'), findsOneWidget);
+    expect(find.text('—'), findsOneWidget);
   });
 
   testWidgets('shows the day copy and chip during the day', (tester) async {

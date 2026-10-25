@@ -13,7 +13,7 @@ import 'package:material_ui/material_ui.dart';
 /// - date and supporting copy: `bodyMedium`;
 /// - session line: emphasized `bodyMedium`;
 /// - day/night chip: `labelMedium`;
-/// - summary card: `titleMedium`, `labelMedium`, `bodyMedium`.
+/// - summary card: `titleMedium` and `labelMedium`.
 abstract final class Sleepy3Theme {
   /// Sleepy3 blue: the single source color for both schemes.
   static const seedColor = Color(0xFF2B3A8F);

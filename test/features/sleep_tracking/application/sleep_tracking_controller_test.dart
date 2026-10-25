@@ -31,6 +31,7 @@ void main() {
       expect(state.isSleeping, isFalse);
       expect(state.openSession, isNull);
       expect(state.lastSession, isNull);
+      expect(state.recentSessions, isEmpty);
     });
 
     test('sleep opens a session and persists it', () async {
@@ -68,6 +69,11 @@ void main() {
           const Duration(hours: 7, minutes: 45),
         );
         expect(store.finishes.single, now);
+        expect(state.recentSessions, hasLength(1));
+        expect(
+          state.recentSessions.single.duration,
+          state.lastSession?.duration,
+        );
       },
     );
 
@@ -140,5 +146,34 @@ void main() {
       expect(state.isSleeping, isFalse);
       expect(state.lastSession?.duration, const Duration(hours: 8));
     });
+
+    test(
+      'restores recent closed sessions and keeps them across Sleep',
+      () async {
+        final recent = SleepSession(
+          startedAt: DateTime(2026, 10, 19, 23),
+          endedAt: DateTime(2026, 10, 20, 7),
+        );
+        final restored = ProviderContainer.test(
+          overrides: [
+            sleepClockProvider.overrideWithValue(() => now),
+            sleepSessionStoreProvider.overrideWithValue(store),
+            initialSleepSnapshotProvider.overrideWithValue(
+              SleepSnapshot(lastSession: recent, recentSessions: [recent]),
+            ),
+          ],
+        );
+
+        expect(restored.read(sleepTrackingControllerProvider).recentSessions, [
+          recent,
+        ]);
+
+        await restored.read(sleepTrackingControllerProvider.notifier).sleep();
+
+        final state = restored.read(sleepTrackingControllerProvider);
+        expect(state.isSleeping, isTrue);
+        expect(state.recentSessions, [recent]);
+      },
+    );
   });
 }
