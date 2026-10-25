@@ -206,8 +206,10 @@ Home opens with the Sleepy3 header and a day/night status pill, followed by a li
 in emphasized display type with tabular figures, the date and the session line. The clock
 is a single unbreakable line: if the system text size would overflow, only the clock
 shrinks; every other label follows the system scale. Its one-second timer pauses while
-the app is in the background and catches up on resume. Buttons are 96 dp tall and stack
-when the screen is narrow or the system text size is large.
+the app is in the background and catches up on resume. The two actions are extra-large
+(136 dp) square filled buttons with 40 dp icons and `labelLarge` labels. Their horizontal
+padding is reduced to 16 dp so both fit on a 360 dp phone; they stack when the screen is
+narrower than 320 dp or the system text size is above 130%.
 
 Roboto Flex is distributed under the SIL Open Font License; the license text ships with
 the app at `assets/fonts/OFL.txt`.

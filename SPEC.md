@@ -217,7 +217,12 @@ Reglas:
   - Fecha en `bodyMedium` y línea de sesión en `bodyMedium` emphasized.
   - El reloj es una línea única. Si el tamaño de texto del sistema no cabe en el ancho,
     solo el reloj se reduce; el resto del texto respeta la escala del sistema.
-  - Dos botones M3E grandes, de 96 dp de alto, con icono y etiqueta.
+  - Dos `M3EButton.icon` XL de 136 dp de alto, forma square (radio 28 dp), estilo
+    `filled`, icono leading de 40 dp y etiqueta `labelLarge`. Ambos usan
+    `primary`/`onPrimary`; el deshabilitado usa los tokens disabled del botón M3E.
+    La etiqueta `labelLarge` y el padding horizontal de 16 dp son decisiones de layout
+    para que quepan dos botones en 360 dp, no tokens M3: M3 Expressive asigna al botón XL
+    un rol tipográfico mayor y 64 dp de padding lateral.
   - En pantallas angostas o con texto grande, los botones se apilan.
 - Copy de la interfaz en inglés:
 

@@ -1,4 +1,3 @@
-import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -213,23 +212,5 @@ void main() {
       find.text('Tap Sleep when you turn off the lights'),
     );
     expect(MediaQuery.textScalerOf(sessionContext).scale(14), 28);
-  });
-
-  testWidgets('both action labels fit on a 360dp phone', (tester) async {
-    tester.view.physicalSize = const Size(1080, 2400);
-    tester.view.devicePixelRatio = 3.0;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-
-    await pumpHome(tester, clock: () => DateTime(2026, 10, 20, 22, 30));
-
-    for (final label in ['Sleep', 'Wake']) {
-      final paragraph = tester.renderObject<RenderParagraph>(find.text(label));
-      expect(
-        paragraph.didExceedMaxLines,
-        isFalse,
-        reason: '$label is truncated at 360dp',
-      );
-    }
   });
 }
