@@ -23,4 +23,35 @@ void main() {
       expect(formatSleepDuration(const Duration(minutes: -10)), '0m');
     });
   });
+
+  group('formatSpokenSleepDuration', () {
+    test('uses singular hour and minute', () {
+      expect(
+        formatSpokenSleepDuration(const Duration(hours: 1, minutes: 1)),
+        '1 hour 1 minute',
+      );
+    });
+
+    test('speaks minutes only', () {
+      expect(
+        formatSpokenSleepDuration(const Duration(minutes: 35)),
+        '35 minutes',
+      );
+    });
+
+    test('keeps zero minutes when hours exist', () {
+      expect(
+        formatSpokenSleepDuration(const Duration(hours: 8)),
+        '8 hours 0 minutes',
+      );
+    });
+
+    test('speaks zero and negative durations as zero', () {
+      expect(formatSpokenSleepDuration(Duration.zero), '0 minutes');
+      expect(
+        formatSpokenSleepDuration(const Duration(minutes: -10)),
+        '0 minutes',
+      );
+    });
+  });
 }

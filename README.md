@@ -34,11 +34,13 @@ a night, close it, and find it intact after restarting the phone.
 - Two-button home screen with a clear awake / sleeping state.
 - Centered Sleepy3 header with a day/night status pill and a live clock with seconds,
   a date line and a session line. The clock follows the system's 12- or 24-hour setting.
-- Three-tab Material 3 shell: Home, Stats and Settings, with placeholders ready for
-  the history and preferences screens.
+- Three-tab Material 3 shell: Home, Stats and Settings. Stats has the full history;
+  Settings is still a placeholder.
 - Exact session times with a duration line for the last night.
 - A three-day summary card on Home: today, yesterday and two days ago grouped by wake
   day, with a real average and bars against an eight-hour goal.
+- A Stats screen with 7-day, 30-day and all-time filters, a range average and one row
+  per closed session.
 - Local persistence; an open session survives the app being closed or killed.
 - Fixed Material 3 Expressive theme with matching light and dark schemes that follow
   the system setting.
@@ -49,7 +51,7 @@ a night, close it, and find it intact after restarting the phone.
 
 - Home-screen widget to log Sleep / Wake without opening the app.
 - Health Connect sync with background retry.
-- Full history in Stats and the Settings screen.
+- Settings screen.
 - Motion and accessibility polish, then automated releases.
 
 The native Android prototype that came before this app is preserved at the Git tag
@@ -84,8 +86,9 @@ open it.
 2. Tap **Wake** when you get up.
 3. The header shows the day/night state and the clock shows the current time with
    seconds. The line under the date tells you what is happening.
-4. Use the bottom bar to open **Stats** or **Settings**. Both are placeholders for now;
-   the system back gesture returns to Home.
+4. Use the bottom bar to open **Stats** and browse your history with the 7-day, 30-day
+   or all-time filter. **Settings** is still a placeholder. The system back gesture
+   returns to Home.
 
 | Situation | What you see |
 |---|---|
@@ -144,13 +147,15 @@ lib/
 │   └── sleepy3_app.dart
 ├── core/
 │   ├── theme/         # Material 3 Expressive theme and tokens
-│   └── time/          # clock formatting and the day/night rule
+│   └── time/          # clock formatting, day/night rule and LocalDayBuilder
 └── features/
-    └── sleep_tracking/
-        ├── domain/        # sessions, durations, store contract
-        ├── data/          # Drift database and store implementation
-        ├── application/   # Riverpod controller and state
-        └── presentation/  # home screen, header, live clock and buttons
+    ├── sleep_tracking/
+    │   ├── domain/        # sessions, durations, history, store contract
+    │   ├── data/          # Drift database and store implementation
+    │   ├── application/   # Riverpod controller and state
+    │   └── presentation/  # home screen, header, live clock and buttons
+    └── stats/
+        └── presentation/  # stats screen, range chips, summary and history list
 assets/
 └── fonts/             # Roboto Flex variable font and its OFL license
 android/
@@ -158,9 +163,9 @@ android/
     └── MainActivity.kt    # native widget and platform bridges land here
 ```
 
-On launch, Sleepy3 opens the database, loads the open session plus the last closed one,
-and injects both into the Riverpod scope before the first frame. If that read fails, the
-app starts with an empty state and logs the error instead of getting stuck.
+On launch, Sleepy3 opens the database, loads the open session and the full closed
+history, and injects both into the Riverpod scope before the first frame. If that read
+fails, the app starts with an empty state and logs the error instead of getting stuck.
 
 The controller is a Riverpod `Notifier`: it updates in-memory state first so the buttons
 answer instantly, then serializes the disk write behind it. The UI never reads the
@@ -222,6 +227,14 @@ with data, and one 4 dp bar per day against an eight-hour goal, capped at 100%. 
 sessions it shows em dashes and empty bars. The summary is rebuilt with the injected
 clock, so it moves to the next day without restarting the app.
 
+Stats follows the same wake-day rule. Three filter chips select 7 days, 30 days or all
+history; the outlined summary card shows the average of the days with data, the total
+and the number of nights. Below it, one expressive list row per closed session shows the
+wake day, duration and start–end range. Open sessions are explained in the header but
+never counted. A local-day timer flips `Today` to `Yesterday` at midnight and catches up
+when the app returns from the background, without rebuilding the offstage tab every
+second. This first version has no chart and no editable or tappable rows.
+
 Roboto Flex is distributed under the SIL Open Font License; the license text ships with
 the app at `assets/fonts/OFL.txt`.
 
@@ -230,9 +243,10 @@ changing UI.
 
 ## Roadmap
 
+- [x] Stats history with 7-day, 30-day and all-time filters.
 - [ ] Home-screen widget with Sleep / Wake actions and a pending-events queue.
 - [ ] Health Connect sync with retries and idempotent writes.
-- [ ] Full history in Stats and the Settings screen.
+- [ ] Settings screen.
 - [ ] Widget and Health Connect integration tests.
 - [ ] Motion and accessibility polish.
 - [ ] GitHub Actions release workflow with generated notes.

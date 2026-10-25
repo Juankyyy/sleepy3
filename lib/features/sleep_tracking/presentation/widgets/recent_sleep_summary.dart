@@ -176,22 +176,17 @@ String _spokenSummary(RecentSleepSummary summary) {
   final buffer = StringBuffer('Last 3 days');
   final average = summary.average;
   buffer.write(
-    average == null ? ', no average' : ', average ${_spokenDuration(average)}',
+    average == null
+        ? ', no average'
+        : ', average ${formatSpokenSleepDuration(average)}',
   );
 
   for (var daysAgo = 0; daysAgo < summary.days.length; daysAgo++) {
     final duration = summary.dayBefore(daysAgo).duration;
     buffer.write('. ${_dayLabel(daysAgo)}: ');
-    buffer.write(duration == null ? 'no session' : _spokenDuration(duration));
+    buffer.write(
+      duration == null ? 'no session' : formatSpokenSleepDuration(duration),
+    );
   }
   return buffer.toString();
-}
-
-String _spokenDuration(Duration duration) {
-  final safe = duration.isNegative ? Duration.zero : duration;
-  final hours = safe.inHours;
-  final minutes = safe.inMinutes.remainder(60);
-  final hourPart = hours == 0 ? '' : '$hours ${hours == 1 ? 'hour' : 'hours'}';
-  final minutePart = '$minutes ${minutes == 1 ? 'minute' : 'minutes'}';
-  return hours == 0 ? minutePart : '$hourPart $minutePart';
 }

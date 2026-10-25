@@ -12,8 +12,8 @@ Sleepy3 is a Flutter Android app for zero-friction sleep tracking: two large but
   under `android/app/src/main/kotlin/com/sleepy3/app/`.
 - Platform features that cannot run in Flutter (the widget, Health Connect manifest
   entries) stay in the Android layer behind small, documented bridges.
-- Current state: the home screen, sleep state machine and Drift persistence work.
-  The Glance widget and Health Connect are next. Sessions are stored in
+- Current state: the home screen, sleep state machine, Drift persistence and Stats
+  history work. The Glance widget and Health Connect are next. Sessions are stored in
   `sleepy3.sqlite`; generated Drift code is committed.
 
 ## Commands

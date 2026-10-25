@@ -22,17 +22,16 @@ final initialSleepSnapshotProvider = Provider<SleepSnapshot>(
 );
 
 class SleepTrackingState {
-  const SleepTrackingState({
-    this.openSession,
-    this.lastSession,
-    this.recentSessions = const [],
-  });
+  const SleepTrackingState({this.openSession, this.closedSessions = const []});
 
   final SleepSession? openSession;
-  final SleepSession? lastSession;
 
-  /// Closed sessions that ended in the recent summary window, oldest first.
-  final List<SleepSession> recentSessions;
+  /// Every finished session, oldest first.
+  final List<SleepSession> closedSessions;
+
+  /// The most recently stored closed session, used for the session line.
+  SleepSession? get lastSession =>
+      closedSessions.isEmpty ? null : closedSessions.last;
 
   bool get isSleeping => openSession != null;
 }
@@ -50,8 +49,7 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
     final initial = ref.watch(initialSleepSnapshotProvider);
     return SleepTrackingState(
       openSession: initial.openSession,
-      lastSession: initial.lastSession,
-      recentSessions: initial.recentSessions,
+      closedSessions: initial.closedSessions,
     );
   }
 
@@ -62,8 +60,7 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
     final session = SleepSession(startedAt: now);
     state = SleepTrackingState(
       openSession: session,
-      lastSession: state.lastSession,
-      recentSessions: state.recentSessions,
+      closedSessions: state.closedSessions,
     );
 
     final store = ref.read(sleepSessionStoreProvider);
@@ -77,8 +74,7 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
     final now = ref.read(sleepClockProvider)();
     final finished = open.finish(now);
     state = SleepTrackingState(
-      lastSession: finished,
-      recentSessions: [...state.recentSessions, finished],
+      closedSessions: [...state.closedSessions, finished],
     );
 
     final store = ref.read(sleepSessionStoreProvider);

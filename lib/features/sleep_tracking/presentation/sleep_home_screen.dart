@@ -62,7 +62,7 @@ class SleepHomeScreen extends ConsumerWidget {
                             RecentSleepSummaryCard(
                               summary: buildRecentSleepSummary(
                                 now: now,
-                                sessions: state.recentSessions,
+                                sessions: state.closedSessions,
                               ),
                             ),
                           ],

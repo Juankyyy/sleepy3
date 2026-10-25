@@ -117,6 +117,24 @@ void main() {
     expect(summary.average, isNull);
   });
 
+  test('only contributes in-window sessions from the full history', () {
+    final summary = buildRecentSleepSummary(
+      now: DateTime(2026, 10, 21, 10),
+      sessions: [
+        closed(DateTime(2026, 10, 17, 23), DateTime(2026, 10, 18, 7)),
+        closed(DateTime(2026, 10, 21, 0), DateTime(2026, 10, 21, 8)),
+        closed(DateTime(2026, 10, 19, 0), DateTime(2026, 10, 19, 6)),
+        closed(DateTime(2026, 10, 22, 1), DateTime(2026, 10, 22, 7)),
+      ],
+    );
+
+    expect(summary.hasData, isTrue);
+    expect(summary.dayBefore(0).duration, const Duration(hours: 8));
+    expect(summary.dayBefore(1).duration, isNull);
+    expect(summary.dayBefore(2).duration, const Duration(hours: 6));
+    expect(summary.average, const Duration(hours: 7));
+  });
+
   test('moves today to yesterday when the local date changes', () {
     final sessions = [
       closed(DateTime(2026, 10, 19, 23), DateTime(2026, 10, 20, 7)),

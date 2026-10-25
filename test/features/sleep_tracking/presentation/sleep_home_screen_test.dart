@@ -109,7 +109,7 @@ void main() {
       tester,
       clock: () => DateTime(2026, 10, 21, 10),
       initial: SleepSnapshot(
-        recentSessions: [
+        closedSessions: [
           SleepSession(
             startedAt: today,
             endedAt: today.add(const Duration(hours: 8)),

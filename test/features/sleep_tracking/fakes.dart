@@ -10,7 +10,7 @@ class FakeSleepSessionStore implements SleepSessionStore {
   int loads = 0;
 
   @override
-  Future<SleepSnapshot> load({required DateTime now}) async {
+  Future<SleepSnapshot> load() async {
     loads++;
     return snapshot;
   }

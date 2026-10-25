@@ -42,6 +42,9 @@ class RecentSleepSummary {
 /// duration yet. The average divides by the days with data, not by
 /// [dayCount], so a missing night is ignored instead of counted as zero.
 ///
+/// Sessions outside the window are skipped before grouping, so the caller can
+/// pass the whole history without paying for old nights on every clock tick.
+///
 /// Days are built with calendar arithmetic (`day - 1`) instead of subtracting
 /// 24-hour durations, so a DST transition does not shift or merge buckets.
 RecentSleepSummary buildRecentSleepSummary({
@@ -53,6 +56,12 @@ RecentSleepSummary buildRecentSleepSummary({
 
   final localNow = now.toLocal();
   final today = DateTime(localNow.year, localNow.month, localNow.day);
+  final windowStart = DateTime(
+    today.year,
+    today.month,
+    today.day - (dayCount - 1),
+  );
+  final windowEnd = DateTime(today.year, today.month, today.day + 1);
 
   final microsByDay = <DateTime, int>{};
   for (final session in sessions) {
@@ -60,6 +69,10 @@ RecentSleepSummary buildRecentSleepSummary({
     if (endedAt == null) continue;
 
     final localEnd = endedAt.toLocal();
+    if (localEnd.isBefore(windowStart) || !localEnd.isBefore(windowEnd)) {
+      continue;
+    }
+
     final day = DateTime(localEnd.year, localEnd.month, localEnd.day);
     final duration = session.duration;
     final micros = duration.isNegative ? 0 : duration.inMicroseconds;

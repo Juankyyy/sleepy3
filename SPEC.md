@@ -3,7 +3,7 @@
 **Proyecto:** Sleepy3
 **Plataforma:** Android
 **Stack principal:** Flutter + Material 3 Expressive
-**Estado:** migración a Flutter en curso; la pantalla principal y la persistencia local ya funcionan.
+**Estado:** migración a Flutter en curso; Home, Stats y la persistencia local ya funcionan.
 
 ---
 
@@ -121,8 +121,9 @@ Reglas:
 - Si ya hay una sesión abierta, Sleep no hace nada.
 - Si no hay sesión abierta, Wake no hace nada.
 - Una sesión cerrada con una hora anterior al inicio se recorta a duración cero.
-- Al arrancar la app se restaura la sesión abierta, la última sesión cerrada y las
-  sesiones cerradas de los últimos 3 días que alimentan el resumen.
+- Al arrancar la app se restaura la sesión abierta y todas las sesiones cerradas,
+  ordenadas de más antigua a más reciente. Home filtra los últimos 3 días para su
+  resumen y `Stats` filtra el rango elegido.
 - Las escrituras a disco se serializan: un Wake inmediatamente después de Sleep no puede
   adelantarse al inicio.
 - El día va de 07:00 a 18:59 y la noche de 19:00 a 06:59, en hora local. Es una regla
@@ -146,6 +147,8 @@ Reglas:
   se despertó: hoy, ayer y anteayer.
 - Una sesión completa pertenece al día de `endedAt`, aunque haya empezado antes de
   medianoche. Si hay varias sesiones el mismo día, sus duraciones se suman.
+- Home recibe todo el historial cerrado y descarta en memoria las sesiones fuera de la
+  ventana antes de agrupar.
 - La media divide por los días con datos, no por 3. Un día sin sesión no baja la media.
 - Cada barra compara el día con una meta de 8 h y se recorta al 100 %. Sin datos, la barra
   queda a cero. La meta de 8 h es una decisión de producto, no un token M3.
@@ -159,20 +162,43 @@ Reglas:
 
 - Barra de navegación M3 flexible (`M3ENavigationBar`, 64 dp) con tres destinos de
   igual importancia: `Home`, `Stats` y `Settings`.
-- `Home` es el destino inicial. `Stats` y `Settings` son placeholders con un empty
-  state M3 (icono, headline y texto de apoyo) hasta que se diseñe su contenido.
+- `Home` es el destino inicial. `Stats` muestra el resumen por rango y el historial;
+  `Settings` sigue siendo un placeholder con un empty state M3 (icono, headline y texto
+  de apoyo) hasta que se diseñe su contenido.
 - El destino activo usa icono relleno, etiqueta en negrita y la píldora de selección;
   los inactivos usan icono outline.
-- Un `IndexedStack` conserva el estado de cada pestaña al cambiar de destino.
+- Un `IndexedStack` conserva el estado de cada pestaña al cambiar de destino, incluido
+  el rango elegido en `Stats` durante la sesión de la app. El rango no se persiste entre
+  arranques.
 - Atrás desde `Stats` o `Settings` vuelve a `Home`; atrás desde `Home` sale de la app.
 
-### 3.3 Historial (planificado)
+### 3.3 Stats e historial
 
-- Lista de sesiones recientes, ordenadas de más nueva a más vieja.
-- Cada fila muestra inicio, fin y duración.
-- Sin edición en la primera versión.
-- El resumen de los últimos 3 días ya vive en Home (3.1.2); la pestaña `Stats` mostrará
-  el historial completo cuando se diseñe.
+- `Stats` tiene tres filtros de rango: `7 days`, `30 days` y `All`. Son filter chips M3
+  de selección única; por defecto se abre en `7 days`.
+- La ventana de 7 días incluye hoy y los seis días locales anteriores. La de 30 días
+  incluye hoy y los veintinueve anteriores. `All` incluye todo el historial cerrado hasta
+  hoy. Las sesiones que terminan después de hoy no se muestran.
+- La tarjeta de resumen muestra la media de los días con datos, el número de noches y el
+  total del rango. Si no hay noches en el rango muestra `—`, `No nights in this range` y,
+  cuando existe historial más antiguo, un botón `Show all` que cambia el filtro a `All`.
+- Debajo, una sola lista muestra una fila por sesión cerrada, de la más reciente a la
+  más antigua. Cada fila tiene tres líneas: el día de despertar como overline
+  (`Today`, `Yesterday`, `Tue, Oct 20` o con año si no es el año actual), la duración
+  como headline y `inicio – fin` como supporting text.
+- Las sesiones no se agrupan en una fila por día: si hubo varias el mismo día, cada una
+  conserva su propia fila. La media y el total sí agrupan por día de despertar, con la
+  misma regla que Home (3.1.2).
+- Las sesiones abiertas no entran en la media, el total ni la lista. Si hay una abierta,
+  la cabecera lo explica con `Sleeping since {time} · it will appear when you wake.`
+- Sin ninguna sesión cerrada se muestra un empty state. El texto cambia si hay una sesión
+  abierta para explicar que la primera noche aparecerá al despertar.
+- La fecha y la ventana se recalculan a medianoche local y al volver del segundo plano
+  con `LocalDayBuilder`, no con un reloj que reconstruye cada segundo. Los días se
+  calculan con aritmética de calendario para no desplazar los grupos con DST.
+- Esta primera versión no tiene gráfico ni detalle de sesión. La lista no es editable y
+  sus filas no son interactivas; el lector de pantalla anuncia día, duración y rango de
+  horas como una sola etiqueta.
 
 ### 3.4 Widget de pantalla de inicio (planificado)
 
@@ -215,7 +241,7 @@ Reglas:
   - marca: `headlineLarge` emphasized;
   - fecha y copy de apoyo: `bodyMedium` (la línea de sesión, emphasized);
   - chip día/noche: `labelMedium`;
-  - cabecera y tarjeta de resumen: `titleMedium` y `labelMedium` (la tarjeta no
+  - cabecera y tarjeta de resumen de Home: `titleMedium` y `labelMedium` (la tarjeta no
     necesita `bodyMedium`).
 - La ilustración de luna/sol del prototipo no forma parte de la UI.
 - Navegación:
@@ -223,7 +249,8 @@ Reglas:
     ni sombra.
   - Tres destinos: `Home`, `Stats` y `Settings`. El activo usa la píldora de selección
     y un icono relleno; los inactivos, icono outline.
-  - `Stats` y `Settings` muestran un empty state M3 hasta que se diseñen.
+  - `Stats` tiene contenido (ver abajo); `Settings` sigue mostrando un empty state M3
+    hasta que se diseñe.
 - Pantalla principal:
   - Cabecera centrada: `Sleepy3` en `headlineLarge` emphasized y un chip de estado
     (`Day · ready to wake` / `Night · time to rest`) en `labelMedium`. El chip no es un
@@ -250,6 +277,21 @@ Reglas:
       formas M3. La altura de 4 dp y la meta de 8 h son decisiones de producto/layout,
       no tokens M3;
     - sin datos, la media y los días muestran `—` y las barras quedan a cero.
+- Pantalla Stats:
+  - Título `Stats` en `headlineMedium` emphasized y línea de apoyo en `bodyMedium`;
+    márgenes laterales de 16 dp, y 24 dp desde 600 dp de ancho (decisión de layout, no
+    token M3).
+  - Filtros `7 days` / `30 days` / `All` con `M3EChip` tipo filter: 32 dp de alto, radio
+    8 dp y 8 dp entre chips. El activo añade un check leading, además del color, para no
+    depender solo del color.
+  - Tarjeta de resumen `M3ECard` outlined (radio 12 dp, padding 16 dp): etiqueta
+    `Average sleep` en `labelMedium`, valor en `displaySmall` emphasized con cifras
+    tabulares, apoyo en `bodyMedium` y `Show all` como botón de texto.
+  - Encabezado de lista `History` en `titleMedium` emphasized.
+  - Lista `M3EList`/`M3EListItem` no interactiva con radio exterior 16 dp, interior 4 dp y
+    gap 2 dp. Cada fila usa overline `labelMedium`, headline `titleMedium` y supporting
+    text `bodyMedium`; las filas crecen con el texto del sistema.
+  - Sin datos, el empty state reutiliza `Sleepy3EmptyState` con icono, headline y apoyo.
 - Copy de la interfaz en inglés:
 
 | Elemento | Texto |
@@ -268,6 +310,17 @@ Reglas:
 | Hace dos días | `2 days ago` |
 | Resumen sin datos | `—` |
 | Destinos de navegación | `Home`, `Stats`, `Settings` |
+| Título de Stats | `Stats` |
+| Apoyo de Stats | `Your sleep, night by night.` |
+| Durmiendo en Stats | `Sleeping since {time} · it will appear when you wake.` |
+| Filtros de Stats | `7 days`, `30 days`, `All` |
+| Resumen de Stats | `Average sleep` |
+| Sin noches en el rango | `No nights in this range` |
+| Mostrar todo el historial | `Show all` |
+| Encabezado de la lista | `History` |
+| Stats sin historial | `No sleep history yet` |
+| Apoyo sin historial | `Your nights will appear here after you wake up.` |
+| Apoyo sin historial durmiendo | `Your first night will appear here when you wake up.` |
 
 - No usar formularios, diálogos de confirmación ni pasos extra para registrar.
 - La app no debe depender de gestos ocultos.
@@ -313,7 +366,7 @@ lib/
 │       └── sleepy3_destination.dart
 ├── core/
 │   ├── theme/
-│   ├── time/             # clock formatting and day/night rule
+│   ├── time/             # clock formatting, day/night rule and LocalDayBuilder
 │   └── widgets/
 └── features/
     ├── sleep_tracking/
@@ -322,7 +375,7 @@ lib/
     │   ├── application/
     │   └── presentation/   # home screen, header, clock, buttons and summary
     ├── stats/
-    │   └── presentation/   # placeholder
+    │   └── presentation/   # screen, range chips, summary and history list
     ├── settings/
     │   └── presentation/   # placeholder
     ├── health/             # planificado
@@ -333,8 +386,8 @@ lib/
 
 1. `main()` inicializa Flutter.
 2. Abre `Sleepy3Database`.
-3. Carga un `SleepSnapshot` con la sesión abierta, la última cerrada y las sesiones
-   cerradas que terminaron en los últimos 3 días locales.
+3. Carga un `SleepSnapshot` con la sesión abierta y todas las sesiones cerradas,
+   ordenadas de más antigua a más reciente.
 4. Inyecta el store y el snapshot en `ProviderScope`.
 5. Recién entonces muestra la app.
 
@@ -353,7 +406,10 @@ quedar bloqueada en el splash.
 ### Datos
 
 - `SleepSessionStore` es la interfaz de persistencia.
-- `DriftSleepSessionStore` es la implementación.
+- `DriftSleepSessionStore` es la implementación. Una sola consulta ordenada carga la
+  sesión abierta y todo el historial cerrado; `SleepSnapshot.lastSession` es un getter.
+- `SleepTrackingState` mantiene `closedSessions` completo. Home filtra los 3 días y
+  `Stats` el rango elegido en memoria; la base de datos no se consulta desde la UI.
 - Los tests usan `FakeSleepSessionStore` o una base Drift en memoria.
 
 ### Widget y Health Connect
@@ -450,14 +506,18 @@ dart run build_runner build
 ### Cobertura actual
 
 - Máquina de estados: inicio, Sleep, Wake, doble toque, clock skew.
-- Persistencia: alta, cierre, restauración, sesiones abiertas duplicadas y ventana de
-  3 días para el resumen.
+- Persistencia: alta, cierre, restauración, sesiones abiertas duplicadas y carga de todo
+  el historial cerrado.
 - UI: estado inicial, cambio Sleep/Wake, restauración y layout a 360 dp.
 - Cabecera, reloj en vivo y línea de sesión: formato 12/24 h, límites día/noche, timer,
   cambio de fecha y layout con texto al 200 %.
 - Resumen de 3 días: agrupación por día de despertar, sesiones que cruzan medianoche,
   suma por día, media sobre días con datos, cambio de fecha, DST, estado vacío, límite
   del 100 % y semántica.
+- Stats: agrupación por día, ventanas 7/30/todas, varias sesiones por día, sesiones
+  abiertas y futuras excluidas, cambio de fecha, DST, `Show all`, 12/24 h, semántica,
+  layout a 360 dp con texto al 200 % y `LocalDayBuilder` al pasar medianoche o volver
+  del segundo plano.
 - Tema: claro/oscuro desde la misma semilla, roles M3 y tipografía Roboto Flex.
 - Build Android debug correcto.
 
@@ -465,7 +525,7 @@ dart run build_runner build
 
 - Widget nativo: taps, cola de pendientes y reconciliación.
 - Health Connect: permisos, sync, reintentos e idempotencia.
-- Historial completo en `Stats`.
+- Pantalla de `Settings`.
 - Golden tests o capturas de referencia para claro/oscuro.
 
 ### Criterio de done por módulo
@@ -490,13 +550,15 @@ dart run build_runner build
 - Persistencia Drift y restauración de sesión abierta.
 - Cabecera con chip día/noche, reloj en vivo con segundos y línea de sesión.
 - Resumen de los últimos 3 días con datos reales, media y barras contra una meta de 8 h.
+- Pantalla `Stats` con filtros 7 días / 30 días / todo, resumen del rango y una fila por
+  sesión.
 - Tests de estado, persistencia y UI.
 
 ### Siguiente
 
 1. Widget de pantalla de inicio con Glance y `home_widget`.
 2. Health Connect y reintentos.
-3. Historial completo en `Stats` y pantalla de `Settings`.
+3. Pantalla de `Settings`.
 4. Workflow de release en GitHub Actions.
 5. Pulido de motion y accesibilidad.
 
@@ -504,7 +566,7 @@ dart run build_runner build
 
 ## 12. Decisiones abiertas
 
-- Formato exacto del historial (lista simple vs. tarjetas).
+- Si se agregará un gráfico de 7 días a `Stats` en una versión posterior.
 - Si el widget mostrará la duración en vivo o solo el estado.
 - Estrategia de reintentos de Health Connect (cantidad y backoff).
 - Si se agregará localización completa después de la primera release en inglés.

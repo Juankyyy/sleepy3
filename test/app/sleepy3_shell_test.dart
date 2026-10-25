@@ -85,7 +85,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(navigationBar(tester).selectedIndex, 1);
-    expect(find.text('No stats yet'), findsOneWidget);
+    expect(find.text('No sleep history yet'), findsOneWidget);
     expect(inNavigationBar(find.byIcon(M3EIcons.bar_chart)), findsOneWidget);
     expect(
       inNavigationBar(find.byIcon(M3EIcons.home_outlined)),

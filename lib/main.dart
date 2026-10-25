@@ -27,7 +27,7 @@ Future<void> main() async {
 
 Future<SleepSnapshot> _loadInitialSnapshot(SleepSessionStore store) async {
   try {
-    return await store.load(now: DateTime.now());
+    return await store.load();
   } catch (error, stackTrace) {
     // The app can still track in memory; a failed read must not block launch.
     debugPrint('Sleepy3: could not load sessions: $error\n$stackTrace');

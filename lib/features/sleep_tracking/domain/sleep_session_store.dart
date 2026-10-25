@@ -2,22 +2,23 @@ import 'sleep_session.dart';
 
 /// The state restored when the app starts.
 class SleepSnapshot {
-  const SleepSnapshot({
-    this.openSession,
-    this.lastSession,
-    this.recentSessions = const [],
-  });
+  const SleepSnapshot({this.openSession, this.closedSessions = const []});
 
   static const empty = SleepSnapshot();
 
   /// A session that was running when the app last closed, if any.
   final SleepSession? openSession;
 
-  /// The most recently finished session, used for the session line.
-  final SleepSession? lastSession;
+  /// Every finished session, oldest first.
+  ///
+  /// Stats groups them by wake day and Home picks the recent window. Keeping
+  /// the full history here gives both screens one source of truth and lets
+  /// Stats update as soon as a session is finished.
+  final List<SleepSession> closedSessions;
 
-  /// Closed sessions that ended in the recent summary window, oldest first.
-  final List<SleepSession> recentSessions;
+  /// The most recently stored closed session, used for the session line.
+  SleepSession? get lastSession =>
+      closedSessions.isEmpty ? null : closedSessions.last;
 }
 
 /// Persistence boundary for sleep sessions.
@@ -25,8 +26,9 @@ class SleepSnapshot {
 /// The controller updates its in-memory state first, then writes through this
 /// interface in order, so the two buttons never wait for disk I/O.
 abstract interface class SleepSessionStore {
-  /// Loads the startup snapshot, using [now] to bound the recent summary.
-  Future<SleepSnapshot> load({required DateTime now});
+  /// Loads the startup snapshot: the open session, if any, and every closed
+  /// session ordered oldest first.
+  Future<SleepSnapshot> load();
 
   Future<void> startSession(SleepSession session);
 
