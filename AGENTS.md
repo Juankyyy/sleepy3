@@ -12,9 +12,10 @@ Sleepy3 is a Flutter Android app for zero-friction sleep tracking: two large but
   under `android/app/src/main/kotlin/com/sleepy3/app/`.
 - Platform features that cannot run in Flutter (the widget, Health Connect manifest
   entries) stay in the Android layer behind small, documented bridges.
-- Current state: the home screen, sleep state machine, Drift persistence and Stats
-  history work. The Glance widget and Health Connect are next. Sessions are stored in
-  `sleepy3.sqlite`; generated Drift code is committed.
+- Current state: the home screen, sleep state machine, Drift persistence, Stats history
+  and Settings work. The Glance widget and Health Connect are next. Sessions and the
+  theme preference are stored in `sleepy3.sqlite` (schema v2); generated Drift code is
+  committed.
 
 ## Commands
 
@@ -43,6 +44,8 @@ lib/
 ├── core/theme/          # Material 3 theme and design tokens
 └── features/
     ├── sleep_tracking/  # domain, data, application, presentation
+    ├── stats/           # presentation
+    ├── settings/        # theme, app version, about and preferences
     ├── health/          # Health Connect permissions and sync
     └── widget/          # home_widget bridge and pending events
 ```
@@ -57,7 +60,13 @@ lib/
 - Local persistence: Drift over SQLite. The schema lives in
   `lib/features/sleep_tracking/data/sleepy3_database.dart` and the generated
   `.g.dart` file is committed. Bump `schemaVersion` and add a migration before
-  changing an existing column.
+  changing an existing column. Settings use the same database through the
+  `preferences` key/value table; do not add `shared_preferences`.
+- Theme: `ThemeModeController` owns `System` / `Light` / `Dark`; `Sleepy3App`
+  resolves the brightness with the fixed Sleepy3 schemes. Keep
+  `M3EMaterialApp.autoTheming` disabled.
+- App version: load `package_info_plus` before `runApp`; `appVersionProvider` is null
+  when the platform cannot provide it and Settings hides the row.
 - Background work: WorkManager for Flutter.
 - The widget uses `home_widget` and native Jetpack Glance. Widget taps are written to
   a pending-events queue and reconciled by the Flutter app on launch/resume.

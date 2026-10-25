@@ -1,40 +1,39 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/theme/sleepy3_theme.dart';
+import '../features/settings/application/theme_mode_controller.dart';
+import '../features/settings/domain/app_theme_mode.dart';
 import 'sleepy3_shell.dart';
 
-/// Runs the app with the Sleepy3 scheme for the current system brightness.
+/// Runs the app with the Sleepy3 scheme for the selected theme mode.
 ///
 /// Brightness is resolved here instead of through `M3EMaterialApp.autoTheming`
 /// because that path derives its dark template from the light primary. Sleepy3
 /// generates light and dark independently from the same seed, so the resolved
 /// scheme is handed to `M3EMaterialApp` as both the expressive data and the
 /// Material theme.
-class Sleepy3App extends StatefulWidget {
+class Sleepy3App extends ConsumerStatefulWidget {
   const Sleepy3App({super.key});
 
   @override
-  State<Sleepy3App> createState() => _Sleepy3AppState();
+  ConsumerState<Sleepy3App> createState() => _Sleepy3AppState();
 }
 
-class _Sleepy3AppState extends State<Sleepy3App> with WidgetsBindingObserver {
-  late Brightness _brightness;
-
+class _Sleepy3AppState extends ConsumerState<Sleepy3App>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
   }
 
   @override
   void didChangePlatformBrightness() {
-    final brightness =
-        WidgetsBinding.instance.platformDispatcher.platformBrightness;
-    if (brightness != _brightness) {
-      setState(() => _brightness = brightness);
-    }
+    // A pinned light/dark theme does not depend on the system brightness.
+    if (ref.read(themeModeControllerProvider) != AppThemeMode.system) return;
+    setState(() {});
   }
 
   @override
@@ -45,7 +44,12 @@ class _Sleepy3AppState extends State<Sleepy3App> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final data = Sleepy3Theme.forBrightness(_brightness);
+    final mode = ref.watch(themeModeControllerProvider);
+    final platformBrightness =
+        WidgetsBinding.instance.platformDispatcher.platformBrightness;
+    final data = Sleepy3Theme.forBrightness(
+      mode.resolveBrightness(platformBrightness),
+    );
 
     return M3EMaterialApp(
       title: 'Sleepy3',

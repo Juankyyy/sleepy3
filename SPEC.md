@@ -163,8 +163,7 @@ Reglas:
 - Barra de navegación M3 flexible (`M3ENavigationBar`, 64 dp) con tres destinos de
   igual importancia: `Home`, `Stats` y `Settings`.
 - `Home` es el destino inicial. `Stats` muestra el resumen por rango y el historial;
-  `Settings` sigue siendo un placeholder con un empty state M3 (icono, headline y texto
-  de apoyo) hasta que se diseñe su contenido.
+  `Settings` contiene apariencia, el estado de Health Connect y la información de la app.
 - El destino activo usa icono relleno, etiqueta en negrita y la píldora de selección;
   los inactivos usan icono outline.
 - Un `IndexedStack` conserva el estado de cada pestaña al cambiar de destino, incluido
@@ -200,7 +199,26 @@ Reglas:
   sus filas no son interactivas; el lector de pantalla anuncia día, duración y rango de
   horas como una sola etiqueta.
 
-### 3.4 Widget de pantalla de inicio (planificado)
+### 3.4 Settings
+
+- La pantalla tiene cabecera `Settings` y línea de apoyo `Theme, Health Connect and app
+  info.`, seguida de tres secciones: `Appearance`, `Health Connect` y `About`.
+- Cada sección usa un encabezado `titleMedium` emphasized y una lista agrupada
+  `M3EList`/`M3EListItem` con radio exterior 16 dp, interior 4 dp y gap 2 dp.
+- `Appearance` contiene una fila `Theme` cuyo supporting text muestra el modo actual:
+  `System`, `Light` o `Dark`. Al tocarla se abre un diálogo M3 de selección con opciones
+  de radio y acciones `Cancel` / `Apply`. `Apply` aplica y persiste el modo; `Cancel`
+  no cambia nada. El valor por defecto es `System`.
+- `Health Connect` contiene una fila deshabilitada `Sleep` con supporting text
+  `Coming soon.`. No pide permisos, no sincroniza y no simula un estado de conexión.
+- `About` contiene `Privacy` con apoyo `On-device only.`, `Version` con
+  `{version} ({build})` cuando el plugin de información de la app responde (la fila se
+  oculta si no hay dato) y `Licenses`, que abre la página de licencias de Flutter con el
+  nombre, la versión y la leyenda GPLv3.
+- El modo de tema se guarda en la tabla `preferences` de la misma base Drift; no se usa
+  `shared_preferences`.
+
+### 3.5 Widget de pantalla de inicio (planificado)
 
 - Dos acciones: **Sleep** y **Wake**.
 - El toque registra la hora sin abrir la app.
@@ -208,7 +226,7 @@ Reglas:
 - La app reconcilia la cola al abrirse o volver al primer plano.
 - El widget refleja el estado actual (despierto/durmiendo) con los roles del tema M3.
 
-### 3.5 Health Connect (planificado)
+### 3.6 Health Connect (planificado)
 
 - Sincronizar cada sesión cerrada como `SleepSessionRecord`.
 - Pedir permisos en el momento adecuado, no en el primer arranque.
@@ -217,7 +235,7 @@ Reglas:
 - Reintentar fallos transitorios con WorkManager.
 - Evitar duplicados al reintentar.
 
-### 3.6 Accesibilidad
+### 3.7 Accesibilidad
 
 - Objetivo táctil mínimo de 48 × 48 dp.
 - Etiquetas visibles y descripciones accesibles.
@@ -232,7 +250,8 @@ Reglas:
 - Material Design 3 Expressive con **tema fijo**. Sin color dinámico (Material You).
 - Esquema claro y oscuro generados por separado desde la misma semilla azul Sleepy3
   (`#2B3A8F`). El oscuro no se deriva del `primary` del claro.
-- El modo sigue al sistema (claro/oscuro); no hay selector manual por ahora.
+- El modo sigue al sistema por defecto. Desde `Settings` se puede fijar `System`,
+  `Light` o `Dark`; la elección se aplica al instante y se conserva entre arranques.
 - Tipografía **Roboto Flex variable** empaquetada como asset (`assets/fonts/`, OFL).
   Se usan los tamaños, pesos y tracking de la escala M3; no se usan pesos 850/950.
 - Mapeo tipográfico:
@@ -249,8 +268,7 @@ Reglas:
     ni sombra.
   - Tres destinos: `Home`, `Stats` y `Settings`. El activo usa la píldora de selección
     y un icono relleno; los inactivos, icono outline.
-  - `Stats` tiene contenido (ver abajo); `Settings` sigue mostrando un empty state M3
-    hasta que se diseñe.
+  - `Stats` y `Settings` tienen contenido (ver abajo).
 - Pantalla principal:
   - Cabecera centrada: `Sleepy3` en `headlineLarge` emphasized y un chip de estado
     (`Day · ready to wake` / `Night · time to rest`) en `labelMedium`. El chip no es un
@@ -292,6 +310,24 @@ Reglas:
     gap 2 dp. Cada fila usa overline `labelMedium`, headline `titleMedium` y supporting
     text `bodyMedium`; las filas crecen con el texto del sistema.
   - Sin datos, el empty state reutiliza `Sleepy3EmptyState` con icono, headline y apoyo.
+- Pantalla Settings:
+  - Título `Settings` en `headlineMedium` emphasized y apoyo en `bodyMedium`; márgenes
+    laterales de 16 dp, y 24 dp desde 600 dp de ancho (decisión de layout).
+  - Secciones `Appearance`, `Health Connect` y `About` con encabezado `titleMedium`
+    emphasized y 8 dp hasta la lista.
+  - Filas `M3EListItem` dentro de `M3EList` con radio exterior 16 dp, interior 4 dp y gap
+    2 dp. Las filas crecen con el texto del sistema.
+  - La fila `Theme` usa el supporting text para el valor actual (`System`, `Light` o
+    `Dark`), de modo que el lector de pantalla lo anuncie como parte de la etiqueta. El
+    diálogo de selección usa opciones cortas para caber al 200 % de texto.
+  - `Health Connect` es informativa y deshabilitada: `Sleep` / `Coming soon.`, sin tap ni
+    permisos. No se presenta como una integración conectada.
+  - `About` muestra `Privacy` / `On-device only.`, `Version` con el dato de
+    `package_info_plus` como supporting text (se oculta si no está disponible) y
+    `Licenses`, que abre `showLicensePage` (API estándar de Flutter, no un componente
+    M3E).
+  - Al 200 % de texto las etiquetas y los supporting text caben sin elipsis; la pantalla
+    se desplaza verticalmente.
 - Copy de la interfaz en inglés:
 
 | Elemento | Texto |
@@ -321,6 +357,16 @@ Reglas:
 | Stats sin historial | `No sleep history yet` |
 | Apoyo sin historial | `Your nights will appear here after you wake up.` |
 | Apoyo sin historial durmiendo | `Your first night will appear here when you wake up.` |
+| Título de Settings | `Settings` |
+| Apoyo de Settings | `Theme, Health Connect and app info.` |
+| Secciones de Settings | `Appearance`, `Health Connect`, `About` |
+| Fila de tema | `Theme` |
+| Modos de tema | `System`, `Light`, `Dark` |
+| Fila de Health Connect | `Sleep` |
+| Apoyo de Health Connect | `Coming soon.` |
+| Privacidad | `Privacy` / `On-device only.` |
+| Otras filas de About | `Version`, `Licenses` |
+| Acciones del diálogo de tema | `Cancel`, `Apply` |
 
 - No usar formularios, diálogos de confirmación ni pasos extra para registrar.
 - La app no debe depender de gestos ocultos.
@@ -337,6 +383,7 @@ Reglas:
 | Fechas | `intl` 0.20 |
 | Estado | Riverpod |
 | Persistencia | Drift + SQLite (`drift_flutter`, `sqlite3`) |
+| Info de la app | `package_info_plus` 10.x |
 | Widget | `home_widget` + Jetpack Glance nativo |
 | Salud | Health Connect `SleepSessionRecord` |
 | Background | WorkManager para Flutter |
@@ -377,7 +424,10 @@ lib/
     ├── stats/
     │   └── presentation/   # screen, range chips, summary and history list
     ├── settings/
-    │   └── presentation/   # placeholder
+    │   ├── domain/         # theme mode, app version and settings store contract
+    │   ├── data/           # Drift-backed settings store
+    │   ├── application/    # theme controller and providers
+    │   └── presentation/   # settings screen, theme dialog and about list
     ├── health/             # planificado
     └── widget/             # planificado
 ```
@@ -388,11 +438,14 @@ lib/
 2. Abre `Sleepy3Database`.
 3. Carga un `SleepSnapshot` con la sesión abierta y todas las sesiones cerradas,
    ordenadas de más antigua a más reciente.
-4. Inyecta el store y el snapshot en `ProviderScope`.
-5. Recién entonces muestra la app.
+4. Carga el modo de tema de `preferences` y la versión instalada con
+   `package_info_plus`.
+5. Inyecta los stores, el snapshot, el tema inicial y la versión en `ProviderScope`.
+6. Recién entonces muestra la app.
 
-Si la lectura inicial falla, la app arranca con estado vacío y registra el error; no debe
-quedar bloqueada en el splash.
+Si una lectura inicial falla, la app arranca con el valor por defecto (estado vacío,
+tema `System` o versión oculta) y registra el error; no debe quedar bloqueada en el
+splash.
 
 ### Estado
 
@@ -402,6 +455,10 @@ quedar bloqueada en el splash.
 - La UI escucha el estado; no lee la base de datos directamente.
 - El reloj se inyecta con `sleepClockProvider`; la lógica de dominio no llama a
   `DateTime.now()`.
+- `ThemeModeController` es un `Notifier<AppThemeMode>`. Actualiza el estado al instante,
+  serializa las escrituras y conserva la elección visible si una escritura falla.
+- `Sleepy3App` resuelve el brillo con el modo de tema y el brillo del sistema; mantiene
+  `M3EMaterialApp.autoTheming` desactivado para usar los esquemas claro/oscuro propios.
 
 ### Datos
 
@@ -410,7 +467,9 @@ quedar bloqueada en el splash.
   sesión abierta y todo el historial cerrado; `SleepSnapshot.lastSession` es un getter.
 - `SleepTrackingState` mantiene `closedSessions` completo. Home filtra los 3 días y
   `Stats` el rango elegido en memoria; la base de datos no se consulta desde la UI.
-- Los tests usan `FakeSleepSessionStore` o una base Drift en memoria.
+- `SettingsStore` es la interfaz de preferencias y `DriftSettingsStore` su implementación.
+  Usa la tabla `preferences` de la misma base; no hay `shared_preferences`.
+- Los tests usan `FakeSleepSessionStore`, `FakeSettingsStore` o una base Drift en memoria.
 
 ### Widget y Health Connect
 
@@ -431,7 +490,7 @@ quedar bloqueada en el splash.
 | `started_at_millis` | INTEGER | Unix milliseconds, obligatorio |
 | `ended_at_millis` | INTEGER | Unix milliseconds, nullable |
 
-- `schemaVersion = 1`.
+- `schemaVersion = 2`.
 - Base: `sleepy3.sqlite` en el directorio de documentos de la app.
 - El resumen de 3 días no añade columnas ni migración: consulta las cerradas con
   `ended_at_millis` entre el inicio local de hace 2 días y el inicio local de mañana.
@@ -442,6 +501,18 @@ quedar bloqueada en el splash.
 ```bash
 dart run build_runner build
 ```
+
+### Tabla `preferences`
+
+| Columna | Tipo | Notas |
+|---|---|---|
+| `setting_key` | TEXT | PRIMARY KEY |
+| `setting_value` | TEXT | Valor serializado como texto |
+
+- Clave `theme_mode` con valores `system`, `light` o `dark`.
+- Un valor ausente o desconocido se interpreta como `system`.
+- La migración de v1 a v2 crea `preferences`; las sesiones existentes no se tocan.
+- El modo de tema se guarda en la misma base para no abrir un segundo almacén.
 
 ### Invariantes
 
@@ -484,6 +555,8 @@ dart run build_runner build
   3. Si falla por un error transitorio, encolar un reintento con WorkManager.
   4. Reintentar de forma idempotente para no duplicar registros.
 - Si el usuario deniega permisos, no bloquear el registro local.
+- Mientras no esté implementado, `Settings` muestra una fila deshabilitada `Sleep` /
+  `Coming soon.` y no solicita permisos ni simula una conexión.
 - La publicación en Play Console requiere la declaración de Health Connect.
 - Tests pendientes: permiso concedido, denegado, API no disponible y reintento.
 
@@ -518,6 +591,10 @@ dart run build_runner build
   abiertas y futuras excluidas, cambio de fecha, DST, `Show all`, 12/24 h, semántica,
   layout a 360 dp con texto al 200 % y `LocalDayBuilder` al pasar medianoche o volver
   del segundo plano.
+- Settings: tema por defecto y persistido, diálogo de selección con `Cancel`/`Apply`,
+  resolución `System`/`Light`/`Dark`, fila de Health Connect deshabilitada, versión
+  oculta si no está disponible, página de licencias, semántica, migración v1→v2 y layout
+  a 360 dp con texto al 200 %.
 - Tema: claro/oscuro desde la misma semilla, roles M3 y tipografía Roboto Flex.
 - Build Android debug correcto.
 
@@ -525,7 +602,6 @@ dart run build_runner build
 
 - Widget nativo: taps, cola de pendientes y reconciliación.
 - Health Connect: permisos, sync, reintentos e idempotencia.
-- Pantalla de `Settings`.
 - Golden tests o capturas de referencia para claro/oscuro.
 
 ### Criterio de done por módulo
@@ -552,15 +628,16 @@ dart run build_runner build
 - Resumen de los últimos 3 días con datos reales, media y barras contra una meta de 8 h.
 - Pantalla `Stats` con filtros 7 días / 30 días / todo, resumen del rango y una fila por
   sesión.
+- Pantalla `Settings` con tema `System`/`Light`/`Dark` persistido, fila informativa de
+  Health Connect y `About` con privacidad, versión y licencias.
 - Tests de estado, persistencia y UI.
 
 ### Siguiente
 
 1. Widget de pantalla de inicio con Glance y `home_widget`.
 2. Health Connect y reintentos.
-3. Pantalla de `Settings`.
-4. Workflow de release en GitHub Actions.
-5. Pulido de motion y accesibilidad.
+3. Workflow de release en GitHub Actions.
+4. Pulido de motion y accesibilidad.
 
 ---
 

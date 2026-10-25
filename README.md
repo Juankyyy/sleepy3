@@ -35,15 +35,15 @@ a night, close it, and find it intact after restarting the phone.
 - Centered Sleepy3 header with a day/night status pill and a live clock with seconds,
   a date line and a session line. The clock follows the system's 12- or 24-hour setting.
 - Three-tab Material 3 shell: Home, Stats and Settings. Stats has the full history;
-  Settings is still a placeholder.
+  Settings has appearance, a Health Connect placeholder and app information.
 - Exact session times with a duration line for the last night.
 - A three-day summary card on Home: today, yesterday and two days ago grouped by wake
   day, with a real average and bars against an eight-hour goal.
 - A Stats screen with 7-day, 30-day and all-time filters, a range average and one row
   per closed session.
 - Local persistence; an open session survives the app being closed or killed.
-- Fixed Material 3 Expressive theme with matching light and dark schemes that follow
-  the system setting.
+- Fixed Material 3 Expressive theme with matching light and dark schemes. It follows the
+  system by default, and Settings can pin it to Light or Dark.
 - Bundled Roboto Flex typeface, accessible labels, visible focus and a layout that
   adapts to large text.
 
@@ -51,7 +51,6 @@ a night, close it, and find it intact after restarting the phone.
 
 - Home-screen widget to log Sleep / Wake without opening the app.
 - Health Connect sync with background retry.
-- Settings screen.
 - Motion and accessibility polish, then automated releases.
 
 The native Android prototype that came before this app is preserved at the Git tag
@@ -87,8 +86,9 @@ open it.
 3. The header shows the day/night state and the clock shows the current time with
    seconds. The line under the date tells you what is happening.
 4. Use the bottom bar to open **Stats** and browse your history with the 7-day, 30-day
-   or all-time filter. **Settings** is still a placeholder. The system back gesture
-   returns to Home.
+   or all-time filter. Open **Settings** to choose the theme, preview the Health Connect
+   placeholder or open the app version and licenses. The system back gesture returns to
+   Home.
 
 | Situation | What you see |
 |---|---|
@@ -104,10 +104,26 @@ Sleep is disabled while a session is open and Wake is disabled while you are awa
 double tap cannot corrupt the timeline. There are no confirmation dialogs: the action
 happens the moment you tap.
 
+## Settings
+
+Settings is split into three sections:
+
+- **Appearance.** The theme row shows the current choice: System, Light or Dark. Tap it,
+  pick a mode and press **Apply**. The change is immediate and survives a restart;
+  **Cancel** leaves the current theme untouched. System is the default and follows the
+  phone's light/dark setting.
+- **Health Connect.** Sync is not available yet, so the Sleep row is disabled and says
+  **Coming soon.** It does not request permissions or pretend to be connected.
+- **About.** Privacy (`On-device only.`), the installed version and a **Licenses** entry
+  that opens the bundled open-source notices and the GPLv3 notice.
+
+The theme choice is stored in the same local SQLite database as your sessions. The app
+does not use a separate preferences plugin.
+
 ## Privacy and your data
 
-- Sessions are stored in `sleepy3.sqlite`, a SQLite database in the app's documents
-  directory.
+- Sessions and the theme preference are stored in `sleepy3.sqlite`, a SQLite database in
+  the app's documents directory.
 - There is no account, no backend and no analytics. Sleepy3 does not upload your sessions
   anywhere.
 - Health Connect sync will be optional and will require explicit permission. Denying it
@@ -119,7 +135,8 @@ happens the moment you tap.
 ## Health Connect
 
 Health Connect support is planned. Each completed session will be written as a
-`SleepSessionRecord`, with retries for transient failures and without duplicates.
+`SleepSessionRecord`, with retries for transient failures and without duplicates. Until
+then, Settings shows a disabled **Sleep / Coming soon.** row and never requests access.
 
 - Requires Android 9 (API 28) or newer.
 - On Android 13 and lower the Health Connect app must be installed.
@@ -134,6 +151,7 @@ Health Connect support is planned. Each completed session will be written as a
 | Type | Roboto Flex variable, bundled (`assets/fonts/`, OFL) |
 | State | Riverpod (`flutter_riverpod` 3.x) |
 | Persistence | Drift over SQLite (`drift`, `drift_flutter`) |
+| App info | `package_info_plus` |
 | Widget | `home_widget` + native Kotlin / Jetpack Glance |
 | Health | Health Connect `SleepSessionRecord` |
 | Background | WorkManager for Flutter |
@@ -154,8 +172,13 @@ lib/
     │   ├── data/          # Drift database and store implementation
     │   ├── application/   # Riverpod controller and state
     │   └── presentation/  # home screen, header, live clock and buttons
-    └── stats/
-        └── presentation/  # stats screen, range chips, summary and history list
+    ├── stats/
+    │   └── presentation/  # stats screen, range chips, summary and history list
+    └── settings/
+        ├── domain/        # theme mode, app version and store contract
+        ├── data/          # Drift settings store
+        ├── application/   # theme controller and providers
+        └── presentation/  # settings screen, theme dialog and about list
 assets/
 └── fonts/             # Roboto Flex variable font and its OFL license
 android/
@@ -163,9 +186,10 @@ android/
     └── MainActivity.kt    # native widget and platform bridges land here
 ```
 
-On launch, Sleepy3 opens the database, loads the open session and the full closed
-history, and injects both into the Riverpod scope before the first frame. If that read
-fails, the app starts with an empty state and logs the error instead of getting stuck.
+On launch, Sleepy3 opens the database, loads the open session, the full closed history
+and the saved theme, reads the installed version with `package_info_plus`, and injects
+all of it into the Riverpod scope before the first frame. If a read fails, the app starts
+with the empty/default value and logs the error instead of getting stuck.
 
 The controller is a Riverpod `Notifier`: it updates in-memory state first so the buttons
 answer instantly, then serializes the disk write behind it. The UI never reads the
@@ -204,8 +228,9 @@ Project conventions worth knowing:
 
 Sleepy3 uses a fixed Material 3 Expressive color scheme generated from one Sleepy3
 blue seed. Light and dark are generated independently from that seed and follow the
-system setting; dynamic color (Material You) is intentionally off, so the app looks
-the same on every device.
+system setting by default, or the choice saved in Settings (System / Light / Dark).
+Dynamic color (Material You) is intentionally off, so the app looks the same on every
+device.
 
 Type is **Roboto Flex**, bundled in the APK and applied across the M3 type scale. The
 prototype's 850/950 weights are gone: display, headline, body and label roles use the
@@ -235,6 +260,13 @@ never counted. A local-day timer flips `Today` to `Yesterday` at midnight and ca
 when the app returns from the background, without rebuilding the offstage tab every
 second. This first version has no chart and no editable or tappable rows.
 
+Settings uses the same header and section rhythm as Stats. Each section is a grouped
+`M3EList` with 16 dp outer and 4 dp inner corners and a 2 dp gap. The theme row opens a
+short M3 selection dialog; the current mode is part of the row's supporting text so a
+screen reader announces it. The Health Connect row is disabled on purpose. Version comes
+from the platform package info, and Licenses uses Flutter's standard license page rather
+than an M3 Expressive component. Everything fits a 360 dp phone at 200% text.
+
 Roboto Flex is distributed under the SIL Open Font License; the license text ships with
 the app at `assets/fonts/OFL.txt`.
 
@@ -244,9 +276,9 @@ changing UI.
 ## Roadmap
 
 - [x] Stats history with 7-day, 30-day and all-time filters.
+- [x] Settings with appearance, Health Connect placeholder and About.
 - [ ] Home-screen widget with Sleep / Wake actions and a pending-events queue.
 - [ ] Health Connect sync with retries and idempotent writes.
-- [ ] Settings screen.
 - [ ] Widget and Health Connect integration tests.
 - [ ] Motion and accessibility polish.
 - [ ] GitHub Actions release workflow with generated notes.

@@ -97,7 +97,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(navigationBar(tester).selectedIndex, 2);
-    expect(find.text('Settings are coming soon'), findsOneWidget);
+    expect(find.text('Appearance'), findsOneWidget);
+    expect(find.text('Theme'), findsOneWidget);
     expect(inNavigationBar(find.byIcon(M3EIcons.settings)), findsOneWidget);
     expect(
       inNavigationBar(find.byIcon(M3EIcons.bar_chart_outlined)),

@@ -17,6 +17,7 @@ dependencies:
   # 1.8.0 introduced a RoundedPolygon symbol that conflicts with
   # material_new_shapes; pin until material_3_expressive supports it.
   material_ui: 1.7.0
+  package_info_plus: ^10.2.2
 
 dev_dependencies:
   flutter_test:
