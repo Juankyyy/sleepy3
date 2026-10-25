@@ -30,6 +30,8 @@ a night, close it, and find it intact after restarting the phone.
 **Working today**
 
 - Two-button home screen with a clear awake / sleeping state.
+- Centered Sleepy3 header with a day/night status pill and a live clock with seconds,
+  a date line and a session line. The clock follows the system's 12- or 24-hour setting.
 - Three-tab Material 3 shell: Home, Stats and Settings, with placeholders ready for
   the history and preferences screens.
 - Exact session times with a duration line for the last night.
@@ -76,15 +78,20 @@ open it.
 
 1. Open Sleepy3 and tap **Sleep** when you go to bed.
 2. Tap **Wake** when you get up.
-3. The line under the title tells you what is happening.
+3. The header shows the day/night state and the clock shows the current time with
+   seconds. The line under the date tells you what is happening.
 4. Use the bottom bar to open **Stats** or **Settings**. Both are placeholders for now;
    the system back gesture returns to Home.
 
 | Situation | What you see |
 |---|---|
-| No session yet | `Tap Sleep to start` |
-| Sleeping | `Sleeping since 23:41` |
+| No session, daytime | `No active session` |
+| No session, at night | `Tap Sleep when you turn off the lights` |
+| Sleeping | `Sleeping since 10:30 PM` |
 | Back awake | `Last session: 7h 45m` |
+
+Day runs from 07:00 to 18:59 and night from 19:00 to 06:59, in local time. The clock
+shows `AM`/`PM` when the system is set to 12-hour time and no suffix in 24-hour mode.
 
 Sleep is disabled while a session is open and Wake is disabled while you are awake, so a
 double tap cannot corrupt the timeline. There are no confirmation dialogs: the action
@@ -132,13 +139,14 @@ lib/
 ├── app/
 │   └── sleepy3_app.dart
 ├── core/
-│   └── theme/
+│   ├── theme/         # Material 3 Expressive theme and tokens
+│   └── time/          # clock formatting and the day/night rule
 └── features/
     └── sleep_tracking/
         ├── domain/        # sessions, durations, store contract
         ├── data/          # Drift database and store implementation
         ├── application/   # Riverpod controller and state
-        └── presentation/  # home screen and buttons
+        └── presentation/  # home screen, header, live clock and buttons
 assets/
 └── fonts/             # Roboto Flex variable font and its OFL license
 android/
@@ -192,8 +200,14 @@ the same on every device.
 
 Type is **Roboto Flex**, bundled in the APK and applied across the M3 type scale. The
 prototype's 850/950 weights are gone: display, headline, body and label roles use the
-published M3 sizes, weights and tracking. Buttons are 96 dp tall and stack when the
-screen is narrow or the system text size is large.
+published M3 sizes, weights and tracking.
+
+Home opens with the Sleepy3 header and a day/night status pill, followed by a live clock
+in emphasized display type with tabular figures, the date and the session line. The clock
+is a single unbreakable line: if the system text size would overflow, only the clock
+shrinks; every other label follows the system scale. Its one-second timer pauses while
+the app is in the background and catches up on resume. Buttons are 96 dp tall and stack
+when the screen is narrow or the system text size is large.
 
 Roboto Flex is distributed under the SIL Open Font License; the license text ships with
 the app at `assets/fonts/OFL.txt`.

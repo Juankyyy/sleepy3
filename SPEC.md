@@ -109,7 +109,8 @@ funcionar bien de noche, con una sola mano y con el teléfono bloqueado o desblo
 
 | Estado | Sleep | Wake | Línea de sesión |
 |---|---|---|---|
-| Despierto, sin sesión previa | Habilitado | Deshabilitado | `Tap Sleep to start` |
+| Despierto, sin sesión previa, de día | Habilitado | Deshabilitado | `No active session` |
+| Despierto, sin sesión previa, de noche | Habilitado | Deshabilitado | `Tap Sleep when you turn off the lights` |
 | Durmiendo | Deshabilitado | Habilitado | `Sleeping since HH:MM` |
 | Despierto, con sesión previa | Habilitado | Deshabilitado | `Last session: 7h 45m` |
 
@@ -123,6 +124,20 @@ Reglas:
 - Al arrancar la app se restaura la sesión abierta y la última sesión cerrada.
 - Las escrituras a disco se serializan: un Wake inmediatamente después de Sleep no puede
   adelantarse al inicio.
+- El día va de 07:00 a 18:59 y la noche de 19:00 a 06:59, en hora local. Es una regla
+  del prototipo, no de M3. La sesión anterior tiene prioridad sobre el copy de día/noche.
+
+#### 3.1.1 Cabecera y reloj
+
+- La cabecera muestra `Sleepy3` y un chip de estado: `Day · ready to wake` o
+  `Night · time to rest`.
+- El reloj muestra la hora local con segundos. Sigue el formato 12/24 h del sistema; en
+  12 h muestra `AM`/`PM`.
+- La fecha se muestra bajo el reloj, por ejemplo `Tuesday, October 20`.
+- El reloj se actualiza cada segundo. El temporizador se pausa cuando la app pasa a
+  segundo plano y el reloj se refresca al volver al primer plano.
+- El reloj usa `sleepClockProvider`, igual que la máquina de estados, para que los tests
+  puedan avanzar el tiempo.
 
 ### 3.2 Navegación
 
@@ -179,7 +194,8 @@ Reglas:
 - Tipografía **Roboto Flex variable** empaquetada como asset (`assets/fonts/`, OFL).
   Se usan los tamaños, pesos y tracking de la escala M3; no se usan pesos 850/950.
 - Mapeo tipográfico:
-  - reloj: `displayLarge` emphasized;
+  - reloj: `displayLarge` emphasized, con cifras tabulares;
+  - AM/PM: `titleMedium`;
   - marca: `headlineLarge` emphasized;
   - fecha y copy de apoyo: `bodyMedium` (la línea de sesión, emphasized);
   - chip día/noche: `labelMedium`;
@@ -192,8 +208,15 @@ Reglas:
     y un icono relleno; los inactivos, icono outline.
   - `Stats` y `Settings` muestran un empty state M3 hasta que se diseñen.
 - Pantalla principal:
-  - Título `Sleepy3`.
-  - Línea de sesión.
+  - Cabecera centrada: `Sleepy3` en `headlineLarge` emphasized y un chip de estado
+    (`Day · ready to wake` / `Night · time to rest`) en `labelMedium`. El chip no es un
+    componente M3: es una etiqueta de estado construida con los roles y la forma full
+    de M3.
+  - Reloj en vivo en `displayLarge` emphasized, con segundos, cifras tabulares y
+    `AM`/`PM` en `titleMedium` cuando el sistema usa 12 h.
+  - Fecha en `bodyMedium` y línea de sesión en `bodyMedium` emphasized.
+  - El reloj es una línea única. Si el tamaño de texto del sistema no cabe en el ancho,
+    solo el reloj se reduce; el resto del texto respeta la escala del sistema.
   - Dos botones M3E grandes, de 96 dp de alto, con icono y etiqueta.
   - En pantallas angostas o con texto grande, los botones se apilan.
 - Copy de la interfaz en inglés:
@@ -202,7 +225,10 @@ Reglas:
 |---|---|
 | Acción de dormir | `Sleep` |
 | Acción de despertar | `Wake` |
-| Sin sesión | `Tap Sleep to start` |
+| Sin sesión, de día | `No active session` |
+| Sin sesión, de noche | `Tap Sleep when you turn off the lights` |
+| Chip de día | `Day · ready to wake` |
+| Chip de noche | `Night · time to rest` |
 | Durmiendo | `Sleeping since {time}` |
 | Sesión anterior | `Last session: {duration}` |
 | Destinos de navegación | `Home`, `Stats`, `Settings` |
@@ -251,13 +277,14 @@ lib/
 │       └── sleepy3_destination.dart
 ├── core/
 │   ├── theme/
+│   ├── time/             # clock formatting and day/night rule
 │   └── widgets/
 └── features/
     ├── sleep_tracking/
     │   ├── domain/
     │   ├── data/
     │   ├── application/
-    │   └── presentation/
+    │   └── presentation/   # home screen, header, clock and buttons
     ├── stats/
     │   └── presentation/   # placeholder
     ├── settings/
@@ -386,6 +413,8 @@ dart run build_runner build
 - Máquina de estados: inicio, Sleep, Wake, doble toque, clock skew.
 - Persistencia: alta, cierre, restauración, sesiones abiertas duplicadas.
 - UI: estado inicial, cambio Sleep/Wake, restauración y layout a 360 dp.
+- Cabecera, reloj en vivo y línea de sesión: formato 12/24 h, límites día/noche, timer,
+  cambio de fecha y layout con texto al 200 %.
 - Tema: claro/oscuro desde la misma semilla, roles M3 y tipografía Roboto Flex.
 - Build Android debug correcto.
 
@@ -416,6 +445,7 @@ dart run build_runner build
 - Tema M3 Expressive fijo: esquemas claro/oscuro desde la misma semilla y Roboto Flex
   empaquetada.
 - Persistencia Drift y restauración de sesión abierta.
+- Cabecera con chip día/noche, reloj en vivo con segundos y línea de sesión.
 - Tests de estado, persistencia y UI.
 
 ### Siguiente
