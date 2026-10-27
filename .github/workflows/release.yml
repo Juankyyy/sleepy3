@@ -1,0 +1,266 @@
+name: Release
+
+# Two channels, both driven by the branch that receives the push:
+#
+# - dev:  every push publishes a pre-release v0.X.Y (patch + 1).
+# - main: every push publishes the stable minor v0.X.0 with generated notes. The
+#         curated release-notes/vX.Y.0.md is applied afterwards with
+#         `dart run tool/apply_release_notes.dart vX.Y.0`.
+#
+# The version comes from the highest semver tag and the Android version code from that
+# version. The tag is created by this workflow when the release is published; there is
+# no version bump commit.
+
+on:
+  push:
+    branches: [dev, main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Serialize releases: two pushes must not compute the same next version.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch tags
+        run: git fetch --tags --force
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.47.7"
+          cache: true
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Compute version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          channel="${GITHUB_REF_NAME}"
+          case "$channel" in
+            dev | main) ;;
+            *)
+              echo "::error::Releases only run from dev or main (got '$channel')."
+              exit 1
+              ;;
+          esac
+
+          semver='^v[0-9]+\.[0-9]+\.[0-9]+$'
+
+          # Re-running a workflow must reuse the tag it created, not bump again.
+          # dev tags always have a non-zero patch; main tags always end in .0.
+          tag=""
+          while IFS= read -r candidate; do
+            [[ -n "$candidate" ]] || continue
+            candidate_patch="${candidate##*.}"
+            if [[ "$channel" == "main" && "$candidate_patch" -eq 0 ]]; then
+              tag="$candidate"
+            elif [[ "$channel" == "dev" && "$candidate_patch" -gt 0 ]]; then
+              tag="$candidate"
+            fi
+          done < <(git tag --points-at "$GITHUB_SHA" | grep -E "$semver" | sort -V)
+
+          if [[ -n "$tag" ]]; then
+            echo "Reusing $tag: it already points at $GITHUB_SHA."
+          else
+            latest="$(git tag --list 'v*' | grep -E "$semver" | sort -V | tail -n 1 || true)"
+            if [[ -n "$latest" ]]; then
+              IFS=. read -r major minor patch <<<"${latest#v}"
+            else
+              major=0
+              minor=0
+              patch=0
+            fi
+
+            if [[ "$channel" == "dev" ]]; then
+              patch=$((patch + 1))
+            else
+              minor=$((minor + 1))
+              patch=0
+            fi
+            tag="v${major}.${minor}.${patch}"
+          fi
+
+          version="${tag#v}"
+          IFS=. read -r major minor patch <<<"$version"
+          if ((minor > 999 || patch > 999)); then
+            echo "::error::Minor and patch must be <= 999 for the version code formula."
+            exit 1
+          fi
+          code=$((10#$major * 1000000 + 10#$minor * 1000 + 10#$patch))
+
+          # Stable notes cover the whole minor; development notes cover everything
+          # since the previous release on either channel. When a tag is reused, stop at
+          # it so the range excludes the release being re-published.
+          previous=""
+          if [[ "$channel" == "main" ]]; then
+            while IFS= read -r candidate; do
+              [[ "$candidate" == "$tag" ]] && break
+              previous="$candidate"
+            done < <(git tag --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.0$' | sort -V)
+          else
+            while IFS= read -r candidate; do
+              [[ "$candidate" == "$tag" ]] && break
+              previous="$candidate"
+            done < <(git tag --list 'v*' | grep -E "$semver" | sort -V)
+          fi
+
+          prerelease=false
+          if [[ "$channel" == "dev" ]]; then
+            prerelease=true
+          fi
+
+          {
+            echo "tag=$tag"
+            echo "version=$version"
+            echo "code=$code"
+            echo "previous=$previous"
+            echo "prerelease=$prerelease"
+          } >>"$GITHUB_OUTPUT"
+
+          echo "Releasing $tag from $channel (versionCode $code, previous tag '${previous:-none}')."
+
+      - name: Check signing secrets
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [[ -n "$KEYSTORE" ]] || missing+=("ANDROID_KEYSTORE_BASE64")
+          [[ -n "$STORE_PASSWORD" ]] || missing+=("ANDROID_KEYSTORE_PASSWORD")
+          [[ -n "$KEY_ALIAS" ]] || missing+=("ANDROID_KEY_ALIAS")
+          [[ -n "$KEY_PASSWORD" ]] || missing+=("ANDROID_KEY_PASSWORD")
+          if ((${#missing[@]} > 0)); then
+            printf '::error::Missing repository secrets: %s. Releases must be signed with the release keystore.\n' "${missing[*]}"
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Test
+        run: flutter test
+
+      - name: Configure release signing
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$KEYSTORE" | base64 --decode >android/app/release.jks
+          {
+            printf 'storePassword=%s\n' "$STORE_PASSWORD"
+            printf 'keyPassword=%s\n' "$KEY_PASSWORD"
+            printf 'keyAlias=%s\n' "$KEY_ALIAS"
+            printf 'storeFile=release.jks\n'
+          } >android/key.properties
+
+      - name: Build signed APK
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+        run: |
+          flutter build apk --release \
+            --build-name "$VERSION" \
+            --build-number "$VERSION_CODE"
+
+      - name: Prepare release assets
+        id: assets
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          set -euo pipefail
+          asset="sleepy3-${TAG}.apk"
+          cp build/app/outputs/flutter-apk/app-release.apk "$asset"
+          sha256sum "$asset" >"${asset}.sha256"
+          cat "${asset}.sha256"
+          echo "apk=$asset" >>"$GITHUB_OUTPUT"
+          echo "checksum=${asset}.sha256" >>"$GITHUB_OUTPUT"
+
+      - name: Generate release notes
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          PREVIOUS: ${{ steps.version.outputs.previous }}
+        run: |
+          bash .github/scripts/release-notes.sh "$PREVIOUS" HEAD "$TAG" >release-notes.md
+          cat release-notes.md
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sleepy3-${{ steps.version.outputs.tag }}-attempt-${{ github.run_attempt }}
+          path: |
+            ${{ steps.assets.outputs.apk }}
+            ${{ steps.assets.outputs.checksum }}
+          retention-days: 14
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+          APK: ${{ steps.assets.outputs.apk }}
+          CHECKSUM: ${{ steps.assets.outputs.checksum }}
+          PRERELEASE: ${{ steps.version.outputs.prerelease }}
+          TARGET: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # Re-runs only refresh the assets. The curated title and notes of a stable
+            # release must not be overwritten with the generated versions.
+            gh release upload "$TAG" "$APK" "$CHECKSUM" --clobber
+            echo "Release $TAG already exists; refreshed its assets."
+            exit 0
+          fi
+
+          args=(release create "$TAG" "$APK" "$CHECKSUM"
+            --target "$TARGET"
+            --title "$TAG"
+            --notes-file release-notes.md)
+          if [[ "$PRERELEASE" == "true" ]]; then
+            args+=(--prerelease)
+          fi
+          gh "${args[@]}"
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f android/app/release.jks android/key.properties

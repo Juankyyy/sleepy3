@@ -46,19 +46,26 @@ a night, close it, and find it intact after restarting the phone.
   system by default, and Settings can pin it to Light or Dark.
 - Bundled Roboto Flex typeface, accessible labels, visible focus and a layout that
   adapts to large text.
+- Signed GitHub releases: every push to `dev` publishes a pre-release, and `main`
+  publishes the stable minor.
 
 **Coming next**
 
 - Home-screen widget to log Sleep / Wake without opening the app.
 - Health Connect sync with background retry.
-- Motion and accessibility polish, then automated releases.
+- Motion and accessibility polish.
 
 The native Android prototype that came before this app is preserved at the Git tag
 `archive/android-prototype` for reference.
 
 ## Install
 
-Sleepy3 is not on Google Play yet. Build the APK from source:
+Sleepy3 is not on Google Play yet. Download the latest stable APK from
+[Releases](https://github.com/Juankyyy/sleepy3/releases/latest), open it on your phone and
+allow installation from your browser or file manager. Builds from the `dev` branch are
+published as pre-releases and may be unstable.
+
+Alternatively, build the APK from source:
 
 **Requirements**
 
@@ -76,8 +83,9 @@ The APK is written to `build/app/outputs/flutter-apk/app-release.apk`. Install i
 `adb install build/app/outputs/flutter-apk/app-release.apk`, or copy it to the phone and
 open it.
 
-> Release builds are currently signed with the debug keystore. That is fine for
-> sideloading, but not ready for store distribution.
+> Release builds are signed with the project's release key. Android only installs an
+> update over a copy signed with the same key, so uninstall a debug-signed build (for
+> example, one from a local `flutter run --release`) before installing a release APK.
 
 ## Usage
 
@@ -224,6 +232,29 @@ Project conventions worth knowing:
 - Domain logic never calls `DateTime.now()`; the clock is injected through
   `sleepClockProvider`.
 
+### Releasing
+
+Releases are created by `.github/workflows/release.yml`; there is no version bump commit.
+
+- **`dev`** publishes a pre-release on every push. The patch increments: `v0.0.1`,
+  `v0.0.2`, and after the first stable release `v0.1.1`, `v0.1.2`…
+- **`main`** publishes the stable minor on every push: `v0.1.0`, `v0.2.0`… `main` only
+  changes with the maintainer's authorization.
+- The workflow runs `flutter analyze`, `flutter test` and a signed release build before it
+  creates the tag and the release. The Android version code is derived from the version,
+  and the APK is attached as `sleepy3-vX.Y.Z.apk` together with a `.sha256`.
+- Development notes are generated from conventional commits. Stable releases start with
+  those notes too; the curated body and the `vX.Y.0 - The <Theme> Update` title are applied
+  afterwards from `release-notes/vX.Y.0.md` (ignored by Git):
+
+```bash
+dart run tool/apply_release_notes.dart v0.1.0
+```
+
+Maintainers configure four repository secrets (`ANDROID_KEYSTORE_BASE64`,
+`ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`). Without them the
+workflow fails instead of publishing a debug-signed APK. See `SPEC.md §1`.
+
 ## Design
 
 Sleepy3 uses a fixed Material 3 Expressive color scheme generated from one Sleepy3
@@ -281,7 +312,7 @@ changing UI.
 - [ ] Health Connect sync with retries and idempotent writes.
 - [ ] Widget and Health Connect integration tests.
 - [ ] Motion and accessibility polish.
-- [ ] GitHub Actions release workflow with generated notes.
+- [x] Two-channel GitHub Actions releases with generated notes.
 
 ## Contributing
 
@@ -308,6 +339,8 @@ updated when the change affects behavior or the user experience.
   from the Play Store.
 - **The app looks empty after reinstalling**: there is no account to sign in to. If the
   system did not restore the local database from a backup, earlier sessions are gone.
+- **A release APK will not install over an older build**: Android requires the same signing
+  key. Uninstall the debug-signed copy first; that also deletes the local database.
 
 ## License
 

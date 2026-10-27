@@ -12,10 +12,10 @@ Sleepy3 is a Flutter Android app for zero-friction sleep tracking: two large but
   under `android/app/src/main/kotlin/com/sleepy3/app/`.
 - Platform features that cannot run in Flutter (the widget, Health Connect manifest
   entries) stay in the Android layer behind small, documented bridges.
-- Current state: the home screen, sleep state machine, Drift persistence, Stats history
-  and Settings work. The Glance widget and Health Connect are next. Sessions and the
-  theme preference are stored in `sleepy3.sqlite` (schema v2); generated Drift code is
-  committed.
+- Current state: the home screen, sleep state machine, Drift persistence, Stats history,
+  Settings and the two-channel release workflow work. The Glance widget and Health
+  Connect are next. Sessions and the theme preference are stored in `sleepy3.sqlite`
+  (schema v2); generated Drift code is committed.
 
 ## Commands
 
@@ -29,6 +29,7 @@ flutter run
 
 dart format .
 dart run build_runner build
+dart run tool/apply_release_notes.dart vX.Y.Z   # curated notes for a stable release
 ```
 
 Hot reload: run `flutter run` and press `r`; no Android Studio is required.
@@ -101,17 +102,22 @@ rather than presenting it as spec.
 
 Detalle completo en `SPEC.md §1`.
 
-1. Todo el trabajo nuevo en la rama `dev`; `main` permanece estable.
+1. Todo el trabajo nuevo en la rama `dev`; cada push a `dev` publica una pre-release
+   automática (`v0.X.Y`). `main` permanece estable y **solo se toca con autorización
+   explícita del usuario**.
 2. **Paso a paso**: espera a que el usuario pida módulos o cambios concretos; no generes la
    app entera de golpe. Al terminar, indica qué debe probar el usuario.
 3. **Aviso previo**: no se hacen commits ni pushes sin avisar antes. Propón el mensaje y
    espera el OK. «Haz los commits» autoriza commit **y push a `dev`** a la vez: el trabajo
    nunca se queda solo en local.
-4. **`main` y releases, solo a petición**: el merge a `main` y los tags se hacen únicamente
-   cuando el usuario lo pide, tras verificar el bloque/funcionalidad en su máquina.
-5. **Releases**: el usuario decide la versión; el tag `vX.Y.Z` se corta desde `main`. El
-   workflow planificado de GitHub Actions (SPEC §1) publicará el instalador con notas
-   autogeneradas. Las notas curadas viven solo en local (`release-notes/`, ignorado por
-   git) y se aplican después con `gh release edit --notes-file`.
+4. **`main` y releases estables, solo a petición**: el merge o push a `main` se hace
+   únicamente cuando el usuario lo pide, tras verificar el bloque/funcionalidad en su
+   máquina. El agente nunca toca `main` por iniciativa propia, ni siquiera con «Haz los
+   commits». Ese push publica automáticamente la minor estable (`v0.X.0`).
+5. **Versiones y notas**: no se toca `pubspec.yaml`; el CI calcula versión y versionCode
+   desde el tag más alto y crea el tag al publicar. Las notas de `dev` son automáticas. Tras
+   una release estable, escribir `release-notes/vX.Y.0.md` con el título en la primera
+   línea y ejecutar `dart run tool/apply_release_notes.dart vX.Y.0`. La firma usa los
+   secrets del repo; si faltan, el workflow falla.
 6. **Documentación como parte del cambio**: actualiza SPEC.md si cambia el comportamiento o
    la arquitectura, y README.md si el cambio es visible para el usuario.
