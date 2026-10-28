@@ -49,15 +49,36 @@ class DriftSleepSessionStore implements SleepSessionStore {
 
   @override
   Future<void> finishOpenSession(DateTime endedAt) async {
-    // Updating every open row also repairs duplicate opens left behind by an
-    // old crash; the UI only ever creates one.
-    await (_db.update(
-      _db.sleepSessions,
-    )..where((t) => t.endedAtMillis.isNull())).write(
-      SleepSessionsCompanion(
-        endedAtMillis: Value(endedAt.millisecondsSinceEpoch),
-      ),
-    );
+    await _db.transaction(() async {
+      // A crash could leave duplicate open rows behind. Close only the most
+      // recent one and delete the older opens so the uploaded history never
+      // contains overlapping sessions.
+      final openRows =
+          await (_db.select(_db.sleepSessions)
+                ..where((t) => t.endedAtMillis.isNull())
+                ..orderBy([
+                  (t) => OrderingTerm.desc(t.startedAtMillis),
+                  (t) => OrderingTerm.desc(t.id),
+                ]))
+              .get();
+      if (openRows.isEmpty) return;
+
+      final latest = openRows.first;
+      await (_db.update(
+        _db.sleepSessions,
+      )..where((t) => t.id.equals(latest.id))).write(
+        SleepSessionsCompanion(
+          endedAtMillis: Value(endedAt.millisecondsSinceEpoch),
+        ),
+      );
+
+      final duplicateIds = openRows.skip(1).map((row) => row.id).toList();
+      if (duplicateIds.isNotEmpty) {
+        await (_db.delete(
+          _db.sleepSessions,
+        )..where((t) => t.id.isIn(duplicateIds))).go();
+      }
+    });
   }
 
   SleepSession _toDomain(SleepSessionRow row) {

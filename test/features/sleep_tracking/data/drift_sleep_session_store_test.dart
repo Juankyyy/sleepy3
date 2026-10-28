@@ -111,7 +111,7 @@ void main() {
     expect(snapshot.closedSessions, isEmpty);
   });
 
-  test('finishes every open row left by an old crash', () async {
+  test('closes only the latest open row and drops older duplicates', () async {
     final first = DateTime(2026, 10, 18, 23);
     final second = DateTime(2026, 10, 19, 23);
     await database
@@ -134,7 +134,7 @@ void main() {
 
     final snapshot = await store.load();
     expect(snapshot.openSession, isNull);
-    expect(snapshot.closedSessions, hasLength(2));
+    expect(snapshot.closedSessions, hasLength(1));
     expect(snapshot.lastSession?.startedAt, second);
     expect(snapshot.lastSession?.endedAt, endedAt);
   });

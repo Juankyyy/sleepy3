@@ -32,5 +32,9 @@ abstract interface class SleepSessionStore {
 
   Future<void> startSession(SleepSession session);
 
+  /// Closes the most recent open session at [endedAt].
+  ///
+  /// Older open rows left behind by a crash are deleted so the history cannot
+  /// grow overlapping sessions that would be uploaded to Health Connect.
   Future<void> finishOpenSession(DateTime endedAt);
 }
