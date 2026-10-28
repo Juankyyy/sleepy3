@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sleepy3</string>
+    <string name="health_connect_rationale_title">Sleepy3 and Health Connect</string>
+    <string name="health_connect_rationale_body">Sleepy3 reads and writes sleep sessions in Health Connect when you choose Google Health as your sleep data source. Your sleep data stays in Health Connect and is never sent to a Sleepy3 server. Sleepy3 also keeps a backup copy on this device.</string>
+    <string name="health_connect_rationale_close">Close</string>
+</resources>
