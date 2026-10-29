@@ -37,6 +37,33 @@ class DriftSleepSessionStore implements SleepSessionStore {
   }
 
   @override
+  Future<SleepSession?> loadOpenSession() async {
+    final row =
+        await (_db.select(_db.sleepSessions)
+              ..where((t) => t.endedAtMillis.isNull())
+              ..orderBy([
+                (t) => OrderingTerm.desc(t.startedAtMillis),
+                (t) => OrderingTerm.desc(t.id),
+              ])
+              ..limit(1))
+            .getSingleOrNull();
+    return row == null ? null : _toDomain(row);
+  }
+
+  @override
+  Future<List<SleepSession>> loadClosedSessions() async {
+    final rows =
+        await (_db.select(_db.sleepSessions)
+              ..where((t) => t.endedAtMillis.isNotNull())
+              ..orderBy([
+                (t) => OrderingTerm.asc(t.startedAtMillis),
+                (t) => OrderingTerm.asc(t.id),
+              ]))
+            .get();
+    return List.unmodifiable(rows.map(_toDomain));
+  }
+
+  @override
   Future<void> startSession(SleepSession session) async {
     await _db
         .into(_db.sleepSessions)

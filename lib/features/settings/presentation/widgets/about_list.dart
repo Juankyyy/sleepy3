@@ -1,14 +1,21 @@
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../health/domain/sleep_data_source.dart';
+import '../../../health/presentation/sleep_data_source_text.dart';
 import '../../domain/app_version.dart';
 import 'settings_list.dart';
 
 /// Privacy, version and the license page entry.
 class AboutList extends StatelessWidget {
-  const AboutList({super.key, this.version});
+  const AboutList({
+    super.key,
+    this.version,
+    this.dataSource = SleepDataSource.local,
+  });
 
   final AppVersion? version;
+  final SleepDataSource dataSource;
 
   @override
   Widget build(BuildContext context) {
@@ -18,10 +25,10 @@ class AboutList extends StatelessWidget {
       children: [
         SettingsList(
           children: [
-            const M3EListItem(
-              leading: Icon(M3EIcons.shield_outlined),
+            M3EListItem(
+              leading: const Icon(M3EIcons.shield_outlined),
               headline: 'Privacy',
-              supportingText: 'On-device only.',
+              supportingText: sleepDataSourcePrivacy(dataSource),
             ),
             if (appVersion != null)
               M3EListItem(

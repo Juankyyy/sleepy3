@@ -2,19 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/app_theme_mode.dart';
-import '../domain/settings_store.dart';
+import 'settings_providers.dart';
 
-/// Overridden in `main` with the Drift-backed store.
-final settingsStoreProvider = Provider<SettingsStore>((ref) {
-  throw UnimplementedError(
-    'settingsStoreProvider must be overridden with a SettingsStore',
-  );
-});
-
-/// Overridden in `main` with the mode loaded before the first frame.
-final initialThemeModeProvider = Provider<AppThemeMode>(
-  (ref) => AppThemeMode.system,
-);
+export 'settings_providers.dart';
 
 /// Owns the theme preference and persists changes in order.
 ///

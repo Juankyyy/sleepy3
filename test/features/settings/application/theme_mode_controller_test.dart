@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/settings/application/theme_mode_controller.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/settings/domain/settings_store.dart';
@@ -102,4 +103,10 @@ class _ControlledSettingsStore implements SettingsStore {
     pending.add(completer);
     return completer.future;
   }
+
+  @override
+  Future<SleepDataSource> loadSleepDataSource() async => SleepDataSource.local;
+
+  @override
+  Future<void> saveSleepDataSource(SleepDataSource source) async {}
 }

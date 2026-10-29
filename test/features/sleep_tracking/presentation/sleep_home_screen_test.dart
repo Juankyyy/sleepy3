@@ -1,12 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/app/sleepy3_app.dart';
+import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
+import 'package:sleepy3/features/health/application/sleep_data_source_controller.dart';
+import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
+import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
 
+import '../../health/fakes.dart';
 import '../fakes.dart';
 
 void main() {
@@ -15,8 +22,12 @@ void main() {
     required DateTime Function() clock,
     SleepSnapshot initial = SleepSnapshot.empty,
     bool use24HourFormat = false,
+    FakeSleepSessionStore? store,
+    SleepDataSource source = SleepDataSource.local,
+    FakeHealthConnectGateway? gateway,
+    bool settle = true,
   }) async {
-    final store = FakeSleepSessionStore();
+    final sleepStore = store ?? FakeSleepSessionStore(snapshot: initial);
     await tester.pumpWidget(
       Builder(
         builder: (context) {
@@ -28,8 +39,14 @@ void main() {
             child: ProviderScope(
               overrides: [
                 sleepClockProvider.overrideWithValue(clock),
-                sleepSessionStoreProvider.overrideWithValue(store),
-                initialSleepSnapshotProvider.overrideWithValue(initial),
+                sleepSessionStoreProvider.overrideWithValue(sleepStore),
+                initialSleepSnapshotProvider.overrideWithValue(
+                  SleepSnapshot(openSession: initial.openSession),
+                ),
+                initialSleepDataSourceProvider.overrideWithValue(source),
+                healthConnectGatewayProvider.overrideWithValue(
+                  gateway ?? FakeHealthConnectGateway(),
+                ),
               ],
               child: const Sleepy3App(),
             ),
@@ -37,8 +54,12 @@ void main() {
         },
       ),
     );
-    await tester.pumpAndSettle();
-    return store;
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      await tester.pump();
+    }
+    return sleepStore;
   }
 
   testWidgets('the two actions drive the sleep state machine', (tester) async {
@@ -245,5 +266,86 @@ void main() {
       find.text('Tap Sleep when you turn off the lights'),
     );
     expect(MediaQuery.textScalerOf(sessionContext).scale(14), 28);
+  });
+
+  testWidgets('shows a loading card while the history loads', (tester) async {
+    final store = FakeSleepSessionStore();
+    store.closedLoadGate = Completer<void>();
+
+    await pumpHome(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      store: store,
+      settle: false,
+    );
+
+    expect(find.text('Loading sleep history…'), findsOneWidget);
+    expect(find.text('Last 3 days · — avg'), findsNothing);
+
+    store.closedLoadGate!.complete();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Loading sleep history…'), findsNothing);
+    expect(find.text('Last 3 days · — avg'), findsOneWidget);
+  });
+
+  testWidgets('shows an error card and Retry reloads the history', (
+    tester,
+  ) async {
+    final store = FakeSleepSessionStore()
+      ..closedLoadError = StateError('read failed');
+
+    await pumpHome(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      store: store,
+    );
+
+    expect(find.text("Couldn't load your sleep history"), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+
+    store.closedLoadError = null;
+    store.snapshot = SleepSnapshot(
+      closedSessions: [
+        SleepSession(
+          startedAt: DateTime(2026, 10, 20, 22),
+          endedAt: DateTime(2026, 10, 21, 6),
+        ),
+      ],
+    );
+    final retry = find.widgetWithText(M3EButton, 'Retry');
+    await tester.ensureVisible(retry);
+    await tester.pumpAndSettle();
+    await tester.tap(retry);
+    await tester.pumpAndSettle();
+
+    expect(find.text("Couldn't load your sleep history"), findsNothing);
+    expect(find.text('Last session: 8h 0m'), findsOneWidget);
+    expect(find.text('Last 3 days · 8h 0m avg'), findsOneWidget);
+  });
+
+  testWidgets('Google Health never shows the local history', (tester) async {
+    final local = SleepSession(
+      startedAt: DateTime(2026, 10, 20, 22),
+      endedAt: DateTime(2026, 10, 21, 6),
+    );
+    final health = HealthSleepSession(
+      uuid: 'health-1',
+      startedAt: DateTime(2026, 10, 20, 23),
+      endedAt: DateTime(2026, 10, 21, 5),
+    );
+
+    await pumpHome(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: [local]),
+      source: SleepDataSource.healthConnect,
+      gateway: FakeHealthConnectGateway(sessions: [health]),
+    );
+
+    expect(find.text('Last session: 6h 0m'), findsOneWidget);
+    expect(find.text('Last 3 days · 6h 0m avg'), findsOneWidget);
+    expect(find.text('Last session: 8h 0m'), findsNothing);
+    expect(find.text('Last 3 days · 8h 0m avg'), findsNothing);
   });
 }

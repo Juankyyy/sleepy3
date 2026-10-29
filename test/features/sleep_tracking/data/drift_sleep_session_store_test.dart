@@ -86,6 +86,50 @@ void main() {
     expect(snapshot.lastSession?.startedAt, DateTime(2026, 10, 22));
   });
 
+  test('loads the open and closed halves on their own', () async {
+    await store.startSession(
+      SleepSession(startedAt: DateTime(2026, 10, 20, 22)),
+    );
+    await database
+        .into(database.sleepSessions)
+        .insert(
+          SleepSessionsCompanion.insert(
+            startedAtMillis: DateTime(2026, 10, 18, 23).millisecondsSinceEpoch,
+            endedAtMillis: Value(
+              DateTime(2026, 10, 19, 7).millisecondsSinceEpoch,
+            ),
+          ),
+        );
+
+    expect(
+      (await store.loadOpenSession())?.startedAt,
+      DateTime(2026, 10, 20, 22),
+    );
+    final closed = await store.loadClosedSessions();
+    expect(closed, hasLength(1));
+    expect(closed.single.endedAt, DateTime(2026, 10, 19, 7));
+  });
+
+  test('loadOpenSession keeps only the most recent open row', () async {
+    Future<void> insertOpen(DateTime startedAt) {
+      return database
+          .into(database.sleepSessions)
+          .insert(
+            SleepSessionsCompanion.insert(
+              startedAtMillis: startedAt.millisecondsSinceEpoch,
+            ),
+          );
+    }
+
+    await insertOpen(DateTime(2026, 10, 18, 23));
+    await insertOpen(DateTime(2026, 10, 19, 23));
+
+    expect(
+      (await store.loadOpenSession())?.startedAt,
+      DateTime(2026, 10, 19, 23),
+    );
+  });
+
   test('keeps the open session and the last closed session separate', () async {
     final firstStart = DateTime(2026, 10, 19, 23);
     final firstEnd = DateTime(2026, 10, 20, 7);

@@ -11,9 +11,9 @@ class SleepSnapshot {
 
   /// Every finished session, oldest first.
   ///
-  /// Stats groups them by wake day and Home picks the recent window. Keeping
-  /// the full history here gives both screens one source of truth and lets
-  /// Stats update as soon as a session is finished.
+  /// The app no longer loads this before the first frame: Home and Stats read
+  /// the selected source asynchronously. It stays available for callers that
+  /// need both halves at once, such as migrations and tests.
   final List<SleepSession> closedSessions;
 
   /// The most recently stored closed session, used for the session line.
@@ -29,6 +29,15 @@ abstract interface class SleepSessionStore {
   /// Loads the startup snapshot: the open session, if any, and every closed
   /// session ordered oldest first.
   Future<SleepSnapshot> load();
+
+  /// The open session left behind by a crash or the last run, if any.
+  ///
+  /// When duplicate open rows exist, the most recent one wins, matching what
+  /// [finishOpenSession] will close.
+  Future<SleepSession?> loadOpenSession();
+
+  /// Every finished session ordered oldest first.
+  Future<List<SleepSession>> loadClosedSessions();
 
   Future<void> startSession(SleepSession session);
 

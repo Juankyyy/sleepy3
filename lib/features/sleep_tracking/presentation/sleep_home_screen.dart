@@ -12,6 +12,7 @@ import 'widgets/home_clock.dart';
 import 'widgets/home_header.dart';
 import 'widgets/live_clock.dart';
 import 'widgets/recent_sleep_summary.dart';
+import 'widgets/sleep_history_status.dart';
 import 'widgets/track_buttons_row.dart';
 
 /// The Home destination: brand, live clock, session line, actions and summary.
@@ -59,11 +60,11 @@ class SleepHomeScreen extends ConsumerWidget {
                             ),
                             // 16dp between the actions and the summary.
                             const SizedBox(height: 16),
-                            RecentSleepSummaryCard(
-                              summary: buildRecentSleepSummary(
-                                now: now,
-                                sessions: state.closedSessions,
-                              ),
+                            _HistorySummary(
+                              state: state,
+                              now: now,
+                              onRetry: () =>
+                                  unawaited(controller.reloadHistory()),
                             ),
                           ],
                         ),
@@ -103,6 +104,34 @@ class SleepHomeScreen extends ConsumerWidget {
     return switch (dayPhaseFor(now)) {
       DayPhase.day => 'No active session',
       DayPhase.night => 'Tap Sleep when you turn off the lights',
+    };
+  }
+}
+
+/// The three-day summary, or the loading/error state of the history.
+class _HistorySummary extends StatelessWidget {
+  const _HistorySummary({
+    required this.state,
+    required this.now,
+    required this.onRetry,
+  });
+
+  final SleepTrackingState state;
+  final DateTime now;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (state.historyStatus) {
+      SleepHistoryStatus.initial ||
+      SleepHistoryStatus.loading => const SleepHistoryLoadingCard(),
+      SleepHistoryStatus.error => SleepHistoryErrorCard(onRetry: onRetry),
+      SleepHistoryStatus.ready => RecentSleepSummaryCard(
+        summary: buildRecentSleepSummary(
+          now: now,
+          sessions: state.closedSessions,
+        ),
+      ),
     };
   }
 }

@@ -1,14 +1,21 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
+import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
+import 'package:sleepy3/features/health/application/sleep_data_source_controller.dart';
+import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
+import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
 import 'package:sleepy3/features/stats/presentation/stats_screen.dart';
 import 'package:sleepy3/features/stats/presentation/widgets/stats_summary_card.dart';
 
+import '../../health/fakes.dart';
 import '../../sleep_tracking/fakes.dart';
 
 void main() {
@@ -22,13 +29,17 @@ void main() {
     closed(DateTime(2026, 10, 13, 22), DateTime(2026, 10, 14, 6)),
   ];
 
-  Future<void> pumpStats(
+  Future<FakeSleepSessionStore> pumpStats(
     WidgetTester tester, {
     required DateTime Function() clock,
     SleepSnapshot initial = SleepSnapshot.empty,
     bool use24HourFormat = false,
     Size size = const Size(360, 800),
     double textScale = 1,
+    FakeSleepSessionStore? store,
+    SleepDataSource source = SleepDataSource.local,
+    FakeHealthConnectGateway? gateway,
+    bool settle = true,
   }) async {
     tester.view.physicalSize = size * 3;
     tester.view.devicePixelRatio = 3;
@@ -38,6 +49,7 @@ void main() {
     tester.platformDispatcher.textScaleFactorTestValue = textScale;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
+    final sleepStore = store ?? FakeSleepSessionStore(snapshot: initial);
     final data = Sleepy3Theme.light();
     await tester.pumpWidget(
       Builder(
@@ -48,10 +60,14 @@ void main() {
             child: ProviderScope(
               overrides: [
                 sleepClockProvider.overrideWithValue(clock),
-                sleepSessionStoreProvider.overrideWithValue(
-                  FakeSleepSessionStore(),
+                sleepSessionStoreProvider.overrideWithValue(sleepStore),
+                initialSleepSnapshotProvider.overrideWithValue(
+                  SleepSnapshot(openSession: initial.openSession),
                 ),
-                initialSleepSnapshotProvider.overrideWithValue(initial),
+                initialSleepDataSourceProvider.overrideWithValue(source),
+                healthConnectGatewayProvider.overrideWithValue(
+                  gateway ?? FakeHealthConnectGateway(),
+                ),
               ],
               child: M3EMaterialApp(
                 title: 'Sleepy3',
@@ -67,7 +83,12 @@ void main() {
         },
       ),
     );
-    await tester.pumpAndSettle();
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      await tester.pump();
+    }
+    return sleepStore;
   }
 
   testWidgets('shows an empty state when there is no history', (tester) async {
@@ -322,5 +343,94 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Stats'), findsOneWidget);
     expect(find.text('Average sleep'), findsOneWidget);
+  });
+
+  testWidgets('shows a loading card while the history loads', (tester) async {
+    final store = FakeSleepSessionStore();
+    store.closedLoadGate = Completer<void>();
+
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      store: store,
+      settle: false,
+    );
+
+    expect(find.text('Loading sleep history…'), findsOneWidget);
+    expect(find.text('Average sleep'), findsNothing);
+
+    store.closedLoadGate!.complete();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Loading sleep history…'), findsNothing);
+    expect(find.text('No sleep history yet'), findsOneWidget);
+  });
+
+  testWidgets('shows an error card and Retry reloads the history', (
+    tester,
+  ) async {
+    final store = FakeSleepSessionStore()
+      ..closedLoadError = StateError('read failed');
+
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      store: store,
+    );
+
+    expect(find.text("Couldn't load your sleep history"), findsOneWidget);
+    expect(find.text('Retry'), findsOneWidget);
+
+    store.closedLoadError = null;
+    store.snapshot = SleepSnapshot(closedSessions: sessions);
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+
+    expect(find.text("Couldn't load your sleep history"), findsNothing);
+    expect(find.text('Average sleep'), findsOneWidget);
+    expect(find.text('7h 21m'), findsOneWidget);
+  });
+
+  testWidgets('Google Health shows only Health Connect sessions', (
+    tester,
+  ) async {
+    final health = HealthSleepSession(
+      uuid: 'health-1',
+      startedAt: DateTime(2026, 10, 20, 23),
+      endedAt: DateTime(2026, 10, 21, 5),
+    );
+
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: sessions),
+      source: SleepDataSource.healthConnect,
+      gateway: FakeHealthConnectGateway(sessions: [health]),
+    );
+
+    expect(find.text('History'), findsOneWidget);
+    expect(find.text('Across 1 night · 6h 0m total'), findsOneWidget);
+    expect(find.text('6h 0m'), findsWidgets);
+    expect(find.text('8h 13m'), findsNothing);
+  });
+
+  testWidgets('Google Health empty state never falls back to local data', (
+    tester,
+  ) async {
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: sessions),
+      source: SleepDataSource.healthConnect,
+      gateway: FakeHealthConnectGateway(),
+    );
+
+    expect(find.text('No sleep history in Google Health'), findsOneWidget);
+    expect(
+      find.text('Sleep sessions in Health Connect will appear here.'),
+      findsOneWidget,
+    );
+    expect(find.text('Average sleep'), findsNothing);
+    expect(find.text('8h 13m'), findsNothing);
   });
 }

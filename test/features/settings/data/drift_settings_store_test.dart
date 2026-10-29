@@ -1,5 +1,6 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/settings/data/drift_settings_store.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/sleep_tracking/data/drift_sleep_session_store.dart';
@@ -52,6 +53,42 @@ void main() {
           );
 
       expect(await store.loadThemeMode(), AppThemeMode.system);
+    });
+
+    test('defaults to Local on an empty database', () async {
+      expect(await store.loadSleepDataSource(), SleepDataSource.local);
+    });
+
+    test('round-trips every sleep data source', () async {
+      for (final source in SleepDataSource.values) {
+        await store.saveSleepDataSource(source);
+        expect(await store.loadSleepDataSource(), source);
+      }
+    });
+
+    test('falls back to Local for an unknown source value', () async {
+      await database
+          .into(database.preferences)
+          .insert(
+            PreferencesCompanion.insert(
+              settingKey: 'sleep_data_source',
+              settingValue: 'cloud',
+            ),
+          );
+
+      expect(await store.loadSleepDataSource(), SleepDataSource.local);
+    });
+
+    test('stores the theme and the source side by side', () async {
+      await store.saveThemeMode(AppThemeMode.dark);
+      await store.saveSleepDataSource(SleepDataSource.healthConnect);
+
+      final rows = await database.select(database.preferences).get();
+      expect(rows, hasLength(2));
+      expect(
+        {for (final row in rows) row.settingKey: row.settingValue},
+        {'theme_mode': 'dark', 'sleep_data_source': 'healthConnect'},
+      );
     });
   });
 

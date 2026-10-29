@@ -4,20 +4,27 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
+import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
+import 'package:sleepy3/features/health/application/sleep_data_source_controller.dart';
+import 'package:sleepy3/features/health/domain/health_connect_gateway.dart';
+import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/settings/application/app_version_provider.dart';
 import 'package:sleepy3/features/settings/application/theme_mode_controller.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_version.dart';
 import 'package:sleepy3/features/settings/presentation/settings_screen.dart';
 
+import '../../health/fakes.dart';
 import '../fakes.dart';
 
 void main() {
   Future<FakeSettingsStore> pumpSettings(
     WidgetTester tester, {
     AppThemeMode initial = AppThemeMode.system,
+    SleepDataSource source = SleepDataSource.local,
     AppVersion? version,
     FakeSettingsStore? store,
+    FakeHealthConnectGateway? gateway,
     double textScale = 1,
     Size size = const Size(360, 800),
   }) async {
@@ -29,13 +36,17 @@ void main() {
     tester.platformDispatcher.textScaleFactorTestValue = textScale;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
-    final settingsStore = store ?? FakeSettingsStore();
+    final settingsStore = store ?? FakeSettingsStore(sleepDataSource: source);
     final data = Sleepy3Theme.light();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
           settingsStoreProvider.overrideWithValue(settingsStore),
           initialThemeModeProvider.overrideWithValue(initial),
+          initialSleepDataSourceProvider.overrideWithValue(source),
+          healthConnectGatewayProvider.overrideWithValue(
+            gateway ?? FakeHealthConnectGateway(),
+          ),
           appVersionProvider.overrideWithValue(version),
         ],
         child: M3EMaterialApp(
@@ -60,7 +71,14 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('shows appearance, Health Connect and about sections', (
+  Future<void> chooseSource(WidgetTester tester, String label) async {
+    await tapLabel(tester, 'Source');
+    await tapLabel(tester, label);
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+  }
+
+  testWidgets('shows appearance, sleep data and about sections', (
     tester,
   ) async {
     await pumpSettings(
@@ -69,13 +87,13 @@ void main() {
     );
 
     expect(find.text('Settings'), findsOneWidget);
-    expect(find.text('Theme, Health Connect and app info.'), findsOneWidget);
+    expect(find.text('Theme, sleep data and app info.'), findsOneWidget);
     expect(find.text('Appearance'), findsOneWidget);
     expect(find.text('Theme'), findsOneWidget);
     expect(find.text('System'), findsOneWidget);
-    expect(find.text('Health Connect'), findsOneWidget);
-    expect(find.text('Sleep'), findsOneWidget);
-    expect(find.text('Coming soon.'), findsOneWidget);
+    expect(find.text('Sleep data'), findsOneWidget);
+    expect(find.text('Source'), findsOneWidget);
+    expect(find.text('Local'), findsOneWidget);
     expect(find.text('About'), findsOneWidget);
     expect(find.text('Privacy'), findsOneWidget);
     expect(find.text('On-device only.'), findsOneWidget);
@@ -87,14 +105,151 @@ void main() {
     expect(find.byType(M3EListItem), findsNWidgets(5));
   });
 
-  testWidgets('Health Connect is informational and disabled', (tester) async {
+  testWidgets('opens the source dialog with Local and Google Health', (
+    tester,
+  ) async {
     await pumpSettings(tester);
 
-    final row = tester.widget<M3EListItem>(
-      find.widgetWithText(M3EListItem, 'Sleep'),
+    await tapLabel(tester, 'Source');
+
+    expect(find.text('Sleep data source'), findsOneWidget);
+    expect(find.text('Cancel'), findsOneWidget);
+    expect(find.text('Apply'), findsOneWidget);
+    expect(find.text('Local'), findsNWidgets(2));
+    expect(find.text('Google Health'), findsOneWidget);
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sleep data source'), findsNothing);
+    expect(find.text('Local'), findsOneWidget);
+    expect(find.text('On-device only.'), findsOneWidget);
+  });
+
+  testWidgets('switching to Google Health requests permissions and saves', (
+    tester,
+  ) async {
+    final gateway = FakeHealthConnectGateway(
+      readPermission: false,
+      writePermission: false,
+      grantReadOnRequest: true,
+      grantWriteOnRequest: true,
     );
-    expect(row.enabled, isFalse);
-    expect(row.onTap, isNull);
+    final store = await pumpSettings(tester, gateway: gateway);
+
+    await chooseSource(tester, 'Google Health');
+
+    expect(gateway.permissionRequestCalls, 1);
+    expect(store.sourceSaves, [SleepDataSource.healthConnect]);
+    expect(
+      find.descendant(
+        of: find.byType(M3EListItem),
+        matching: find.text('Google Health'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Stored in Health Connect. Google Health can read it.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a denied permission keeps Local and explains why', (
+    tester,
+  ) async {
+    final gateway = FakeHealthConnectGateway(
+      readPermission: false,
+      writePermission: false,
+      grantReadOnRequest: false,
+      grantWriteOnRequest: false,
+    );
+    final store = await pumpSettings(tester, gateway: gateway);
+
+    await chooseSource(tester, 'Google Health');
+
+    expect(store.sourceSaves, isEmpty);
+    expect(find.text('Local'), findsOneWidget);
+    expect(find.text('On-device only.'), findsOneWidget);
+    expect(
+      find.text('Google Health needs permission to read and write sleep.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('reports an unavailable Health Connect', (tester) async {
+    final store = await pumpSettings(
+      tester,
+      gateway: FakeHealthConnectGateway(
+        availability: HealthConnectAvailability.unavailable,
+      ),
+    );
+
+    await chooseSource(tester, 'Google Health');
+
+    expect(store.sourceSaves, isEmpty);
+    expect(find.text('Local'), findsOneWidget);
+    expect(
+      find.text('Google Health is not available on this device.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('reports a Health Connect update that is required', (
+    tester,
+  ) async {
+    final store = await pumpSettings(
+      tester,
+      gateway: FakeHealthConnectGateway(
+        availability: HealthConnectAvailability.updateRequired,
+      ),
+    );
+
+    await chooseSource(tester, 'Google Health');
+
+    expect(store.sourceSaves, isEmpty);
+    expect(find.text('Local'), findsOneWidget);
+    expect(
+      find.text('Update Health Connect to use Google Health.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a failed save keeps the previous source', (tester) async {
+    final store = FakeSettingsStore(failWrites: true);
+    await pumpSettings(tester, store: store);
+
+    await chooseSource(tester, 'Google Health');
+
+    expect(store.sourceSaves, isEmpty);
+    expect(find.text('Local'), findsOneWidget);
+    expect(find.text("Couldn't save the sleep data source."), findsOneWidget);
+  });
+
+  testWidgets('switching back to Local does not revoke permissions', (
+    tester,
+  ) async {
+    final gateway = FakeHealthConnectGateway(
+      readPermission: true,
+      writePermission: true,
+    );
+    final store = await pumpSettings(
+      tester,
+      source: SleepDataSource.healthConnect,
+      gateway: gateway,
+    );
+
+    expect(
+      find.text('Stored in Health Connect. Google Health can read it.'),
+      findsOneWidget,
+    );
+
+    await chooseSource(tester, 'Local');
+
+    expect(store.sourceSaves, [SleepDataSource.local]);
+    expect(gateway.readPermission, isTrue);
+    expect(gateway.writePermission, isTrue);
+    expect(find.text('Local'), findsOneWidget);
+    expect(find.text('On-device only.'), findsOneWidget);
   });
 
   testWidgets('applying a theme updates the row and saves it', (tester) async {
@@ -140,7 +295,7 @@ void main() {
     expect(find.byType(M3EListItem), findsNWidgets(4));
   });
 
-  testWidgets('announces the current theme, version and disabled sync row', (
+  testWidgets('announces the current theme, version and source', (
     tester,
   ) async {
     final handle = tester.ensureSemantics();
@@ -152,10 +307,7 @@ void main() {
 
       expect(find.bySemanticsLabel(RegExp('Theme, system')), findsOneWidget);
       expect(find.bySemanticsLabel('Version, 0.1.0 (1)'), findsOneWidget);
-      expect(
-        find.bySemanticsLabel(RegExp('Sleep, coming soon')),
-        findsOneWidget,
-      );
+      expect(find.bySemanticsLabel(RegExp('Source')), findsOneWidget);
     } finally {
       handle.dispose();
     }
@@ -203,9 +355,9 @@ void main() {
       'Appearance',
       'Theme',
       'System',
-      'Health Connect',
-      'Sleep',
-      'Coming soon.',
+      'Sleep data',
+      'Source',
+      'Local',
       'About',
       'Privacy',
       'On-device only.',

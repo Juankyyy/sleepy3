@@ -2,15 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../health/application/sleep_data_source_controller.dart';
 import '../application/app_version_provider.dart';
 import '../application/theme_mode_controller.dart';
 import 'widgets/about_list.dart';
-import 'widgets/health_connect_row.dart';
-import 'widgets/settings_list.dart';
 import 'widgets/settings_section.dart';
+import 'widgets/sleep_data_source_setting.dart';
 import 'widgets/theme_setting.dart';
 
-/// The Settings destination: appearance, integrations and app info.
+/// The Settings destination: appearance, sleep data and app info.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -20,6 +20,7 @@ class SettingsScreen extends ConsumerWidget {
     final scheme = theme.colorScheme;
     final margin = MediaQuery.sizeOf(context).width >= 600 ? 24.0 : 16.0;
     final themeMode = ref.watch(themeModeControllerProvider);
+    final dataSource = ref.watch(sleepDataSourceProvider);
     final appVersion = ref.watch(appVersionProvider);
 
     return ListView(
@@ -36,7 +37,7 @@ class SettingsScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Theme, Health Connect and app info.',
+          'Theme, sleep data and app info.',
           style: theme.typography.baseline.bodyMedium.copyWith(
             color: scheme.onSurfaceVariant,
           ),
@@ -47,14 +48,14 @@ class SettingsScreen extends ConsumerWidget {
           child: ThemeSetting(mode: themeMode),
         ),
         const SizedBox(height: 24),
-        const SettingsSection(
-          title: 'Health Connect',
-          child: SettingsList(children: [HealthConnectRow()]),
+        SettingsSection(
+          title: 'Sleep data',
+          child: SleepDataSourceSetting(source: dataSource),
         ),
         const SizedBox(height: 24),
         SettingsSection(
           title: 'About',
-          child: AboutList(version: appVersion),
+          child: AboutList(version: appVersion, dataSource: dataSource),
         ),
       ],
     );
