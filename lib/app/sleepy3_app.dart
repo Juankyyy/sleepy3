@@ -1,10 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/theme/sleepy3_theme.dart';
+import '../features/health/application/health_sync_controller.dart';
+import '../features/health/application/sleep_data_source_controller.dart';
+import '../features/health/domain/sleep_data_source.dart';
 import '../features/settings/application/theme_mode_controller.dart';
 import '../features/settings/domain/app_theme_mode.dart';
+import '../features/sleep_tracking/application/sleep_tracking_controller.dart';
 import 'sleepy3_shell.dart';
 
 /// Runs the app with the Sleepy3 scheme for the selected theme mode.
@@ -27,6 +33,41 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // Connection permission checks must not delay the first frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      unawaited(_retryPendingUploads());
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_retryPendingUploads());
+    }
+  }
+
+  /// Retries failed Health Connect uploads when the app opens or comes back.
+  ///
+  /// Local mode never writes to Health Connect automatically.
+  Future<void> _retryPendingUploads() async {
+    if (!mounted) return;
+    if (ref.read(sleepDataSourceProvider) != SleepDataSource.healthConnect) {
+      return;
+    }
+
+    final sync = ref.read(healthSyncControllerProvider.notifier);
+    final result = await sync.retryPending();
+    if (!mounted) return;
+
+    if (result.total == 0) {
+      // Nothing to upload; still refresh the status because the connection
+      // state can change while the app is in the background.
+      await sync.refresh();
+      return;
+    }
+
+    // A retry changes what Health Connect contains.
+    await ref.read(sleepTrackingControllerProvider.notifier).reloadHistory();
   }
 
   @override

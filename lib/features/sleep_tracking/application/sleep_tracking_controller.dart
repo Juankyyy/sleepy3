@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../health/application/health_sync_controller.dart';
 import '../../health/application/sleep_data_source_controller.dart';
 import '../../health/application/sleep_history_controller.dart';
 import '../../health/domain/sleep_data_source.dart';
@@ -145,6 +146,17 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
 
     final store = ref.read(sleepSessionStoreProvider);
     await _enqueueWrite(() => store.finishOpenSession(finished.endedAt!));
+
+    // In Google Health mode the finished session must reach Health Connect
+    // before the visible history is read again. A failure leaves the local
+    // row pending; Home and Stats show the sync banner and never mix it into
+    // the Health Connect list until a retry confirms it.
+    if (source == SleepDataSource.healthConnect) {
+      await ref
+          .read(healthSyncControllerProvider.notifier)
+          .uploadFinishedSession(finished);
+    }
+
     await reloadHistory();
   }
 

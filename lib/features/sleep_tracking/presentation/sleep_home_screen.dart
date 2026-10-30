@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../core/time/clock_format.dart';
 import '../../../core/time/day_phase.dart';
+import '../../health/presentation/health_sync_banner.dart';
 import '../application/sleep_tracking_controller.dart';
 import '../domain/recent_sleep_summary.dart';
 import '../domain/sleep_duration.dart';
@@ -60,6 +61,7 @@ class SleepHomeScreen extends ConsumerWidget {
                             ),
                             // 16dp between the actions and the summary.
                             const SizedBox(height: 16),
+                            const HealthSyncBanner(),
                             _HistorySummary(
                               state: state,
                               now: now,

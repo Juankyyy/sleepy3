@@ -5,6 +5,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
 import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
+import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
 import 'package:sleepy3/features/health/application/sleep_data_source_controller.dart';
 import 'package:sleepy3/features/health/domain/health_connect_gateway.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
@@ -13,6 +14,7 @@ import 'package:sleepy3/features/settings/application/theme_mode_controller.dart
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_version.dart';
 import 'package:sleepy3/features/settings/presentation/settings_screen.dart';
+import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 
 import '../../health/fakes.dart';
 import '../fakes.dart';
@@ -25,6 +27,7 @@ void main() {
     AppVersion? version,
     FakeSettingsStore? store,
     FakeHealthConnectGateway? gateway,
+    FakeHealthSyncStore? healthSyncStore,
     double textScale = 1,
     Size size = const Size(360, 800),
   }) async {
@@ -46,6 +49,9 @@ void main() {
           initialSleepDataSourceProvider.overrideWithValue(source),
           healthConnectGatewayProvider.overrideWithValue(
             gateway ?? FakeHealthConnectGateway(),
+          ),
+          healthSyncStoreProvider.overrideWithValue(
+            healthSyncStore ?? FakeHealthSyncStore(),
           ),
           appVersionProvider.overrideWithValue(version),
         ],
@@ -141,6 +147,7 @@ void main() {
 
     expect(gateway.permissionRequestCalls, 1);
     expect(store.sourceSaves, [SleepDataSource.healthConnect]);
+    expect(find.text('Connected'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byType(M3EListItem),
@@ -250,6 +257,122 @@ void main() {
     expect(gateway.writePermission, isTrue);
     expect(find.text('Local'), findsOneWidget);
     expect(find.text('On-device only.'), findsOneWidget);
+    expect(find.text('Google Health'), findsNothing);
+  });
+
+  testWidgets('shows the connected status and the pending uploads', (
+    tester,
+  ) async {
+    final session = SleepSession(
+      startedAt: DateTime(2026, 10, 20, 22),
+      endedAt: DateTime(2026, 10, 21, 6),
+    );
+
+    await pumpSettings(
+      tester,
+      source: SleepDataSource.healthConnect,
+      healthSyncStore: FakeHealthSyncStore()..addLocal(session),
+    );
+
+    expect(find.text('Connected · 1 pending'), findsOneWidget);
+  });
+
+  testWidgets('Connect requests permissions again after a revoke', (
+    tester,
+  ) async {
+    final gateway = FakeHealthConnectGateway(
+      readPermission: false,
+      writePermission: false,
+      grantReadOnRequest: true,
+      grantWriteOnRequest: true,
+    );
+
+    await pumpSettings(
+      tester,
+      source: SleepDataSource.healthConnect,
+      gateway: gateway,
+    );
+
+    expect(find.text('Permission needed'), findsOneWidget);
+    expect(find.text('Connect'), findsOneWidget);
+
+    await tapLabel(tester, 'Connect');
+
+    expect(gateway.permissionRequestCalls, 1);
+    expect(find.text('Connected'), findsOneWidget);
+    expect(find.text('Connect'), findsNothing);
+  });
+
+  testWidgets('Install opens the store when Health Connect is missing', (
+    tester,
+  ) async {
+    final gateway = FakeHealthConnectGateway(
+      availability: HealthConnectAvailability.unavailable,
+    );
+
+    await pumpSettings(
+      tester,
+      source: SleepDataSource.healthConnect,
+      gateway: gateway,
+    );
+
+    expect(find.text('Not available'), findsOneWidget);
+    expect(find.text('Install'), findsOneWidget);
+
+    await tapLabel(tester, 'Install');
+
+    expect(gateway.installCalls, 1);
+  });
+
+  testWidgets('asks to install an update when Health Connect is outdated', (
+    tester,
+  ) async {
+    await pumpSettings(
+      tester,
+      source: SleepDataSource.healthConnect,
+      gateway: FakeHealthConnectGateway(
+        availability: HealthConnectAvailability.updateRequired,
+      ),
+    );
+
+    expect(find.text('Update required'), findsOneWidget);
+    expect(find.text('Install'), findsOneWidget);
+  });
+
+  testWidgets('Google Health status fits at 200% text', (tester) async {
+    await pumpSettings(
+      tester,
+      source: SleepDataSource.healthConnect,
+      gateway: FakeHealthConnectGateway(
+        readPermission: false,
+        writePermission: false,
+      ),
+      textScale: 2,
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Permission needed'), findsOneWidget);
+    expect(find.text('Connect'), findsOneWidget);
+
+    for (final label in ['Status', 'Permission needed', 'Connect']) {
+      var finder = find.text(label);
+      if (finder.evaluate().isEmpty) {
+        await tester.scrollUntilVisible(
+          finder,
+          160,
+          scrollable: find.byType(Scrollable),
+        );
+        await tester.pumpAndSettle();
+      }
+      finder = find.text(label).last;
+      final paragraph = tester.renderObject<RenderParagraph>(finder);
+      expect(
+        paragraph.didExceedMaxLines,
+        isFalse,
+        reason: '$label is truncated at 200% text',
+      );
+    }
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('applying a theme updates the row and saves it', (tester) async {

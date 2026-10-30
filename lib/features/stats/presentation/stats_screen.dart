@@ -9,6 +9,7 @@ import '../../../core/time/local_day_builder.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../health/application/sleep_data_source_controller.dart';
 import '../../health/domain/sleep_data_source.dart';
+import '../../health/presentation/health_sync_banner.dart';
 import '../../sleep_tracking/application/sleep_tracking_controller.dart';
 import '../../sleep_tracking/domain/sleep_history.dart';
 import '../../sleep_tracking/domain/sleep_session.dart';
@@ -198,6 +199,9 @@ class _StatsHeader extends StatelessWidget {
             color: scheme.onSurfaceVariant,
           ),
         ),
+        // 24dp separates the header from the pending banner, matching the gap
+        // used before the range selector.
+        const HealthSyncBanner(padding: EdgeInsets.only(top: 24)),
       ],
     );
   }

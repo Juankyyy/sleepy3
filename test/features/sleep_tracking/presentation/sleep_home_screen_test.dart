@@ -6,6 +6,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/app/sleepy3_app.dart';
 import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
+import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
 import 'package:sleepy3/features/health/application/sleep_data_source_controller.dart';
 import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
@@ -25,6 +26,7 @@ void main() {
     FakeSleepSessionStore? store,
     SleepDataSource source = SleepDataSource.local,
     FakeHealthConnectGateway? gateway,
+    FakeHealthSyncStore? healthSyncStore,
     bool settle = true,
   }) async {
     final sleepStore = store ?? FakeSleepSessionStore(snapshot: initial);
@@ -46,6 +48,9 @@ void main() {
                 initialSleepDataSourceProvider.overrideWithValue(source),
                 healthConnectGatewayProvider.overrideWithValue(
                   gateway ?? FakeHealthConnectGateway(),
+                ),
+                healthSyncStoreProvider.overrideWithValue(
+                  healthSyncStore ?? FakeHealthSyncStore(),
                 ),
               ],
               child: const Sleepy3App(),
@@ -347,5 +352,100 @@ void main() {
     expect(find.text('Last 3 days · 6h 0m avg'), findsOneWidget);
     expect(find.text('Last session: 8h 0m'), findsNothing);
     expect(find.text('Last 3 days · 8h 0m avg'), findsNothing);
+  });
+
+  testWidgets('shows pending uploads and Retry clears the banner', (
+    tester,
+  ) async {
+    final session = SleepSession(
+      startedAt: DateTime(2026, 10, 20, 22),
+      endedAt: DateTime(2026, 10, 21, 6),
+    );
+    final gateway = FakeHealthConnectGateway()
+      ..writeError = StateError('Health Connect is offline');
+    final syncStore = FakeHealthSyncStore()..addLocal(session);
+
+    await pumpHome(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      source: SleepDataSource.healthConnect,
+      gateway: gateway,
+      healthSyncStore: syncStore,
+    );
+
+    expect(find.text('1 session waiting to sync'), findsOneWidget);
+    expect(find.text('Last session: 8h 0m'), findsNothing);
+
+    gateway.writeError = null;
+    await tester.tap(find.widgetWithText(M3EButton, 'Retry'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('1 session waiting to sync'), findsNothing);
+    expect(find.text('Last session: 8h 0m'), findsOneWidget);
+    expect(find.text('Last 3 days · 8h 0m avg'), findsOneWidget);
+    expect(gateway.writes, isNotEmpty);
+  });
+
+  testWidgets('retries pending uploads when the app resumes', (tester) async {
+    final session = SleepSession(
+      startedAt: DateTime(2026, 10, 20, 22),
+      endedAt: DateTime(2026, 10, 21, 6),
+    );
+    final gateway = FakeHealthConnectGateway()
+      ..writeError = StateError('Health Connect is offline');
+    final syncStore = FakeHealthSyncStore()..addLocal(session);
+
+    await pumpHome(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      source: SleepDataSource.healthConnect,
+      gateway: gateway,
+      healthSyncStore: syncStore,
+    );
+
+    expect(find.text('1 session waiting to sync'), findsOneWidget);
+    expect(gateway.writes, hasLength(1));
+
+    gateway.writeError = null;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+
+    expect(find.text('1 session waiting to sync'), findsNothing);
+    expect(gateway.writes, hasLength(2));
+    expect(
+      gateway.writes.first.clientRecordId,
+      gateway.writes.last.clientRecordId,
+    );
+    expect(find.text('Last session: 8h 0m'), findsOneWidget);
+    expect(await syncStore.loadPendingCount(), 0);
+  });
+
+  testWidgets('pending banner fits at 200% text', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    final session = SleepSession(
+      startedAt: DateTime(2026, 10, 20, 22),
+      endedAt: DateTime(2026, 10, 21, 6),
+    );
+    final gateway = FakeHealthConnectGateway()
+      ..writeError = StateError('Health Connect is offline');
+
+    await pumpHome(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      source: SleepDataSource.healthConnect,
+      gateway: gateway,
+      healthSyncStore: FakeHealthSyncStore()..addLocal(session),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('1 session waiting to sync'), findsOneWidget);
+    expect(find.widgetWithText(M3EButton, 'Retry'), findsOneWidget);
   });
 }

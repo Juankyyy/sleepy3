@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
+import 'package:sleepy3/features/health/application/health_sync_controller.dart';
+import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
 import 'package:sleepy3/features/health/application/sleep_data_source_controller.dart';
 import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
@@ -20,6 +22,7 @@ void main() {
     late DateTime now;
     late FakeSleepSessionStore store;
     late FakeHealthConnectGateway gateway;
+    late FakeHealthSyncStore syncStore;
     late FakeSettingsStore settingsStore;
     late ProviderContainer container;
     late SleepTrackingController controller;
@@ -32,10 +35,12 @@ void main() {
       SleepSnapshot initial = SleepSnapshot.empty,
       SleepDataSource source = SleepDataSource.local,
       FakeHealthConnectGateway? healthGateway,
+      FakeHealthSyncStore? healthSyncStore,
     }) {
       now = DateTime(2026, 10, 20, 22, 30);
       store = FakeSleepSessionStore(snapshot: storeSnapshot);
       gateway = healthGateway ?? FakeHealthConnectGateway();
+      syncStore = healthSyncStore ?? FakeHealthSyncStore();
       settingsStore = FakeSettingsStore(sleepDataSource: source);
       container = ProviderContainer.test(
         overrides: [
@@ -44,6 +49,7 @@ void main() {
           initialSleepSnapshotProvider.overrideWithValue(initial),
           initialSleepDataSourceProvider.overrideWithValue(source),
           healthConnectGatewayProvider.overrideWithValue(gateway),
+          healthSyncStoreProvider.overrideWithValue(syncStore),
           settingsStoreProvider.overrideWithValue(settingsStore),
         ],
       );
@@ -350,7 +356,7 @@ void main() {
       expect(state.closedSessions, [local]);
     });
 
-    test('wake in Google Health keeps the local copy but hides it', () async {
+    test('wake in Google Health uploads the session and shows it', () async {
       final startedAt = DateTime(2026, 10, 20, 22, 30);
       final open = SleepSession(startedAt: startedAt);
       final previous = HealthSleepSession(
@@ -358,25 +364,40 @@ void main() {
         startedAt: DateTime(2026, 10, 19, 23),
         endedAt: DateTime(2026, 10, 20, 6),
       );
+      final wakeAt = startedAt.add(const Duration(hours: 7));
+      final sync = FakeHealthSyncStore()..addLocal(open.finish(wakeAt));
       create(
         initial: SleepSnapshot(openSession: open),
         storeSnapshot: SleepSnapshot(openSession: open),
         source: SleepDataSource.healthConnect,
         healthGateway: FakeHealthConnectGateway(sessions: [previous]),
+        healthSyncStore: sync,
       );
+      now = wakeAt;
       await controller.historyLoad;
 
-      now = startedAt.add(const Duration(hours: 7));
       await controller.wake();
 
       var state = container.read(sleepTrackingControllerProvider);
       expect(store.finishes.single, now);
       expect(state.isSleeping, isFalse);
-      expect(state.closedSessions, hasLength(1));
-      expect(state.closedSessions.single.startedAt, previous.startedAt);
+      expect(gateway.writes.single.startedAt, startedAt);
+      expect(gateway.writes.single.endedAt, now);
+      expect(
+        gateway.writes.single.clientRecordId,
+        'sleepy3-${startedAt.millisecondsSinceEpoch}',
+      );
+      expect(sync.rows.single.healthSyncedAt, now);
+      expect(
+        sync.rows.single.healthRecordId,
+        'fake-sleepy3-${startedAt.millisecondsSinceEpoch}',
+      );
+      expect(state.closedSessions, hasLength(2));
+      expect(state.lastSession?.startedAt, startedAt);
+      expect(state.lastSession?.endedAt, now);
+      expect(container.read(healthSyncControllerProvider).pendingCount, 0);
 
-      // The local copy is there for Local mode; Health Connect has not been
-      // written yet, so it must stay out of the visible history.
+      // The local copy is still there for Local mode.
       await container
           .read(sleepDataSourceProvider.notifier)
           .select(SleepDataSource.local);
@@ -386,6 +407,129 @@ void main() {
       expect(state.closedSessions, hasLength(1));
       expect(state.lastSession?.startedAt, startedAt);
       expect(state.lastSession?.endedAt, now);
+    });
+
+    test(
+      'a failed upload leaves the session pending and retry is idempotent',
+      () async {
+        final startedAt = DateTime(2026, 10, 20, 22, 30);
+        final open = SleepSession(startedAt: startedAt);
+        final previous = HealthSleepSession(
+          uuid: 'previous',
+          startedAt: DateTime(2026, 10, 19, 23),
+          endedAt: DateTime(2026, 10, 20, 6),
+        );
+        final wakeAt = startedAt.add(const Duration(hours: 7));
+        final sync = FakeHealthSyncStore()..addLocal(open.finish(wakeAt));
+        final failingGateway = FakeHealthConnectGateway(sessions: [previous])
+          ..writeError = StateError('Health Connect is offline');
+        create(
+          initial: SleepSnapshot(openSession: open),
+          storeSnapshot: SleepSnapshot(openSession: open),
+          source: SleepDataSource.healthConnect,
+          healthGateway: failingGateway,
+          healthSyncStore: sync,
+        );
+        now = wakeAt;
+        await controller.historyLoad;
+
+        await controller.wake();
+
+        var state = container.read(sleepTrackingControllerProvider);
+        var syncState = container.read(healthSyncControllerProvider);
+        expect(state.closedSessions, hasLength(1));
+        expect(state.closedSessions.single.startedAt, previous.startedAt);
+        expect(sync.rows.single.healthSyncedAt, isNull);
+        expect(syncState.pendingCount, 1);
+        expect(syncState.lastError, isNotNull);
+
+        failingGateway.writeError = null;
+        final syncController = container.read(
+          healthSyncControllerProvider.notifier,
+        );
+        var batch = await syncController.retryPending();
+        expect(batch.uploaded, 1);
+        expect(batch.failed, 0);
+        expect(sync.rows.single.healthSyncedAt, now);
+        expect(failingGateway.writes, hasLength(2));
+        expect(
+          failingGateway.writes.first.clientRecordId,
+          failingGateway.writes.last.clientRecordId,
+        );
+
+        await controller.reloadHistory();
+        state = container.read(sleepTrackingControllerProvider);
+        syncState = container.read(healthSyncControllerProvider);
+        expect(state.closedSessions, hasLength(2));
+        expect(state.lastSession?.startedAt, startedAt);
+        expect(syncState.pendingCount, 0);
+
+        batch = await syncController.retryPending();
+        expect(batch.total, 0);
+        expect(failingGateway.writes, hasLength(2));
+      },
+    );
+
+    test('a zero duration session is skipped and never written', () async {
+      final startedAt = DateTime(2026, 10, 20, 22, 30);
+      final open = SleepSession(startedAt: startedAt);
+      final sync = FakeHealthSyncStore()..addLocal(open.finish(startedAt));
+      create(
+        initial: SleepSnapshot(openSession: open),
+        storeSnapshot: SleepSnapshot(openSession: open),
+        source: SleepDataSource.healthConnect,
+        healthSyncStore: sync,
+      );
+      await controller.historyLoad;
+
+      await controller.wake();
+
+      expect(gateway.writes, isEmpty);
+      expect(sync.markedSkipped, [sync.rows.single.id]);
+      expect(sync.rows.single.healthSyncSkipped, isTrue);
+      expect(container.read(healthSyncControllerProvider).pendingCount, 0);
+    });
+
+    test('a revoked permission keeps the session pending', () async {
+      final startedAt = DateTime(2026, 10, 20, 22, 30);
+      final open = SleepSession(startedAt: startedAt);
+      final wakeAt = startedAt.add(const Duration(hours: 7));
+      final sync = FakeHealthSyncStore()..addLocal(open.finish(wakeAt));
+      final revokedGateway = FakeHealthConnectGateway(
+        readPermission: false,
+        writePermission: false,
+      )..writeError = StateError('Permission denied');
+      create(
+        initial: SleepSnapshot(openSession: open),
+        storeSnapshot: SleepSnapshot(openSession: open),
+        source: SleepDataSource.healthConnect,
+        healthGateway: revokedGateway,
+        healthSyncStore: sync,
+      );
+      now = wakeAt;
+      await controller.historyLoad;
+
+      await controller.wake();
+
+      final syncState = container.read(healthSyncControllerProvider);
+      expect(sync.rows.single.healthSyncedAt, isNull);
+      expect(syncState.pendingCount, 1);
+      expect(
+        syncState.connection,
+        HealthConnectConnectionStatus.permissionNeeded,
+      );
+    });
+
+    test('wake in Local mode never writes to Health Connect', () async {
+      create();
+      await controller.historyLoad;
+      await controller.sleep();
+      now = now.add(const Duration(hours: 8));
+
+      await controller.wake();
+
+      expect(gateway.writes, isEmpty);
+      expect(syncStore.pendingCountLoads, 0);
     });
   });
 }

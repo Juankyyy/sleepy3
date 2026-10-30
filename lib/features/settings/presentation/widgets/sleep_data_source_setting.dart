@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../health/application/sleep_data_source_controller.dart';
 import '../../../health/domain/sleep_data_source.dart';
 import '../../../health/presentation/sleep_data_source_text.dart';
+import 'google_health_status_list.dart';
 import 'settings_list.dart';
 
 /// The `Sleep data` source row and its Local / Google Health dialog.
@@ -15,15 +16,25 @@ class SleepDataSourceSetting extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return SettingsList(
-      onTap: (_) => _chooseSource(context, ref),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        M3EListItem(
-          leading: const Icon(M3EIcons.storage_outlined),
-          headline: 'Source',
-          supportingText: sleepDataSourceLabel(source),
-          trailing: const Icon(M3EIcons.chevron_right),
+        SettingsList(
+          onTap: (_) => _chooseSource(context, ref),
+          children: [
+            M3EListItem(
+              leading: const Icon(M3EIcons.storage_outlined),
+              headline: 'Source',
+              supportingText: sleepDataSourceLabel(source),
+              trailing: const Icon(M3EIcons.chevron_right),
+            ),
+          ],
         ),
+        if (source == SleepDataSource.healthConnect) ...[
+          // 2dp keeps the Google Health status attached to the source row.
+          const SizedBox(height: 2),
+          const GoogleHealthStatusList(),
+        ],
       ],
     );
   }

@@ -6,6 +6,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
 import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
+import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
 import 'package:sleepy3/features/health/application/sleep_data_source_controller.dart';
 import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
@@ -39,6 +40,7 @@ void main() {
     FakeSleepSessionStore? store,
     SleepDataSource source = SleepDataSource.local,
     FakeHealthConnectGateway? gateway,
+    FakeHealthSyncStore? healthSyncStore,
     bool settle = true,
   }) async {
     tester.view.physicalSize = size * 3;
@@ -67,6 +69,9 @@ void main() {
                 initialSleepDataSourceProvider.overrideWithValue(source),
                 healthConnectGatewayProvider.overrideWithValue(
                   gateway ?? FakeHealthConnectGateway(),
+                ),
+                healthSyncStoreProvider.overrideWithValue(
+                  healthSyncStore ?? FakeHealthSyncStore(),
                 ),
               ],
               child: M3EMaterialApp(
@@ -432,5 +437,36 @@ void main() {
     );
     expect(find.text('Average sleep'), findsNothing);
     expect(find.text('8h 13m'), findsNothing);
+  });
+
+  testWidgets('shows pending uploads above the Health Connect history', (
+    tester,
+  ) async {
+    final session = closed(
+      DateTime(2026, 10, 20, 22),
+      DateTime(2026, 10, 21, 6),
+    );
+    final gateway = FakeHealthConnectGateway()
+      ..writeError = StateError('Health Connect is offline');
+
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      source: SleepDataSource.healthConnect,
+      gateway: gateway,
+      healthSyncStore: FakeHealthSyncStore()..addLocal(session),
+    );
+
+    expect(find.text('1 session waiting to sync'), findsOneWidget);
+    expect(find.text('No sleep history in Google Health'), findsOneWidget);
+
+    gateway.writeError = null;
+    await tester.tap(find.widgetWithText(M3EButton, 'Retry'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('1 session waiting to sync'), findsNothing);
+    expect(find.text('No sleep history in Google Health'), findsNothing);
+    expect(find.text('Average sleep'), findsOneWidget);
+    expect(find.text('Across 1 night · 8h 0m total'), findsOneWidget);
   });
 }

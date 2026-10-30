@@ -4,7 +4,9 @@ import 'package:package_info_plus/package_info_plus.dart';
 
 import 'app/sleepy3_app.dart';
 import 'features/health/application/health_connect_gateway_provider.dart';
+import 'features/health/application/health_sync_store_provider.dart';
 import 'features/health/application/sleep_data_source_controller.dart';
+import 'features/health/data/drift_health_sync_store.dart';
 import 'features/health/data/health_connect_gateway_impl.dart';
 import 'features/health/domain/sleep_data_source.dart';
 import 'features/settings/application/app_version_provider.dart';
@@ -24,6 +26,7 @@ Future<void> main() async {
 
   final database = Sleepy3Database();
   final store = DriftSleepSessionStore(database);
+  final healthSyncStore = DriftHealthSyncStore(database);
   final settingsStore = DriftSettingsStore(database);
   final healthGateway = HealthConnectGatewayImpl();
   final openSession = await _loadOpenSession(store);
@@ -41,6 +44,7 @@ Future<void> main() async {
         settingsStoreProvider.overrideWithValue(settingsStore),
         initialThemeModeProvider.overrideWithValue(themeMode),
         healthConnectGatewayProvider.overrideWithValue(healthGateway),
+        healthSyncStoreProvider.overrideWithValue(healthSyncStore),
         initialSleepDataSourceProvider.overrideWithValue(dataSource),
         appVersionProvider.overrideWithValue(appVersion),
       ],
