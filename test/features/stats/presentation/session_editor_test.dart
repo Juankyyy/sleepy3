@@ -174,10 +174,12 @@ void main() {
     await tester.pumpAndSettle();
 
     final iconCenter = tester.getCenter(find.byIcon(M3EIcons.edit_outlined));
+    final sourceCenter = tester.getCenter(find.byIcon(M3EIcons.smartphone));
     final rowCenter = tester.getCenter(
       find.byWidgetPredicate((widget) => widget is M3EListItem),
     );
     expect((iconCenter.dy - rowCenter.dy).abs(), lessThanOrEqualTo(0.5));
+    expect((sourceCenter.dy - rowCenter.dy).abs(), lessThanOrEqualTo(0.5));
 
     await openLocalEditor(tester);
 
@@ -186,13 +188,36 @@ void main() {
     expect(find.text('Save'), findsOneWidget);
   });
 
+  testWidgets('the source icon does not block the row action', (tester) async {
+    await pumpStats(tester, sessions: [localSession()]);
+
+    await tester.tap(find.byIcon(M3EIcons.smartphone));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edit session'), findsOneWidget);
+  });
+
+  testWidgets('the source icon is slightly muted', (tester) async {
+    await pumpStats(tester, sessions: [localSession()]);
+
+    final opacity = tester.widget<Opacity>(
+      find
+          .ancestor(
+            of: find.byIcon(M3EIcons.smartphone),
+            matching: find.byType(Opacity),
+          )
+          .first,
+    );
+    expect(opacity.opacity, 0.5);
+  });
+
   testWidgets('editable rows are buttons that open the editor', (tester) async {
     final handle = tester.ensureSemantics();
 
     await pumpStats(tester, sessions: [localSession()]);
 
     final node = tester.getSemantics(find.text('10:32 PM – 6:45 AM'));
-    expect(node.label, 'Today, 8 hours 13 minutes, 10:32 PM to 6:45 AM');
+    expect(node.label, 'Local, Today, 8 hours 13 minutes, 10:32 PM to 6:45 AM');
     expect(node.hint, 'Opens the session editor');
     expect(node.flagsCollection.isButton, isTrue);
 

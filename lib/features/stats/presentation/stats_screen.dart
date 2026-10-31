@@ -170,6 +170,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                   history: history,
                   today: today,
                   use24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+                  source: source,
                   isEditable: (session) =>
                       _accessFor(session, source) != SessionEditAccess.readOnly,
                   onEdit: (session) => unawaited(_openEditor(session)),

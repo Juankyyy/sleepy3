@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../sleep_tracking/application/sleep_tracking_providers.dart';
+import '../../sleep_tracking/application/sleep_tracking_controller.dart';
 import 'health_connect_gateway_provider.dart';
 import 'health_sync_controller.dart';
 import 'health_sync_store_provider.dart';
@@ -117,6 +117,16 @@ class SleepCopyController extends Notifier<SleepCopyState> {
       sync.recordManualUpload(ref.read(sleepClockProvider)());
     }
     await sync.refreshPendingCount();
+
+    // A copy can add a Health Connect record to a local session or download a
+    // new row, and the history uses that metadata to label each row. Refresh
+    // it now so Stats is correct as soon as the user leaves Settings. The
+    // controller is always alive in the app; exists() avoids building it in
+    // tests and other callers that never show the history.
+    if (result.hasChanges && ref.exists(sleepTrackingControllerProvider)) {
+      await ref.read(sleepTrackingControllerProvider.notifier).reloadHistory();
+      if (!ref.mounted) return result;
+    }
 
     return result;
   }

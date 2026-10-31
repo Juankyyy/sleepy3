@@ -44,7 +44,7 @@ restarting the phone.
 - A three-day summary card on Home: today, yesterday and two days ago grouped by wake
   day, with a real average and bars against an eight-hour goal.
 - A Stats screen with 7-day, 30-day and all-time filters, a range average and one row
-  per closed session.
+  per closed session. Each row shows whether the session is local or in Google Health.
 - Edit or delete a night from Stats. Editable rows open an adaptive editor for the exact
   start and end times; deleting asks first. In Local mode, copies downloaded from Health
   Connect and records from other apps stay read-only. In Google Health, your own records
@@ -193,7 +193,8 @@ Sleepy3 can use Health Connect in two ways:
   Health Connect. If the write fails, the session stays pending, a banner offers
   **Retry**, and the app retries when you open or resume it. Only records written by
   Sleepy3 can be edited or deleted, with or without a local copy; records from other apps
-  are read-only.
+  are read-only. Stats marks every row in this mode as Google Health. In Local mode, a
+  session that was already sent to Health Connect also shows the Google Health icon.
 
 In Google Health mode, a pending session is not counted in the graphs until Health
 Connect confirms it. Zero-duration sessions are skipped. Settings shows the connection
@@ -369,15 +370,18 @@ clock, so it moves to the next day without restarting the app.
 Stats follows the same wake-day rule. Three filter chips select 7 days, 30 days or all
 history; the outlined summary card shows the average of the days with data, the total
 and the number of nights. Below it, one expressive list row per closed session shows the
-wake day, duration and start–end range. Open sessions are explained in the header but
-never counted. A local-day timer flips `Today` to `Yesterday` at midnight and catches up
-when the app returns from the background, without rebuilding the offstage tab every
-second. In Google Health mode, **All** can reveal more than 30 days only after the Health
-Connect history permission is granted; otherwise an outlined banner explains the limit and
-offers **Allow full history**. Editable rows add an edit icon and open an adaptive editor:
-full-screen on phones, a dialog on wider windows. It has `Fell asleep` and `Woke up` date
-and time rows, live duration, inline validation for future or overlapping times, and a
-separate delete action with confirmation. Read-only copies have no edit action.
+wake day, duration and start–end range. A leading source icon marks local sessions with
+a phone and Google Health sessions with a cloud; a session counts as Google Health once
+it has a Health Connect record, and every row in Google Health mode does. Open sessions
+are explained in the header but never counted. A local-day timer flips `Today` to
+`Yesterday` at midnight and catches up when the app returns from the background, without
+rebuilding the offstage tab every second. In Google Health mode, **All** can reveal more
+than 30 days only after the Health Connect history permission is granted; otherwise an
+outlined banner explains the limit and offers **Allow full history**. Editable rows add
+an edit icon and open an adaptive editor: full-screen on phones, a dialog on wider
+windows. It has `Fell asleep` and `Woke up` date and time rows, live duration, inline
+validation for future or overlapping times, and a separate delete action with
+confirmation. Read-only copies have no edit action.
 
 Settings uses the same header and section rhythm as Stats. Each section is a grouped
 `M3EList` with 16 dp outer and 4 dp inner corners and a 2 dp gap. The theme row opens a

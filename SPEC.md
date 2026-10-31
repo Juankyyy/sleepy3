@@ -243,6 +243,13 @@ Reglas:
   más antigua. Cada fila tiene tres líneas: el día de despertar como overline
   (`Today`, `Yesterday`, `Tue, Oct 20` o con año si no es el año actual), la duración
   como headline y `inicio – fin` como supporting text.
+- Cada fila empieza con un icono de procedencia: `smartphone` para una sesión local y
+  `cloud_outlined` para una que está en Google Health. El icono se muestra centrado
+  verticalmente en la tarjeta. En `Local`, una sesión pasa a Google Health en cuanto
+  tiene registro en Health Connect, ya sea porque Sleepy3 la subió o porque se descargó.
+  En `Google Health` todas las filas son Google Health, incluidas las escritas por
+  Sleepy3. El icono tiene tooltip `Local` o `Google Health`, y la etiqueta hablada de la
+  fila empieza por esa procedencia.
 - Las sesiones no se agrupan en una fila por día: si hubo varias el mismo día, cada una
   conserva su propia fila. La media y el total sí agrupan por día de despertar, con la
   misma regla que Home (3.1.2).
@@ -329,6 +336,8 @@ Reglas:
   diálogo de resultado con el recuento de añadidas, actualizadas, omitidas y fallidas.
   `Sync` y `Add` solo envían filas `origin='local'` pendientes; `Import` añade o actualiza
   filas descargadas y nunca sobrescribe una fila local. Repetir una acción no duplica.
+  Cuando la copia cambia algo, el historial visible se recarga para que la lista y el
+  icono de procedencia reflejen las filas añadidas o actualizadas.
 - El primer cambio a `Google Health` con sesiones locales pendientes muestra el diálogo
   opcional `Copy local sessions?` con `Sync`, `Add` y `Not now`. Los botones de copia
   siguen disponibles después en la sección `Google Health`.
@@ -464,9 +473,14 @@ Reglas:
   - Encabezado de lista `History` en `titleMedium` emphasized.
   - Lista `M3EList`/`M3EListItem` con radio exterior 16 dp, interior 4 dp y gap 2 dp. Cada
     fila usa overline `labelMedium`, headline `titleMedium` y supporting text
-    `bodyMedium`; las filas crecen con el texto del sistema. Las filas editables añaden un
-    icono `edit_outlined` al final, son botones con pista y abren el editor; las de solo
-    lectura no tienen icono ni acción. El objetivo táctil es de al menos 48 dp.
+    `bodyMedium`; las filas crecen con el texto del sistema. El icono de procedencia
+    (`smartphone` para Local, `cloud_outlined` para Google Health) usa el tamaño y el
+    color del list item con 50 % de opacidad y se superpone centrado verticalmente en la
+    tarjeta, porque el slot leading de una fila de tres líneas se alinea arriba. Tiene un
+    tooltip con `Local` o `Google Health`, y la etiqueta hablada empieza por esa
+    procedencia. Las filas editables añaden un icono `edit_outlined` al final, son botones
+    con pista y abren el editor; las de solo lectura no tienen icono ni acción. El
+    objetivo táctil es de al menos 48 dp.
   - Editor de sesión adaptativo: pantalla completa por debajo del breakpoint compacto y
     diálogo básico por encima. Usa `M3EDatePicker`/`M3ETimePicker`, secciones con
     encabezado `titleMedium` emphasized, duración en `headlineSmall` emphasized con cifras
@@ -530,6 +544,7 @@ Reglas:
 | Historial denegado desde el banner | `Google Health needs permission to read older sleep sessions.` |
 | Descarga limitada al historial | `Only the last 30 days were downloaded.` |
 | Encabezado de la lista | `History` |
+| Procedencia de la sesión | `Local` / `Google Health` |
 | Pista de fila editable | `Opens the session editor` |
 | Título del editor | `Edit session` |
 | Secciones del editor | `Fell asleep`, `Woke up` |

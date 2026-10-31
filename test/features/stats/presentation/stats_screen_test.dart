@@ -171,6 +171,77 @@ void main() {
     expect(find.byIcon(M3EIcons.edit_outlined), findsOneWidget);
   });
 
+  testWidgets('marks local, uploaded and downloaded sessions in Local mode', (
+    tester,
+  ) async {
+    final local = SleepSession(
+      startedAt: DateTime(2026, 10, 20, 22),
+      endedAt: DateTime(2026, 10, 21, 6),
+      localId: 1,
+    );
+    final uploaded = SleepSession(
+      startedAt: DateTime(2026, 10, 19, 22),
+      endedAt: DateTime(2026, 10, 20, 6),
+      localId: 2,
+      healthRecordId: 'health-uploaded',
+    );
+    final downloaded = SleepSession(
+      startedAt: DateTime(2026, 10, 18, 22),
+      endedAt: DateTime(2026, 10, 19, 6),
+      localId: 3,
+      healthRecordId: 'health-downloaded',
+      isDownloaded: true,
+    );
+
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: [local, uploaded, downloaded]),
+    );
+
+    expect(find.byIcon(M3EIcons.smartphone), findsOneWidget);
+    expect(find.byIcon(M3EIcons.cloud_outlined), findsNWidgets(2));
+    expect(
+      tester
+          .widgetList<M3ETooltip>(find.byType(M3ETooltip))
+          .map((tooltip) => tooltip.message),
+      containsAll(['Local', 'Google Health']),
+    );
+  });
+
+  testWidgets('shows every Google Health row with the Google Health icon', (
+    tester,
+  ) async {
+    final own = HealthSleepSession(
+      uuid: 'own',
+      startedAt: DateTime(2026, 10, 20, 22),
+      endedAt: DateTime(2026, 10, 21, 6),
+      sourceId: 'com.sleepy3.app',
+    );
+    final other = HealthSleepSession(
+      uuid: 'other',
+      startedAt: DateTime(2026, 10, 19, 22),
+      endedAt: DateTime(2026, 10, 20, 6),
+      sourceId: 'com.example.watch',
+    );
+
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      source: SleepDataSource.healthConnect,
+      gateway: FakeHealthConnectGateway(sessions: [own, other]),
+    );
+
+    expect(find.byIcon(M3EIcons.smartphone), findsNothing);
+    expect(find.byIcon(M3EIcons.cloud_outlined), findsNWidgets(2));
+    expect(
+      tester
+          .widgetList<M3ETooltip>(find.byType(M3ETooltip))
+          .map((tooltip) => tooltip.message),
+      everyElement('Google Health'),
+    );
+  });
+
   testWidgets('switches between 7 days, 30 days and All', (tester) async {
     await pumpStats(
       tester,
@@ -312,7 +383,7 @@ void main() {
     );
     expect(
       find.bySemanticsLabel(
-        RegExp('Today, 8 hours 13 minutes, 10:32 PM to 6:45 AM'),
+        RegExp('Local, Today, 8 hours 13 minutes, 10:32 PM to 6:45 AM'),
       ),
       findsOneWidget,
     );

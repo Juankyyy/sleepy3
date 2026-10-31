@@ -6,9 +6,10 @@ import 'package:sleepy3/features/health/application/health_sync_store_provider.d
 import 'package:sleepy3/features/health/application/sleep_copy_controller.dart';
 import 'package:sleepy3/features/health/application/sleep_copy_service.dart';
 import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
-import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_providers.dart';
+import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 
+import '../../sleep_tracking/fakes.dart';
 import '../fakes.dart';
 
 void main() {
@@ -21,7 +22,10 @@ void main() {
     final startedAt = DateTime(2026, 10, 20, 22);
     final endedAt = DateTime(2026, 10, 21, 6);
 
-    void create({List<HealthSleepSession> sessions = const []}) {
+    void create({
+      List<HealthSleepSession> sessions = const [],
+      FakeSleepSessionStore? sleepStore,
+    }) {
       now = DateTime(2026, 10, 21, 6, 20);
       gateway = FakeHealthConnectGateway(sessions: sessions);
       store = FakeHealthSyncStore();
@@ -30,6 +34,8 @@ void main() {
           sleepClockProvider.overrideWithValue(() => now),
           healthConnectGatewayProvider.overrideWithValue(gateway),
           healthSyncStoreProvider.overrideWithValue(store),
+          if (sleepStore != null)
+            sleepSessionStoreProvider.overrideWithValue(sleepStore),
         ],
       );
     }
@@ -59,6 +65,28 @@ void main() {
         expect(sync.lastSyncedAt, now);
       },
     );
+
+    test('a copy refreshes the visible history', () async {
+      final sleepStore = FakeSleepSessionStore();
+      create(sleepStore: sleepStore);
+
+      // Keep the tracking controller alive, as Home does in the app.
+      final subscription = container.listen(
+        sleepTrackingControllerProvider,
+        (_, _) {},
+      );
+      addTearDown(subscription.close);
+      await container
+          .read(sleepTrackingControllerProvider.notifier)
+          .historyLoad;
+      final loadsBefore = sleepStore.closedLoads;
+
+      store.addLocal(SleepSession(startedAt: startedAt, endedAt: endedAt));
+      final result = await controller().syncLastSession();
+
+      expect(result.added, 1);
+      expect(sleepStore.closedLoads, greaterThan(loadsBefore));
+    });
 
     test('download records the result without changing the source', () async {
       create(
