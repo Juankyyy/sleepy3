@@ -51,12 +51,26 @@ abstract interface class HealthConnectGateway {
 
   /// Writes one `SLEEP_SESSION` and returns its Health Connect UUID.
   ///
-  /// Returns null when Health Connect rejects the write. Throws when the
-  /// platform call itself fails; callers keep the session pending and retry.
+  /// [clientRecordId] is the stable id; writing again with the same id and a
+  /// higher [clientRecordVersion] updates that record instead of creating a
+  /// duplicate. Returns null when Health Connect rejects the write. Throws when
+  /// the platform call itself fails; callers keep the session pending and retry.
   Future<String?> writeSleepSession({
     required DateTime startedAt,
     required DateTime endedAt,
     required String clientRecordId,
+    required int clientRecordVersion,
+  });
+
+  /// Deletes a sleep record written by Sleepy3.
+  ///
+  /// Uses [clientRecordId] when known and falls back to [healthRecordId].
+  /// Health Connect itself rejects records written by another app, so callers
+  /// must only pass ids from Sleepy3 records. Returns whether the platform
+  /// confirmed the deletion; throws when the platform call fails.
+  Future<bool> deleteSleepSession({
+    String? clientRecordId,
+    String? healthRecordId,
   });
 
   /// Opens the store page so the user can install or update Health Connect.

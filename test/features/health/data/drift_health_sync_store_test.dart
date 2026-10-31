@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sleepy3/features/health/data/drift_health_sync_store.dart';
@@ -7,7 +7,7 @@ import 'package:sleepy3/features/sleep_tracking/data/sleepy3_database.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 
 void main() {
-  group('Drift schema v3', () {
+  group('Drift schema migrations', () {
     test('migrates a v2 database without losing sessions', () async {
       final startedAt = DateTime(2026, 10, 20, 22, 30, 15, 123);
       final endedAt = DateTime(2026, 10, 21, 7, 15);
@@ -53,6 +53,11 @@ void main() {
       expect(row.startedAtMillis, startedAt.millisecondsSinceEpoch);
       expect(row.endedAtMillis, endedAt.millisecondsSinceEpoch);
       expect(row.healthRecordId, isNull);
+      expect(
+        row.healthClientRecordId,
+        'sleepy3-${startedAt.millisecondsSinceEpoch}',
+      );
+      expect(row.healthRecordVersion, 0);
       expect(row.healthSyncedAtMillis, isNull);
       expect(row.healthSyncSkipped, isFalse);
       expect(row.origin, SleepSessionOrigin.local.storageValue);
@@ -79,6 +84,137 @@ void main() {
       await expectLater(insert('health-record-1'), throwsA(anything));
     });
 
+    test(
+      'migrates a v3 database and backfills Health Connect identity',
+      () async {
+        final localSyncedStart = DateTime(2026, 10, 18, 23);
+        final localSyncedEnd = DateTime(2026, 10, 19, 7);
+        final localUnsyncedStart = DateTime(2026, 10, 19, 23);
+        final localUnsyncedEnd = DateTime(2026, 10, 20, 7);
+        final downloadedStart = DateTime(2026, 10, 20, 23);
+        final downloadedEnd = DateTime(2026, 10, 21, 7);
+
+        final database = Sleepy3Database.forTesting(
+          NativeDatabase.memory(
+            setup: (raw) {
+              raw.execute('''
+              CREATE TABLE sleep_sessions (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                started_at_millis INTEGER NOT NULL,
+                ended_at_millis INTEGER NULL,
+                health_record_id TEXT NULL,
+                health_synced_at_millis INTEGER NULL,
+                health_sync_skipped INTEGER NOT NULL DEFAULT 0,
+                origin TEXT NOT NULL DEFAULT 'local'
+              )
+            ''');
+              raw.execute('''
+              CREATE TABLE preferences (
+                setting_key TEXT NOT NULL,
+                setting_value TEXT NOT NULL,
+                PRIMARY KEY (setting_key)
+              )
+            ''');
+
+              void insert({
+                required DateTime startedAt,
+                required DateTime endedAt,
+                required String origin,
+                String? healthRecordId,
+                int? healthSyncedAt,
+              }) {
+                raw.execute(
+                  'INSERT INTO sleep_sessions '
+                  '(started_at_millis, ended_at_millis, health_record_id, '
+                  'health_synced_at_millis, origin) VALUES (?, ?, ?, ?, ?)',
+                  [
+                    startedAt.millisecondsSinceEpoch,
+                    endedAt.millisecondsSinceEpoch,
+                    healthRecordId,
+                    healthSyncedAt,
+                    origin,
+                  ],
+                );
+              }
+
+              insert(
+                startedAt: localSyncedStart,
+                endedAt: localSyncedEnd,
+                origin: 'local',
+                healthRecordId: 'health-record-1',
+                healthSyncedAt: DateTime(
+                  2026,
+                  10,
+                  19,
+                  8,
+                ).millisecondsSinceEpoch,
+              );
+              insert(
+                startedAt: localUnsyncedStart,
+                endedAt: localUnsyncedEnd,
+                origin: 'local',
+              );
+              insert(
+                startedAt: downloadedStart,
+                endedAt: downloadedEnd,
+                origin: 'healthConnect',
+                healthRecordId: 'health-record-2',
+                healthSyncedAt: DateTime(
+                  2026,
+                  10,
+                  21,
+                  8,
+                ).millisecondsSinceEpoch,
+              );
+
+              raw.userVersion = 3;
+            },
+          ),
+        );
+        addTearDown(database.close);
+
+        final rows = await (database.select(
+          database.sleepSessions,
+        )..orderBy([(row) => OrderingTerm.asc(row.id)])).get();
+
+        expect(rows, hasLength(3));
+
+        final localSynced = rows[0];
+        expect(
+          localSynced.healthClientRecordId,
+          'sleepy3-${localSyncedStart.millisecondsSinceEpoch}',
+        );
+        expect(localSynced.healthRecordVersion, 1);
+        expect(
+          localSynced.startedAtMillis,
+          localSyncedStart.millisecondsSinceEpoch,
+        );
+        expect(
+          localSynced.endedAtMillis,
+          localSyncedEnd.millisecondsSinceEpoch,
+        );
+
+        final localUnsynced = rows[1];
+        expect(
+          localUnsynced.healthClientRecordId,
+          'sleepy3-${localUnsyncedStart.millisecondsSinceEpoch}',
+        );
+        expect(localUnsynced.healthRecordVersion, 0);
+        expect(
+          localUnsynced.startedAtMillis,
+          localUnsyncedStart.millisecondsSinceEpoch,
+        );
+
+        final downloaded = rows[2];
+        expect(downloaded.healthClientRecordId, isNull);
+        expect(downloaded.healthRecordVersion, 1);
+        expect(
+          downloaded.origin,
+          SleepSessionOrigin.healthConnect.storageValue,
+        );
+      },
+    );
+
     test('new rows default to local and unsynced', () async {
       final database = Sleepy3Database.forTesting(NativeDatabase.memory());
       addTearDown(database.close);
@@ -98,6 +234,8 @@ void main() {
         database.sleepSessions,
       )..where((row) => row.id.equals(id))).getSingle();
       expect(row.healthRecordId, isNull);
+      expect(row.healthClientRecordId, isNull);
+      expect(row.healthRecordVersion, 0);
       expect(row.healthSyncedAtMillis, isNull);
       expect(row.healthSyncSkipped, isFalse);
       expect(row.origin, SleepSessionOrigin.local.storageValue);
@@ -172,6 +310,8 @@ void main() {
       required DateTime startedAt,
       DateTime? endedAt,
       String? healthRecordId,
+      String? healthClientRecordId,
+      int healthRecordVersion = 0,
       DateTime? healthSyncedAt,
       bool healthSyncSkipped = false,
       SleepSessionOrigin origin = SleepSessionOrigin.local,
@@ -183,6 +323,8 @@ void main() {
               startedAtMillis: startedAt.millisecondsSinceEpoch,
               endedAtMillis: Value(endedAt?.millisecondsSinceEpoch),
               healthRecordId: Value(healthRecordId),
+              healthClientRecordId: Value(healthClientRecordId),
+              healthRecordVersion: Value(healthRecordVersion),
               healthSyncedAtMillis: Value(
                 healthSyncedAt?.millisecondsSinceEpoch,
               ),
@@ -248,23 +390,156 @@ void main() {
       expect(await store.loadPendingCount(), 0);
     });
 
-    test('markUploaded records the record id and clears pending', () async {
+    test('markUploadAttempt stores the version before the write', () async {
       final startedAt = DateTime(2026, 10, 20, 22);
       final id = await insertRow(
         startedAt: startedAt,
         endedAt: endOf(startedAt),
       );
+
+      await store.markUploadAttempt(id, 4);
+
+      final stored = await store.findById(id);
+      expect(stored?.healthRecordVersion, 4);
+      expect(stored?.isPendingUpload, isTrue);
+    });
+
+    test('markUploaded records the record id, client id and version', () async {
+      final startedAt = DateTime(2026, 10, 20, 22);
+      final id = await insertRow(
+        startedAt: startedAt,
+        endedAt: endOf(startedAt),
+        healthSyncSkipped: true,
+      );
       final syncedAt = DateTime(2026, 10, 21, 7, 5);
 
-      await store.markUploaded(id, 'health-record-1', syncedAt);
+      await store.markUploaded(
+        id,
+        'health-record-1',
+        syncedAt,
+        clientRecordId: 'sleepy3-1',
+        version: 3,
+      );
 
       expect(await store.loadPendingUploads(), isEmpty);
       expect(await store.loadPendingCount(), 0);
       final stored = await store.findByHealthRecordId('health-record-1');
       expect(stored?.id, id);
       expect(stored?.healthSyncedAt, syncedAt);
+      expect(stored?.healthClientRecordId, 'sleepy3-1');
+      expect(stored?.healthRecordVersion, 3);
+      expect(stored?.healthSyncSkipped, isFalse);
       expect(stored?.session.startedAt, startedAt);
       expect(stored?.isPendingUpload, isFalse);
+    });
+
+    test('markPendingUpdate queues a synced row for an update', () async {
+      final startedAt = DateTime(2026, 10, 20, 22);
+      final id = await insertRow(
+        startedAt: startedAt,
+        endedAt: endOf(startedAt),
+        healthRecordId: 'health-record-1',
+        healthClientRecordId: 'sleepy3-1',
+        healthRecordVersion: 1,
+        healthSyncedAt: DateTime(2026, 10, 21, 7),
+        healthSyncSkipped: true,
+      );
+
+      await store.markPendingUpdate(id);
+
+      final stored = await store.findById(id);
+      expect(stored?.healthSyncedAt, isNull);
+      expect(stored?.healthSyncSkipped, isFalse);
+      expect(stored?.isPendingUpdate, isTrue);
+      expect(await store.loadPendingUpdates(), hasLength(1));
+      expect(await store.loadPendingCount(), 1);
+    });
+
+    test('finds a row by its Drift id', () async {
+      final startedAt = DateTime(2026, 10, 20, 22);
+      final id = await insertRow(
+        startedAt: startedAt,
+        endedAt: endOf(startedAt),
+        healthRecordId: 'health-record-1',
+        healthClientRecordId: 'sleepy3-1',
+        healthRecordVersion: 2,
+      );
+
+      final stored = await store.findById(id);
+
+      expect(stored?.id, id);
+      expect(stored?.session.startedAt, startedAt);
+      expect(stored?.healthRecordId, 'health-record-1');
+      expect(stored?.healthClientRecordId, 'sleepy3-1');
+      expect(stored?.healthRecordVersion, 2);
+      expect(await store.findById(9999), isNull);
+    });
+
+    test(
+      'loadPendingUpdates includes only pending rows with a record',
+      () async {
+        final base = DateTime(2026, 10, 18, 22);
+        final updateId = await insertRow(
+          startedAt: base,
+          endedAt: endOf(base),
+          healthRecordId: 'health-record-1',
+          healthClientRecordId: 'sleepy3-1',
+          healthRecordVersion: 1,
+        );
+        // A new session that was never uploaded.
+        await insertRow(
+          startedAt: base.add(const Duration(days: 1)),
+          endedAt: endOf(base.add(const Duration(days: 1))),
+        );
+        // Already synced.
+        await insertRow(
+          startedAt: base.add(const Duration(days: 2)),
+          endedAt: endOf(base.add(const Duration(days: 2))),
+          healthRecordId: 'health-record-2',
+          healthSyncedAt: DateTime(2026, 10, 21, 7),
+        );
+        // Downloaded rows never become pending updates.
+        await insertRow(
+          startedAt: base.add(const Duration(days: 3)),
+          endedAt: endOf(base.add(const Duration(days: 3))),
+          healthRecordId: 'health-record-3',
+          origin: SleepSessionOrigin.healthConnect,
+        );
+
+        final updates = await store.loadPendingUpdates();
+
+        expect(updates.map((row) => row.id), [updateId]);
+        expect(updates.single.isPendingUpdate, isTrue);
+        // The full queue still includes the never-uploaded local session.
+        expect(await store.loadPendingUploads(), hasLength(2));
+      },
+    );
+
+    test('loads local sessions that already have a record', () async {
+      final base = DateTime(2026, 10, 18, 22);
+      final localId = await insertRow(
+        startedAt: base,
+        endedAt: endOf(base),
+        healthRecordId: 'health-record-1',
+        healthClientRecordId: 'sleepy3-1',
+        healthSyncedAt: DateTime(2026, 10, 19, 7),
+      );
+      await insertRow(
+        startedAt: base.add(const Duration(days: 1)),
+        endedAt: endOf(base.add(const Duration(days: 1))),
+      );
+      await insertRow(
+        startedAt: base.add(const Duration(days: 2)),
+        endedAt: endOf(base.add(const Duration(days: 2))),
+        healthRecordId: 'health-record-2',
+        healthSyncedAt: DateTime(2026, 10, 21, 7),
+        origin: SleepSessionOrigin.healthConnect,
+      );
+
+      final local = await store.loadLocalSessionsWithHealthRecordId();
+
+      expect(local.map((row) => row.id), [localId]);
+      expect(local.single.healthClientRecordId, 'sleepy3-1');
     });
 
     test('markSkipped removes the session from pending uploads', () async {
@@ -341,6 +616,7 @@ void main() {
       expect(stored?.origin, SleepSessionOrigin.healthConnect);
       expect(stored?.healthSyncedAt, syncedAt);
       expect(stored?.healthSyncSkipped, isFalse);
+      expect(stored?.healthRecordVersion, 1);
       expect(await store.loadPendingCount(), 0);
     });
 
@@ -357,6 +633,7 @@ void main() {
         database.sleepSessions,
       )..where((row) => row.id.equals(id))).getSingle();
       expect(row.healthRecordId, isNull);
+      expect(row.healthRecordVersion, 0);
     });
 
     test('insertDownloaded rejects an open session', () async {
@@ -409,6 +686,26 @@ void main() {
       );
       expect(local?.id, localId);
       expect(local?.session.startedAt, startedAt.add(const Duration(days: 1)));
+    });
+
+    test('deleteDownloaded removes only downloaded rows', () async {
+      final startedAt = DateTime(2026, 10, 20, 22);
+      final downloadedId = await insertRow(
+        startedAt: startedAt,
+        endedAt: endOf(startedAt),
+        healthRecordId: 'health-record-1',
+        healthSyncedAt: DateTime(2026, 10, 21, 7),
+        origin: SleepSessionOrigin.healthConnect,
+      );
+      final localId = await insertRow(
+        startedAt: startedAt.add(const Duration(days: 1)),
+        endedAt: endOf(startedAt.add(const Duration(days: 1))),
+      );
+
+      expect(await store.deleteDownloaded(localId), isFalse);
+      expect(await store.deleteDownloaded(downloadedId), isTrue);
+      expect(await store.findById(downloadedId), isNull);
+      expect((await store.findById(localId))?.id, localId);
     });
   });
 }

@@ -140,7 +140,35 @@ void main() {
     final list = tester.widget<M3EList>(find.byType(M3EList));
     expect(list.variant, M3ECardVariant.filled);
 
-    expect(find.byType(M3EListItem), findsNWidgets(3));
+    expect(
+      find.byWidgetPredicate((widget) => widget is M3EListItem),
+      findsNWidgets(3),
+    );
+    // These fake sessions have no Drift row id, so Local mode treats them as
+    // read-only copies.
+    expect(find.byIcon(M3EIcons.edit_outlined), findsNothing);
+  });
+
+  testWidgets('marks only editable sessions with the edit action', (
+    tester,
+  ) async {
+    final editable = SleepSession(
+      startedAt: DateTime(2026, 10, 20, 22),
+      endedAt: DateTime(2026, 10, 21, 6),
+      localId: 1,
+    );
+    final readOnly = closed(
+      DateTime(2026, 10, 19, 22),
+      DateTime(2026, 10, 20, 6),
+    );
+
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: [editable, readOnly]),
+    );
+
+    expect(find.byIcon(M3EIcons.edit_outlined), findsOneWidget);
   });
 
   testWidgets('switches between 7 days, 30 days and All', (tester) async {

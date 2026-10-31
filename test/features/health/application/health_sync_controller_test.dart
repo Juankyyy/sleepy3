@@ -122,6 +122,36 @@ void main() {
       expect(state().lastSyncedAt, now);
     });
 
+    test('Google Health retries new uploads and updates', () async {
+      final newSession = SleepSession(
+        startedAt: DateTime(2026, 10, 20, 22),
+        endedAt: DateTime(2026, 10, 21, 6),
+      );
+      final update = SleepSession(
+        startedAt: DateTime(2026, 10, 19, 22),
+        endedAt: DateTime(2026, 10, 20, 6),
+      );
+      final healthStore = FakeHealthSyncStore()
+        ..addLocal(newSession)
+        ..addLocal(
+          update,
+          healthRecordId: 'health-record-1',
+          healthClientRecordId: 'sleepy3-1',
+        );
+      create(healthStore: healthStore);
+
+      final result = await controller().retryPending();
+
+      expect(result.total, 2);
+      expect(result.uploaded, 2);
+      expect(gateway.writes, hasLength(2));
+      expect(
+        gateway.writes.map((write) => write.clientRecordId),
+        contains('sleepy3-1'),
+      );
+      expect(state().pendingCount, 0);
+    });
+
     test('Local mode never uploads automatically', () async {
       final session = SleepSession(
         startedAt: DateTime(2026, 10, 20, 22),
@@ -137,6 +167,35 @@ void main() {
       expect(result.total, 0);
       expect(gateway.writes, isEmpty);
       expect(store.rows.single.healthSyncedAt, isNull);
+    });
+
+    test('Local mode retries only updates of synchronized sessions', () async {
+      final update = SleepSession(
+        startedAt: DateTime(2026, 10, 20, 22),
+        endedAt: DateTime(2026, 10, 21, 6),
+      );
+      final newSession = SleepSession(
+        startedAt: DateTime(2026, 10, 19, 22),
+        endedAt: DateTime(2026, 10, 20, 6),
+      );
+      final healthStore = FakeHealthSyncStore()
+        ..addLocal(
+          update,
+          healthRecordId: 'health-record-1',
+          healthClientRecordId: 'sleepy3-1',
+        )
+        ..addLocal(newSession);
+      create(source: SleepDataSource.local, healthStore: healthStore);
+
+      final result = await controller().retryPending();
+
+      expect(result.total, 1);
+      expect(result.uploaded, 1);
+      expect(gateway.writes, hasLength(1));
+      expect(gateway.writes.single.clientRecordId, 'sleepy3-1');
+      expect(store.rows.first.healthSyncedAt, now);
+      expect(store.rows.last.healthSyncedAt, isNull);
+      expect(state().pendingCount, 1);
     });
   });
 }

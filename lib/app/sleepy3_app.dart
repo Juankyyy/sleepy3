@@ -49,12 +49,16 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
 
   /// Retries failed Health Connect uploads when the app opens or comes back.
   ///
-  /// Local mode never writes to Health Connect automatically. Google Health
-  /// mode also re-reads the history permission, because the user can change it
-  /// in Health Connect settings while the app is in the background.
+  /// Local mode only retries updates of sessions that already exist in Health
+  /// Connect; it never uploads a new local session automatically. Google
+  /// Health mode also re-reads the history permission, because the user can
+  /// change it in Health Connect settings while the app is in the background.
   Future<void> _retryPendingUploads() async {
     if (!mounted) return;
-    if (ref.read(sleepDataSourceProvider) != SleepDataSource.healthConnect) {
+
+    final sync = ref.read(healthSyncControllerProvider.notifier);
+    if (ref.read(sleepDataSourceProvider) == SleepDataSource.local) {
+      await sync.retryPending();
       return;
     }
 
@@ -65,7 +69,6 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
     final historyAccessChanged =
         ref.read(healthHistoryPermissionProvider) != previousHistoryAccess;
 
-    final sync = ref.read(healthSyncControllerProvider.notifier);
     final result = await sync.retryPending();
     if (!mounted) return;
 

@@ -58,9 +58,10 @@ class SleepUploadBatchResult {
 
 /// Uploads closed local sessions to Health Connect.
 ///
-/// The upload is idempotent: every write uses a stable `clientRecordId`
-/// derived from the start time, so retrying the same session updates the same
-/// Health Connect record instead of creating another one.
+/// The upload is idempotent: every write reuses the stored stable
+/// `clientRecordId` (or derives one from the original start time) and sends the
+/// next version, so retrying an attempt updates the same Health Connect record
+/// instead of creating another one.
 class SleepUploadService {
   SleepUploadService(this._gateway, this._store, this._clock);
 
@@ -110,10 +111,18 @@ class SleepUploadService {
       _upload(stored.session, stored);
 
   /// Uploads every local session that still needs Health Connect.
-  Future<SleepUploadBatchResult> retryPending() async {
+  ///
+  /// With [updatesOnly] only rows that already have a Health Connect UUID are
+  /// retried. Local mode uses this so an edit can reach Health Connect without
+  /// ever uploading a new local session automatically.
+  Future<SleepUploadBatchResult> retryPending({
+    bool updatesOnly = false,
+  }) async {
     List<StoredSleepSession> pending;
     try {
-      pending = await _store.loadPendingUploads();
+      pending = updatesOnly
+          ? await _store.loadPendingUpdates()
+          : await _store.loadPendingUploads();
     } catch (error, stackTrace) {
       debugPrint(
         'Sleepy3: could not load pending uploads: $error\n$stackTrace',
@@ -148,6 +157,63 @@ class SleepUploadService {
     );
   }
 
+  /// Writes new times for a session that is already in Health Connect.
+  ///
+  /// Unlike [uploadStored], this does not require the row to be pending: the
+  /// editor may be updating a synchronized record. The same stable client
+  /// record id is reused and the version is incremented, so Health Connect
+  /// replaces the existing record instead of creating a duplicate.
+  ///
+  /// [stored] should be the row as it was before the local times changed, so a
+  /// missing client record id can still be derived from the original start.
+  Future<SleepUploadResult> updateSyncedSession(
+    StoredSleepSession stored,
+    DateTime startedAt,
+    DateTime endedAt,
+  ) async {
+    if (stored.healthRecordId == null && stored.healthClientRecordId == null) {
+      return const SleepUploadResult(SleepUploadStatus.skipped);
+    }
+    if (!endedAt.isAfter(startedAt)) {
+      return const SleepUploadResult(SleepUploadStatus.skipped);
+    }
+
+    try {
+      final clientRecordId =
+          stored.healthClientRecordId ??
+          clientRecordIdFor(stored.session.startedAt);
+      final version = stored.healthRecordVersion + 1;
+      await _store.markUploadAttempt(stored.id, version);
+
+      final uuid = await _gateway.writeSleepSession(
+        startedAt: startedAt,
+        endedAt: endedAt,
+        clientRecordId: clientRecordId,
+        clientRecordVersion: version,
+      );
+      if (uuid == null || uuid.isEmpty) {
+        return const SleepUploadResult(SleepUploadStatus.failed);
+      }
+
+      await _store.markUploaded(
+        stored.id,
+        uuid,
+        _clock(),
+        clientRecordId: clientRecordId,
+        version: version,
+      );
+      return SleepUploadResult(
+        SleepUploadStatus.uploaded,
+        healthRecordId: uuid,
+      );
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Sleepy3: could not update a sleep session: $error\n$stackTrace',
+      );
+      return SleepUploadResult(SleepUploadStatus.failed, error: error);
+    }
+  }
+
   Future<SleepUploadResult> _upload(
     SleepSession session,
     StoredSleepSession? stored,
@@ -164,17 +230,29 @@ class SleepUploadService {
         return const SleepUploadResult(SleepUploadStatus.skipped);
       }
 
+      final clientRecordId =
+          stored?.healthClientRecordId ?? clientRecordIdFor(session.startedAt);
+      final version = (stored?.healthRecordVersion ?? 0) + 1;
+      if (stored != null) await _store.markUploadAttempt(stored.id, version);
+
       final uuid = await _gateway.writeSleepSession(
         startedAt: session.startedAt,
         endedAt: session.endedAt!,
-        clientRecordId: clientRecordIdFor(session.startedAt),
+        clientRecordId: clientRecordId,
+        clientRecordVersion: version,
       );
       if (uuid == null || uuid.isEmpty) {
         return const SleepUploadResult(SleepUploadStatus.failed);
       }
 
       if (stored != null) {
-        await _store.markUploaded(stored.id, uuid, _clock());
+        await _store.markUploaded(
+          stored.id,
+          uuid,
+          _clock(),
+          clientRecordId: clientRecordId,
+          version: version,
+        );
       }
       return SleepUploadResult(
         SleepUploadStatus.uploaded,

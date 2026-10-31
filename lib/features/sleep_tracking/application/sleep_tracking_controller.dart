@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,6 +9,7 @@ import '../../health/application/sleep_data_source_controller.dart';
 import '../../health/application/sleep_history_controller.dart';
 import '../../health/domain/sleep_data_source.dart';
 import '../domain/sleep_session.dart';
+import 'sleep_session_edit_service.dart';
 import 'sleep_tracking_providers.dart';
 
 export 'sleep_tracking_providers.dart';
@@ -161,6 +164,73 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
     await reloadHistory();
   }
 
+  /// Saves new times for a finished session without reloading the history.
+  ///
+  /// The edit service decides whether Health Connect goes first or the local
+  /// row does, and whether the change stays pending. Only a successful local
+  /// change updates [SleepTrackingState.closedSessions].
+  Future<SleepSessionEditResult> updateClosedSession({
+    required SleepSession session,
+    required DateTime startedAt,
+    required DateTime endedAt,
+  }) async {
+    final source = ref.read(sleepDataSourceProvider);
+    final otherClosedSessions = state.closedSessions
+        .where((current) => !current.hasSameIdentityAs(session))
+        .toList(growable: false);
+    final openSession = state.openSession;
+
+    final result = await _enqueueAction(
+      () => ref
+          .read(sleepSessionEditServiceProvider)
+          .updateSession(
+            session: session,
+            startedAt: startedAt,
+            endedAt: endedAt,
+            source: source,
+            otherClosedSessions: otherClosedSessions,
+            openSession: openSession,
+          ),
+    );
+    if (!ref.mounted) return result;
+
+    // A source switch rebuilds the list; never apply an old-source edit to it.
+    if (ref.read(sleepDataSourceProvider) == source) {
+      final updated = result.session;
+      if (updated != null) {
+        state = state.copyWith(closedSessions: _replaceClosedSession(updated));
+      }
+    }
+    await _refreshHealthPendingCount();
+    return result;
+  }
+
+  /// Deletes a finished session without reloading the history.
+  Future<SleepSessionEditResult> deleteClosedSession(
+    SleepSession session,
+  ) async {
+    final source = ref.read(sleepDataSourceProvider);
+
+    final result = await _enqueueAction(
+      () => ref
+          .read(sleepSessionEditServiceProvider)
+          .deleteSession(session: session, source: source),
+    );
+    if (!ref.mounted) return result;
+
+    if (result.isDeleted && ref.read(sleepDataSourceProvider) == source) {
+      state = state.copyWith(
+        closedSessions: List.unmodifiable(
+          state.closedSessions.where(
+            (current) => !current.hasSameIdentityAs(session),
+          ),
+        ),
+      );
+    }
+    await _refreshHealthPendingCount();
+    return result;
+  }
+
   /// Reloads the closed history from the selected source.
   ///
   /// Used by the Retry action and after Wake. The open session is untouched.
@@ -215,6 +285,29 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
     }
   }
 
+  List<SleepSession> _replaceClosedSession(SleepSession updated) {
+    final sessions = <SleepSession>[];
+    var replaced = false;
+
+    for (final current in state.closedSessions) {
+      if (!replaced && current.hasSameIdentityAs(updated)) {
+        sessions.add(updated);
+        replaced = true;
+      } else {
+        sessions.add(current);
+      }
+    }
+    if (!replaced) sessions.add(updated);
+
+    sessions.sort((a, b) => a.startedAt.compareTo(b.startedAt));
+    return List.unmodifiable(sessions);
+  }
+
+  Future<void> _refreshHealthPendingCount() async {
+    if (!ref.mounted) return;
+    await ref.read(healthSyncControllerProvider.notifier).refreshPendingCount();
+  }
+
   Future<void> _enqueueWrite(Future<void> Function() action) {
     final next = _writeQueue.then((_) => action()).catchError((
       Object error,
@@ -226,6 +319,22 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
     });
     _writeQueue = next;
     return next;
+  }
+
+  /// Runs an action after every earlier write and forwards its result or error.
+  ///
+  /// The queue always keeps running, but unlike [_enqueueWrite] this variant
+  /// does not hide failures: the edit and delete results must reach the editor.
+  Future<T> _enqueueAction<T>(Future<T> Function() action) {
+    final completer = Completer<T>();
+    _writeQueue = _writeQueue.then((_) async {
+      try {
+        completer.complete(await action());
+      } catch (error, stackTrace) {
+        completer.completeError(error, stackTrace);
+      }
+    });
+    return completer.future;
   }
 }
 

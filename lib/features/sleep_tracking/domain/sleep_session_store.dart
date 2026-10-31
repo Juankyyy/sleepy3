@@ -41,6 +41,28 @@ abstract interface class SleepSessionStore {
 
   Future<void> startSession(SleepSession session);
 
+  /// Updates the times of a local session.
+  ///
+  /// Only rows started in Sleepy3 can change; downloaded rows are copies and
+  /// are never written here. Returns false when [id] is not a local row or
+  /// does not exist.
+  ///
+  /// With [markHealthPending] the row is queued for a Health Connect update by
+  /// clearing its sync time. The skipped flag is always cleared so an edited
+  /// session with a positive duration becomes eligible again.
+  Future<bool> updateSession(
+    int id,
+    DateTime startedAt,
+    DateTime endedAt, {
+    bool markHealthPending = true,
+  });
+
+  /// Deletes a local session.
+  ///
+  /// Downloaded copies are never deleted here. Returns false when [id] is not a
+  /// local row or does not exist.
+  Future<bool> deleteSession(int id);
+
   /// Closes the most recent open session at [endedAt].
   ///
   /// Older open rows left behind by a crash are deleted so the history cannot

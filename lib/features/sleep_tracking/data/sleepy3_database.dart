@@ -24,6 +24,20 @@ class SleepSessions extends Table {
   /// Health Connect UUID once the record is uploaded or downloaded.
   TextColumn get healthRecordId => text().nullable()();
 
+  /// Stable Health Connect id used to update the same record.
+  ///
+  /// Filled for every local row, even before it is uploaded, so an edit can
+  /// address the record without creating a duplicate. Downloaded rows keep
+  /// their own record id and leave this null.
+  TextColumn get healthClientRecordId => text().nullable()();
+
+  /// Health Connect record version, incremented on every upload attempt.
+  ///
+  /// Zero means the record was never written by Sleepy3. Downloaded rows start
+  /// at one and are not updated by the local editor.
+  IntColumn get healthRecordVersion =>
+      integer().withDefault(const Constant(0))();
+
   /// When the record was last uploaded to or downloaded from Health Connect.
   IntColumn get healthSyncedAtMillis => integer().nullable()();
 
@@ -54,7 +68,7 @@ class Sleepy3Database extends _$Sleepy3Database {
   Sleepy3Database.forTesting(super.e);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -72,6 +86,24 @@ class Sleepy3Database extends _$Sleepy3Database {
         await m.addColumn(sleepSessions, sleepSessions.healthSyncSkipped);
         await m.addColumn(sleepSessions, sleepSessions.origin);
         await m.createIndex(sleepSessionsHealthRecordId);
+      }
+      // v4 adds the stable Health Connect record id and the version used to
+      // update the same record. Local rows get their client id now so a later
+      // upload or edit never has to guess it. A row that already has a record
+      // id is treated as version 1; rows never uploaded stay at zero.
+      if (from < 4) {
+        await m.addColumn(sleepSessions, sleepSessions.healthClientRecordId);
+        await m.addColumn(sleepSessions, sleepSessions.healthRecordVersion);
+        await customStatement(
+          "UPDATE sleep_sessions "
+          "SET health_client_record_id = 'sleepy3-' || started_at_millis "
+          "WHERE origin = 'local'",
+        );
+        await customStatement(
+          'UPDATE sleep_sessions '
+          'SET health_record_version = 1 '
+          'WHERE health_record_id IS NOT NULL',
+        );
       }
     },
   );

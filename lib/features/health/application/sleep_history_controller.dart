@@ -8,6 +8,7 @@ import '../domain/sleep_data_source.dart';
 import '../domain/sleep_history_repository.dart';
 import 'health_connect_gateway_provider.dart';
 import 'health_history_permission_controller.dart';
+import 'health_sync_store_provider.dart';
 import 'sleep_data_source_controller.dart';
 
 /// The repository for the selected source.
@@ -29,6 +30,8 @@ final sleepHistoryRepositoryProvider = Provider<SleepHistoryRepository>((ref) {
       fullHistory:
           ref.watch(healthHistoryPermissionProvider) ==
           HealthHistoryAccess.authorized,
+      // Adds the local row identity without changing the platform times.
+      syncStore: ref.watch(healthSyncStoreProvider),
     ),
   };
 });

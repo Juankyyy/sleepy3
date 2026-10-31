@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 
+import '../../health/domain/stored_sleep_session.dart';
 import '../domain/sleep_session.dart';
 import '../domain/sleep_session_store.dart';
 import 'sleepy3_database.dart';
@@ -75,6 +76,44 @@ class DriftSleepSessionStore implements SleepSessionStore {
   }
 
   @override
+  Future<bool> updateSession(
+    int id,
+    DateTime startedAt,
+    DateTime endedAt, {
+    bool markHealthPending = true,
+  }) async {
+    final updated =
+        await (_db.update(_db.sleepSessions)..where(
+              (row) =>
+                  row.id.equals(id) &
+                  row.origin.equals(SleepSessionOrigin.local.storageValue),
+            ))
+            .write(
+              SleepSessionsCompanion(
+                startedAtMillis: Value(startedAt.millisecondsSinceEpoch),
+                endedAtMillis: Value(endedAt.millisecondsSinceEpoch),
+                healthSyncedAtMillis: markHealthPending
+                    ? const Value<int?>(null)
+                    : const Value<int?>.absent(),
+                healthSyncSkipped: const Value<bool>(false),
+              ),
+            );
+    return updated > 0;
+  }
+
+  @override
+  Future<bool> deleteSession(int id) async {
+    final deleted =
+        await (_db.delete(_db.sleepSessions)..where(
+              (row) =>
+                  row.id.equals(id) &
+                  row.origin.equals(SleepSessionOrigin.local.storageValue),
+            ))
+            .go();
+    return deleted > 0;
+  }
+
+  @override
   Future<void> finishOpenSession(DateTime endedAt) async {
     await _db.transaction(() async {
       // A crash could leave duplicate open rows behind. Close only the most
@@ -115,6 +154,10 @@ class DriftSleepSessionStore implements SleepSessionStore {
       endedAt: endedAt == null
           ? null
           : DateTime.fromMillisecondsSinceEpoch(endedAt),
+      localId: row.id,
+      isDownloaded: row.origin == SleepSessionOrigin.healthConnect.storageValue,
+      healthRecordId: row.healthRecordId,
+      healthClientRecordId: row.healthClientRecordId,
     );
   }
 }

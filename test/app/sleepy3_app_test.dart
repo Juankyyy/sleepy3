@@ -5,10 +5,13 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/app/sleepy3_app.dart';
 import 'package:sleepy3/app/sleepy3_shell.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
+import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
+import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
 import 'package:sleepy3/features/settings/application/theme_mode_controller.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
 
+import '../features/health/fakes.dart';
 import '../features/settings/fakes.dart';
 import '../features/sleep_tracking/fakes.dart';
 
@@ -34,6 +37,10 @@ void main() {
             () => DateTime(2026, 10, 20, 22, 30),
           ),
           sleepSessionStoreProvider.overrideWithValue(FakeSleepSessionStore()),
+          healthConnectGatewayProvider.overrideWithValue(
+            FakeHealthConnectGateway(),
+          ),
+          healthSyncStoreProvider.overrideWithValue(FakeHealthSyncStore()),
           settingsStoreProvider.overrideWithValue(settingsStore),
           initialThemeModeProvider.overrideWithValue(mode),
         ],

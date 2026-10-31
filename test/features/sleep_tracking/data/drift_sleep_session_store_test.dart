@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sleepy3/features/health/domain/stored_sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/data/drift_sleep_session_store.dart';
 import 'package:sleepy3/features/sleep_tracking/data/sleepy3_database.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
@@ -181,5 +182,189 @@ void main() {
     expect(snapshot.closedSessions, hasLength(1));
     expect(snapshot.lastSession?.startedAt, second);
     expect(snapshot.lastSession?.endedAt, endedAt);
+  });
+
+  group('Health Connect identity', () {
+    Future<int> insertSession({
+      required DateTime startedAt,
+      DateTime? endedAt,
+      String? healthRecordId,
+      String? healthClientRecordId,
+      DateTime? healthSyncedAt,
+      bool healthSyncSkipped = false,
+      SleepSessionOrigin origin = SleepSessionOrigin.local,
+    }) {
+      return database
+          .into(database.sleepSessions)
+          .insert(
+            SleepSessionsCompanion.insert(
+              startedAtMillis: startedAt.millisecondsSinceEpoch,
+              endedAtMillis: Value(endedAt?.millisecondsSinceEpoch),
+              healthRecordId: Value(healthRecordId),
+              healthClientRecordId: Value(healthClientRecordId),
+              healthSyncedAtMillis: Value(
+                healthSyncedAt?.millisecondsSinceEpoch,
+              ),
+              healthSyncSkipped: Value(healthSyncSkipped),
+              origin: Value(origin.storageValue),
+            ),
+          );
+    }
+
+    test('maps row id and Health Connect metadata when loading', () async {
+      final startedAt = DateTime(2026, 10, 20, 23);
+      final endedAt = DateTime(2026, 10, 21, 7);
+      final id = await insertSession(
+        startedAt: startedAt,
+        endedAt: endedAt,
+        healthRecordId: 'health-record-1',
+        healthClientRecordId: 'sleepy3-1',
+      );
+
+      final session = (await store.loadClosedSessions()).single;
+
+      expect(session.localId, id);
+      expect(session.isDownloaded, isFalse);
+      expect(session.isEditableLocal, isTrue);
+      expect(session.healthRecordId, 'health-record-1');
+      expect(session.healthClientRecordId, 'sleepy3-1');
+      expect(session.startedAt, startedAt);
+      expect(session.endedAt, endedAt);
+    });
+
+    test('marks downloaded rows as read-only copies', () async {
+      final startedAt = DateTime(2026, 10, 20, 23);
+      final id = await insertSession(
+        startedAt: startedAt,
+        endedAt: startedAt.add(const Duration(hours: 8)),
+        healthRecordId: 'downloaded-1',
+        healthSyncedAt: DateTime(2026, 10, 21, 8),
+        origin: SleepSessionOrigin.healthConnect,
+      );
+
+      final session = (await store.loadClosedSessions()).single;
+
+      expect(session.localId, id);
+      expect(session.isDownloaded, isTrue);
+      expect(session.isEditableLocal, isFalse);
+      expect(session.healthRecordId, 'downloaded-1');
+      expect(session.healthClientRecordId, isNull);
+    });
+
+    test(
+      'updateSession writes local rows and queues a Health Connect update',
+      () async {
+        final startedAt = DateTime(2026, 10, 20, 23);
+        final endedAt = DateTime(2026, 10, 21, 7);
+        final id = await insertSession(
+          startedAt: startedAt,
+          endedAt: endedAt,
+          healthRecordId: 'health-record-1',
+          healthSyncedAt: DateTime(2026, 10, 21, 8),
+          healthSyncSkipped: true,
+        );
+        final newStart = startedAt.subtract(const Duration(minutes: 30));
+        final newEnd = endedAt.add(const Duration(minutes: 15));
+
+        expect(await store.updateSession(id, newStart, newEnd), isTrue);
+
+        final row = await (database.select(
+          database.sleepSessions,
+        )..where((row) => row.id.equals(id))).getSingle();
+        expect(row.startedAtMillis, newStart.millisecondsSinceEpoch);
+        expect(row.endedAtMillis, newEnd.millisecondsSinceEpoch);
+        expect(row.healthSyncedAtMillis, isNull);
+        expect(row.healthSyncSkipped, isFalse);
+
+        final session = (await store.loadClosedSessions()).single;
+        expect(session.startedAt, newStart);
+        expect(session.endedAt, newEnd);
+      },
+    );
+
+    test('updateSession can keep the sync time', () async {
+      final startedAt = DateTime(2026, 10, 20, 23);
+      final endedAt = DateTime(2026, 10, 21, 7);
+      final syncedAt = DateTime(2026, 10, 21, 8);
+      final id = await insertSession(
+        startedAt: startedAt,
+        endedAt: endedAt,
+        healthSyncedAt: syncedAt,
+        healthSyncSkipped: true,
+      );
+      final newStart = startedAt.add(const Duration(minutes: 10));
+      final newEnd = endedAt.add(const Duration(minutes: 20));
+
+      expect(
+        await store.updateSession(
+          id,
+          newStart,
+          newEnd,
+          markHealthPending: false,
+        ),
+        isTrue,
+      );
+
+      final row = await (database.select(
+        database.sleepSessions,
+      )..where((row) => row.id.equals(id))).getSingle();
+      expect(row.startedAtMillis, newStart.millisecondsSinceEpoch);
+      expect(row.endedAtMillis, newEnd.millisecondsSinceEpoch);
+      expect(row.healthSyncedAtMillis, syncedAt.millisecondsSinceEpoch);
+      expect(row.healthSyncSkipped, isFalse);
+    });
+
+    test('updateSession refuses downloaded rows', () async {
+      final startedAt = DateTime(2026, 10, 20, 23);
+      final endedAt = DateTime(2026, 10, 21, 7);
+      final id = await insertSession(
+        startedAt: startedAt,
+        endedAt: endedAt,
+        healthRecordId: 'downloaded-1',
+        origin: SleepSessionOrigin.healthConnect,
+      );
+
+      expect(
+        await store.updateSession(
+          id,
+          startedAt.add(const Duration(hours: 1)),
+          endedAt.add(const Duration(hours: 1)),
+        ),
+        isFalse,
+      );
+      expect(
+        await store.updateSession(
+          9999,
+          startedAt.add(const Duration(hours: 1)),
+          endedAt.add(const Duration(hours: 1)),
+        ),
+        isFalse,
+      );
+
+      final session = (await store.loadClosedSessions()).single;
+      expect(session.startedAt, startedAt);
+      expect(session.endedAt, endedAt);
+    });
+
+    test('deleteSession removes only local rows', () async {
+      final startedAt = DateTime(2026, 10, 20, 23);
+      final localId = await insertSession(
+        startedAt: startedAt,
+        endedAt: startedAt.add(const Duration(hours: 8)),
+      );
+      final downloadedId = await insertSession(
+        startedAt: startedAt.add(const Duration(days: 1)),
+        endedAt: startedAt.add(const Duration(days: 1, hours: 8)),
+        healthRecordId: 'downloaded-1',
+        origin: SleepSessionOrigin.healthConnect,
+      );
+
+      expect(await store.deleteSession(downloadedId), isFalse);
+      expect(await store.deleteSession(9999), isFalse);
+      expect(await store.deleteSession(localId), isTrue);
+
+      final rows = await database.select(database.sleepSessions).get();
+      expect(rows.map((row) => row.id), [downloadedId]);
+    });
   });
 }

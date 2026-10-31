@@ -10,11 +10,21 @@ class RecordedSleepWrite {
     required this.startedAt,
     required this.endedAt,
     required this.clientRecordId,
+    required this.clientRecordVersion,
   });
 
   final DateTime startedAt;
   final DateTime endedAt;
   final String clientRecordId;
+  final int clientRecordVersion;
+}
+
+/// One call recorded by [FakeHealthConnectGateway.deleteSleepSession].
+class RecordedSleepDelete {
+  const RecordedSleepDelete({this.clientRecordId, this.healthRecordId});
+
+  final String? clientRecordId;
+  final String? healthRecordId;
 }
 
 /// In-memory Health Connect gateway for controller, store and widget tests.
@@ -50,6 +60,9 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
   /// When false, [writeSleepSession] returns null without touching [sessions].
   bool writeSucceeds;
 
+  /// When false, [deleteSleepSession] returns false without touching [sessions].
+  bool deleteSucceeds = true;
+
   /// Sessions that throw instead of being written, for partial-failure tests.
   final Set<DateTime> failWriteStarts = {};
 
@@ -59,8 +72,12 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
   /// Every write call, including failed and repeated ones.
   final List<RecordedSleepWrite> writes = [];
 
+  /// Every delete call, including failed and ignored ones.
+  final List<RecordedSleepDelete> deletes = [];
+
   Object? readError;
   Object? writeError;
+  Object? deleteError;
   Object? permissionError;
   Object? historyError;
 
@@ -139,12 +156,14 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
     required DateTime startedAt,
     required DateTime endedAt,
     required String clientRecordId,
+    required int clientRecordVersion,
   }) async {
     writes.add(
       RecordedSleepWrite(
         startedAt: startedAt,
         endedAt: endedAt,
         clientRecordId: clientRecordId,
+        clientRecordVersion: clientRecordVersion,
       ),
     );
     final error = writeError;
@@ -175,6 +194,43 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
   }
 
   @override
+  Future<bool> deleteSleepSession({
+    String? clientRecordId,
+    String? healthRecordId,
+  }) async {
+    deletes.add(
+      RecordedSleepDelete(
+        clientRecordId: clientRecordId,
+        healthRecordId: healthRecordId,
+      ),
+    );
+    final error = deleteError;
+    if (error != null) throw error;
+    if (availability != HealthConnectAvailability.available) {
+      throw StateError('Health Connect is not available');
+    }
+    if (!deleteSucceeds) return false;
+
+    final byClientId = clientRecordId?.trim();
+    if (byClientId != null && byClientId.isNotEmpty) {
+      final uuid = 'fake-$byClientId';
+      final before = sessions.length;
+      sessions.removeWhere((session) => session.uuid == uuid);
+      return sessions.length != before;
+    }
+
+    final uuid = healthRecordId?.trim();
+    if (uuid == null || uuid.isEmpty) {
+      throw ArgumentError(
+        'deleteSleepSession needs a clientRecordId or a healthRecordId',
+      );
+    }
+    final before = sessions.length;
+    sessions.removeWhere((session) => session.uuid == uuid);
+    return sessions.length != before;
+  }
+
+  @override
   Future<void> installHealthConnect() async {
     installCalls++;
   }
@@ -199,8 +255,13 @@ class FakeHealthSyncStore implements HealthSyncStore {
   final Set<DateTime> failInsertStarts = {};
 
   int pendingCountLoads = 0;
+  int localMetadataLoads = 0;
   final markedUploaded = <int>[];
   final markedSkipped = <int>[];
+  final markedPendingUpdates = <int>[];
+
+  /// Version persisted by [markUploadAttempt], keyed by row id.
+  final uploadAttempts = <int, int>{};
 
   late int _nextId;
 
@@ -212,6 +273,8 @@ class FakeHealthSyncStore implements HealthSyncStore {
     DateTime? syncedAt,
     bool skipped = false,
     String? healthRecordId,
+    String? healthClientRecordId,
+    int healthRecordVersion = 0,
     int? id,
   }) {
     final rowId = id ?? _nextId++;
@@ -219,6 +282,8 @@ class FakeHealthSyncStore implements HealthSyncStore {
       id: rowId,
       session: session,
       healthRecordId: healthRecordId,
+      healthClientRecordId: healthClientRecordId,
+      healthRecordVersion: healthRecordVersion,
       healthSyncedAt: synced ? (syncedAt ?? DateTime(2026, 10, 21, 7)) : null,
       healthSyncSkipped: skipped,
     );
@@ -244,29 +309,100 @@ class FakeHealthSyncStore implements HealthSyncStore {
   }
 
   @override
+  Future<List<StoredSleepSession>> loadPendingUpdates() async {
+    _throwIfFailed();
+    final pending = rows.where((row) => row.isPendingUpdate).toList()
+      ..sort((a, b) {
+        final byStart = a.session.startedAt.compareTo(b.session.startedAt);
+        return byStart != 0 ? byStart : a.id.compareTo(b.id);
+      });
+    return pending;
+  }
+
+  @override
+  Future<List<StoredSleepSession>> loadLocalSessionsWithHealthRecordId() async {
+    localMetadataLoads++;
+    _throwIfFailed();
+    final local =
+        rows
+            .where(
+              (row) =>
+                  row.origin == SleepSessionOrigin.local &&
+                  row.healthRecordId != null &&
+                  !row.session.isOpen,
+            )
+            .toList()
+          ..sort((a, b) {
+            final byStart = a.session.startedAt.compareTo(b.session.startedAt);
+            return byStart != 0 ? byStart : a.id.compareTo(b.id);
+          });
+    return local;
+  }
+
+  @override
   Future<StoredSleepSession?> loadLatestPendingUpload() async {
     final pending = await loadPendingUploads();
     return pending.isEmpty ? null : pending.last;
   }
 
   @override
+  Future<void> markUploadAttempt(int rowId, int version) async {
+    _replace(
+      rowId,
+      (row) => StoredSleepSession(
+        id: row.id,
+        session: row.session,
+        healthRecordId: row.healthRecordId,
+        healthClientRecordId: row.healthClientRecordId,
+        healthRecordVersion: version,
+        healthSyncedAt: row.healthSyncedAt,
+        healthSyncSkipped: row.healthSyncSkipped,
+        origin: row.origin,
+      ),
+    );
+    uploadAttempts[rowId] = version;
+  }
+
+  @override
   Future<void> markUploaded(
     int rowId,
     String healthRecordId,
-    DateTime syncedAt,
-  ) async {
+    DateTime syncedAt, {
+    required String clientRecordId,
+    required int version,
+  }) async {
     _replace(
       rowId,
       (row) => StoredSleepSession(
         id: row.id,
         session: row.session,
         healthRecordId: healthRecordId,
+        healthClientRecordId: clientRecordId,
+        healthRecordVersion: version,
         healthSyncedAt: syncedAt,
-        healthSyncSkipped: row.healthSyncSkipped,
+        healthSyncSkipped: false,
         origin: row.origin,
       ),
     );
     markedUploaded.add(rowId);
+  }
+
+  @override
+  Future<void> markPendingUpdate(int rowId) async {
+    _replace(
+      rowId,
+      (row) => StoredSleepSession(
+        id: row.id,
+        session: row.session,
+        healthRecordId: row.healthRecordId,
+        healthClientRecordId: row.healthClientRecordId,
+        healthRecordVersion: row.healthRecordVersion,
+        healthSyncedAt: null,
+        healthSyncSkipped: false,
+        origin: row.origin,
+      ),
+    );
+    markedPendingUpdates.add(rowId);
   }
 
   @override
@@ -277,6 +413,8 @@ class FakeHealthSyncStore implements HealthSyncStore {
         id: row.id,
         session: row.session,
         healthRecordId: row.healthRecordId,
+        healthClientRecordId: row.healthClientRecordId,
+        healthRecordVersion: row.healthRecordVersion,
         healthSyncedAt: row.healthSyncedAt,
         healthSyncSkipped: true,
         origin: row.origin,
@@ -291,6 +429,14 @@ class FakeHealthSyncStore implements HealthSyncStore {
   ) async {
     for (final row in rows) {
       if (row.healthRecordId == healthRecordId) return row;
+    }
+    return null;
+  }
+
+  @override
+  Future<StoredSleepSession?> findById(int rowId) async {
+    for (final row in rows) {
+      if (row.id == rowId) return row;
     }
     return null;
   }
@@ -336,6 +482,7 @@ class FakeHealthSyncStore implements HealthSyncStore {
         id: id,
         session: session,
         healthRecordId: healthRecordId,
+        healthRecordVersion: healthRecordId == null ? 0 : 1,
         healthSyncedAt: syncedAt,
         origin: SleepSessionOrigin.healthConnect,
       ),
@@ -357,10 +504,23 @@ class FakeHealthSyncStore implements HealthSyncStore {
       id: row.id,
       session: SleepSession(startedAt: startedAt, endedAt: endedAt),
       healthRecordId: row.healthRecordId,
+      healthClientRecordId: row.healthClientRecordId,
+      healthRecordVersion: row.healthRecordVersion,
       healthSyncedAt: row.healthSyncedAt,
       healthSyncSkipped: row.healthSyncSkipped,
       origin: row.origin,
     );
+    return true;
+  }
+
+  @override
+  Future<bool> deleteDownloaded(int rowId) async {
+    final index = rows.indexWhere(
+      (row) =>
+          row.id == rowId && row.origin == SleepSessionOrigin.healthConnect,
+    );
+    if (index == -1) return false;
+    rows.removeAt(index);
     return true;
   }
 

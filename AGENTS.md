@@ -13,11 +13,11 @@ optional data source.
   under `android/app/src/main/kotlin/com/sleepy3/app/`.
 - Platform features that cannot run in Flutter (the widget, Health Connect manifest
   entries) stay in the Android layer behind small, documented bridges.
-- Current state: the home screen, sleep state machine, Drift persistence, Stats history,
-  Settings, Health Connect (Local/Google Health, pending uploads, copy actions and full
-  history access) and the two-channel release workflow work. The Glance widget is next.
-  Sessions, preferences and Health Connect metadata live in `sleepy3.sqlite` (schema v3);
-  generated Drift code is committed.
+- Current state: the home screen, sleep state machine, Drift persistence, Stats history with
+  session editing/deleting, Settings, Health Connect (Local/Google Health, pending uploads,
+  copy actions and full history access) and the two-channel release workflow work. The
+  Glance widget is next. Sessions, preferences and Health Connect metadata live in
+  `sleepy3.sqlite` (schema v4); generated Drift code is committed.
 
 ## Commands
 
@@ -68,14 +68,26 @@ lib/
 - Sleep data source: `Local` (default) reads only Drift; `Google Health` reads all
   `SLEEP_SESSION` records from Health Connect. Never mix the two lists. The open
   session and every finished session are always written locally first as a safety copy.
-- Health Connect: keep the platform behind `HealthConnectGateway`. Uploads use the stable
-  `clientRecordId = sleepy3-<startedAtMillis>` and only send `origin='local'` rows that
-  are pending. Downloads deduplicate by `healthRecordId` and exact start/end times, only
-  update `origin='healthConnect'` rows and never delete or overwrite local rows. Without
-  `READ_HEALTH_DATA_HISTORY`, reads stop at 30 days and the UI says so.
+  In Local, only rows owned by Sleepy3 can be edited or deleted; downloaded copies are
+  read-only. In Google Health, only Sleepy3 records are actionable, and one without a
+  local copy can only be deleted. Other apps' records are read-only.
+- Health Connect: keep the platform behind `HealthConnectGateway`. Uploads and edits use
+  the stable `clientRecordId = sleepy3-<startedAtMillis>` with an increasing
+  `clientRecordVersion`; only `origin='local'` rows are written. Editing a synced session
+  updates the same record, never a duplicate. Downloads deduplicate by `healthRecordId`
+  and exact start/end times, only update `origin='healthConnect'` rows and never delete
+  or overwrite local rows. Without `READ_HEALTH_DATA_HISTORY`, reads stop at 30 days and
+  the UI says so.
+- Editing: `sleep_session_edit_service.dart` decides whether Health Connect or the local
+  row goes first, validates the draft through `session_edit.dart` and returns an explicit
+  result for the editor. The editor lives in
+  `lib/features/stats/presentation/widgets/session_editor.dart`; the tracking controller
+  updates `closedSessions` in memory without reloading the history.
 - Retries: pending uploads are retried on launch/resume by `Sleepy3App`; copy actions are
-  explicit and never change the selected source. WorkManager is reserved for future
-  background work.
+  explicit and never change the selected source. In Local, automatic retries only update
+  sessions that already have a Health Connect record and never upload new ones. In Google
+  Health, all pending sessions are retried. WorkManager is reserved for future background
+  work.
 - Theme: `ThemeModeController` owns `System` / `Light` / `Dark`; `Sleepy3App`
   resolves the brightness with the fixed Sleepy3 schemes. Keep
   `M3EMaterialApp.autoTheming` disabled.

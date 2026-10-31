@@ -173,12 +173,20 @@ class HealthConnectGatewayImpl implements HealthConnectGateway {
     required DateTime startedAt,
     required DateTime endedAt,
     required String clientRecordId,
+    required int clientRecordVersion,
   }) async {
     if (endedAt.isBefore(startedAt)) {
       throw ArgumentError.value(
         endedAt,
         'endedAt',
         'must not be before startedAt',
+      );
+    }
+    if (clientRecordVersion < 1) {
+      throw ArgumentError.value(
+        clientRecordVersion,
+        'clientRecordVersion',
+        'must be at least 1',
       );
     }
 
@@ -189,13 +197,41 @@ class HealthConnectGatewayImpl implements HealthConnectGateway {
       startTime: startedAt,
       endTime: endedAt,
       clientRecordId: clientRecordId,
-      clientRecordVersion: 1,
+      clientRecordVersion: clientRecordVersion.toDouble(),
       recordingMethod: RecordingMethod.manual,
     );
 
     // The plugin stringifies a null method-channel result as "null".
     if (uuid == null || uuid.isEmpty || uuid == 'null') return null;
     return uuid;
+  }
+
+  @override
+  Future<bool> deleteSleepSession({
+    String? clientRecordId,
+    String? healthRecordId,
+  }) async {
+    final clientId = _normalizeId(clientRecordId);
+    if (clientId != null) {
+      return _health.deleteByClientRecordId(
+        dataTypeKey: _sleepType,
+        clientRecordId: clientId,
+      );
+    }
+
+    final uuid = _normalizeId(healthRecordId);
+    if (uuid != null) {
+      return _health.deleteByUUID(uuid: uuid, type: _sleepType);
+    }
+
+    throw ArgumentError(
+      'deleteSleepSession needs a clientRecordId or a healthRecordId',
+    );
+  }
+
+  String? _normalizeId(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
   }
 
   @override

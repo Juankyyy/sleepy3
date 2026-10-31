@@ -99,10 +99,12 @@ void main() {
         startedAt: night.startedAt,
         endedAt: night.endedAt,
         clientRecordId: 'sleepy3-1761523200000',
+        clientRecordVersion: 1,
       );
 
       expect(uuid, 'fake-sleepy3-1761523200000');
       expect(gateway.writes, hasLength(1));
+      expect(gateway.writes.single.clientRecordVersion, 1);
       expect(gateway.sessions.single.uuid, uuid);
       expect(gateway.sessions.single.sourceName, 'Sleepy3');
     });
@@ -116,11 +118,13 @@ void main() {
           startedAt: night.startedAt,
           endedAt: night.endedAt,
           clientRecordId: 'sleepy3-1',
+          clientRecordVersion: 1,
         );
         final second = await gateway.writeSleepSession(
           startedAt: night.startedAt,
           endedAt: night.endedAt,
           clientRecordId: 'sleepy3-1',
+          clientRecordVersion: 2,
         );
 
         expect(second, first);
@@ -136,11 +140,54 @@ void main() {
         startedAt: night.startedAt,
         endedAt: night.endedAt,
         clientRecordId: 'sleepy3-1',
+        clientRecordVersion: 1,
       );
 
       expect(uuid, isNull);
       expect(gateway.writes, hasLength(1));
       expect(gateway.sessions, isEmpty);
+    });
+
+    test('deletes a written session by client record id', () async {
+      final gateway = FakeHealthConnectGateway();
+      await gateway.writeSleepSession(
+        startedAt: night.startedAt,
+        endedAt: night.endedAt,
+        clientRecordId: 'sleepy3-1',
+        clientRecordVersion: 1,
+      );
+
+      final deleted = await gateway.deleteSleepSession(
+        clientRecordId: 'sleepy3-1',
+      );
+
+      expect(deleted, isTrue);
+      expect(gateway.deletes.single.clientRecordId, 'sleepy3-1');
+      expect(gateway.sessions, isEmpty);
+    });
+
+    test('deletes by UUID when no client record id is known', () async {
+      final gateway = FakeHealthConnectGateway(sessions: [night]);
+
+      final deleted = await gateway.deleteSleepSession(
+        healthRecordId: 'night-1',
+      );
+
+      expect(deleted, isTrue);
+      expect(gateway.deletes.single.healthRecordId, 'night-1');
+      expect(gateway.sessions, isEmpty);
+    });
+
+    test('a rejected delete keeps the record', () async {
+      final gateway = FakeHealthConnectGateway(sessions: [night])
+        ..deleteSucceeds = false;
+
+      final deleted = await gateway.deleteSleepSession(
+        healthRecordId: 'night-1',
+      );
+
+      expect(deleted, isFalse);
+      expect(gateway.sessions, hasLength(1));
     });
 
     test('a failing read throws and leaves the error visible', () async {

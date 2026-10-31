@@ -28,6 +28,8 @@ class StoredSleepSession {
     required this.id,
     required this.session,
     this.healthRecordId,
+    this.healthClientRecordId,
+    this.healthRecordVersion = 0,
     this.healthSyncedAt,
     this.healthSyncSkipped = false,
     this.origin = SleepSessionOrigin.local,
@@ -40,6 +42,15 @@ class StoredSleepSession {
 
   /// Health Connect UUID once the record is uploaded or downloaded.
   final String? healthRecordId;
+
+  /// Stable id used to update the same Health Connect record.
+  final String? healthClientRecordId;
+
+  /// Health Connect version last attempted or written.
+  ///
+  /// Every upload attempt uses the next version so Health Connect replaces the
+  /// existing record instead of rejecting an older write.
+  final int healthRecordVersion;
 
   /// When the record was last synced with Health Connect, if ever.
   final DateTime? healthSyncedAt;
@@ -61,10 +72,17 @@ class StoredSleepSession {
       !isUploaded &&
       !healthSyncSkipped;
 
+  /// A pending upload that already has a Health Connect record.
+  ///
+  /// These are updates of a record the user edited, not new records.
+  bool get isPendingUpdate => isPendingUpload && healthRecordId != null;
+
   @override
   String toString() =>
       'StoredSleepSession(id: $id, session: $session, '
-      'healthRecordId: $healthRecordId, origin: $origin, '
+      'healthRecordId: $healthRecordId, '
+      'healthClientRecordId: $healthClientRecordId, '
+      'healthRecordVersion: $healthRecordVersion, origin: $origin, '
       'healthSyncedAt: $healthSyncedAt, '
       'healthSyncSkipped: $healthSyncSkipped)';
 }

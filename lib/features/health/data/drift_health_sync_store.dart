@@ -32,6 +32,37 @@ class DriftHealthSyncStore implements HealthSyncStore {
   }
 
   @override
+  Future<List<StoredSleepSession>> loadPendingUpdates() async {
+    final rows =
+        await (_db.select(_db.sleepSessions)
+              ..where((row) => _isPending(row) & row.healthRecordId.isNotNull())
+              ..orderBy([
+                (row) => OrderingTerm.asc(row.startedAtMillis),
+                (row) => OrderingTerm.asc(row.id),
+              ]))
+            .get();
+    return List.unmodifiable(rows.map(_toDomain));
+  }
+
+  @override
+  Future<List<StoredSleepSession>> loadLocalSessionsWithHealthRecordId() async {
+    final rows =
+        await (_db.select(_db.sleepSessions)
+              ..where(
+                (row) =>
+                    row.origin.equals(SleepSessionOrigin.local.storageValue) &
+                    row.healthRecordId.isNotNull() &
+                    row.endedAtMillis.isNotNull(),
+              )
+              ..orderBy([
+                (row) => OrderingTerm.asc(row.startedAtMillis),
+                (row) => OrderingTerm.asc(row.id),
+              ]))
+            .get();
+    return List.unmodifiable(rows.map(_toDomain));
+  }
+
+  @override
   Future<StoredSleepSession?> loadLatestPendingUpload() async {
     final row =
         await (_db.select(_db.sleepSessions)
@@ -46,19 +77,45 @@ class DriftHealthSyncStore implements HealthSyncStore {
   }
 
   @override
+  Future<void> markUploadAttempt(int rowId, int version) async {
+    await (_db.update(_db.sleepSessions)..where((row) => row.id.equals(rowId)))
+        .write(SleepSessionsCompanion(healthRecordVersion: Value(version)));
+  }
+
+  @override
   Future<void> markUploaded(
     int rowId,
     String healthRecordId,
-    DateTime syncedAt,
-  ) async {
+    DateTime syncedAt, {
+    required String clientRecordId,
+    required int version,
+  }) async {
     await (_db.update(
       _db.sleepSessions,
     )..where((row) => row.id.equals(rowId))).write(
       SleepSessionsCompanion(
         healthRecordId: Value(healthRecordId),
+        healthClientRecordId: Value(clientRecordId),
+        healthRecordVersion: Value(version),
         healthSyncedAtMillis: Value(syncedAt.millisecondsSinceEpoch),
+        healthSyncSkipped: const Value(false),
       ),
     );
+  }
+
+  @override
+  Future<void> markPendingUpdate(int rowId) async {
+    await (_db.update(_db.sleepSessions)..where(
+          (row) =>
+              row.id.equals(rowId) &
+              row.origin.equals(SleepSessionOrigin.local.storageValue),
+        ))
+        .write(
+          const SleepSessionsCompanion(
+            healthSyncedAtMillis: Value(null),
+            healthSyncSkipped: Value(false),
+          ),
+        );
   }
 
   @override
@@ -74,6 +131,16 @@ class DriftHealthSyncStore implements HealthSyncStore {
     final row =
         await (_db.select(_db.sleepSessions)
               ..where((row) => row.healthRecordId.equals(healthRecordId))
+              ..limit(1))
+            .getSingleOrNull();
+    return row == null ? null : _toDomain(row);
+  }
+
+  @override
+  Future<StoredSleepSession?> findById(int rowId) async {
+    final row =
+        await (_db.select(_db.sleepSessions)
+              ..where((row) => row.id.equals(rowId))
               ..limit(1))
             .getSingleOrNull();
     return row == null ? null : _toDomain(row);
@@ -121,6 +188,7 @@ class DriftHealthSyncStore implements HealthSyncStore {
             startedAtMillis: session.startedAt.millisecondsSinceEpoch,
             endedAtMillis: Value(endedAt.millisecondsSinceEpoch),
             healthRecordId: Value(normalizedId),
+            healthRecordVersion: Value(normalizedId == null ? 0 : 1),
             healthSyncedAtMillis: Value(syncedAt.millisecondsSinceEpoch),
             origin: Value(SleepSessionOrigin.healthConnect.storageValue),
           ),
@@ -151,6 +219,20 @@ class DriftHealthSyncStore implements HealthSyncStore {
   }
 
   @override
+  Future<bool> deleteDownloaded(int rowId) async {
+    final deleted =
+        await (_db.delete(_db.sleepSessions)..where(
+              (row) =>
+                  row.id.equals(rowId) &
+                  row.origin.equals(
+                    SleepSessionOrigin.healthConnect.storageValue,
+                  ),
+            ))
+            .go();
+    return deleted > 0;
+  }
+
+  @override
   Future<int> loadPendingCount() async {
     final count = _db.sleepSessions.id.count();
     final row =
@@ -172,6 +254,8 @@ class DriftHealthSyncStore implements HealthSyncStore {
             : DateTime.fromMillisecondsSinceEpoch(endedAt),
       ),
       healthRecordId: row.healthRecordId,
+      healthClientRecordId: row.healthClientRecordId,
+      healthRecordVersion: row.healthRecordVersion,
       healthSyncedAt: row.healthSyncedAtMillis == null
           ? null
           : DateTime.fromMillisecondsSinceEpoch(row.healthSyncedAtMillis!),

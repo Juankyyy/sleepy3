@@ -42,11 +42,13 @@ void main() {
         uuid: 'late',
         startedAt: DateTime(2026, 10, 20, 23),
         endedAt: DateTime(2026, 10, 21, 6),
+        sourceId: 'com.example.other',
       );
       final early = HealthSleepSession(
         uuid: 'early',
         startedAt: DateTime(2026, 10, 19, 22),
         endedAt: DateTime(2026, 10, 20, 5),
+        sourceId: 'com.sleepy3.app',
       );
       final gateway = FakeHealthConnectGateway(sessions: [late, early]);
 
@@ -58,8 +60,104 @@ void main() {
       expect(sessions, hasLength(2));
       expect(sessions.first.startedAt, early.startedAt);
       expect(sessions.first.endedAt, early.endedAt);
+      expect(sessions.first.healthRecordId, 'early');
+      expect(sessions.first.sourceId, 'com.sleepy3.app');
       expect(sessions.last.startedAt, late.startedAt);
       expect(sessions.last.endedAt, late.endedAt);
+      expect(sessions.last.healthRecordId, 'late');
+    });
+
+    test('attaches the metadata of the matching local copy', () async {
+      final ownStart = DateTime(2026, 10, 19, 22);
+      final ownEnd = DateTime(2026, 10, 20, 6);
+      final gateway = FakeHealthConnectGateway(
+        sessions: [
+          HealthSleepSession(
+            uuid: 'own-record',
+            startedAt: ownStart,
+            endedAt: ownEnd,
+            sourceId: 'com.sleepy3.app',
+          ),
+          HealthSleepSession(
+            uuid: 'other-record',
+            startedAt: DateTime(2026, 10, 20, 22),
+            endedAt: DateTime(2026, 10, 21, 6),
+            sourceId: 'com.example.other',
+          ),
+        ],
+      );
+      final syncStore = FakeHealthSyncStore()
+        ..addLocal(
+          SleepSession(
+            startedAt: ownStart.add(const Duration(minutes: 5)),
+            endedAt: ownEnd.add(const Duration(minutes: 5)),
+          ),
+          synced: true,
+          healthRecordId: 'own-record',
+          healthClientRecordId: 'sleepy3-1',
+          id: 12,
+        )
+        ..addLocal(
+          SleepSession(
+            startedAt: DateTime(2026, 10, 18, 22),
+            endedAt: DateTime(2026, 10, 19, 6),
+          ),
+          synced: true,
+          healthRecordId: 'unrelated-record',
+          healthClientRecordId: 'sleepy3-2',
+          id: 13,
+        );
+
+      final sessions = await HealthConnectSleepHistoryRepository(
+        gateway,
+        () => now,
+        syncStore: syncStore,
+      ).loadClosedSessions();
+
+      // One read for the whole history, not one per record.
+      expect(syncStore.localMetadataLoads, 1);
+      expect(sessions, hasLength(2));
+
+      final own = sessions.first;
+      expect(own.localId, 12);
+      expect(own.healthRecordId, 'own-record');
+      expect(own.healthClientRecordId, 'sleepy3-1');
+      expect(own.sourceId, 'com.sleepy3.app');
+      // Health Connect stays the source of truth for the visible times.
+      expect(own.startedAt, ownStart);
+      expect(own.endedAt, ownEnd);
+
+      final other = sessions.last;
+      expect(other.localId, isNull);
+      expect(other.healthClientRecordId, isNull);
+      expect(other.sourceId, 'com.example.other');
+    });
+
+    test('shows the history when local metadata cannot be read', () async {
+      final gateway = FakeHealthConnectGateway(
+        sessions: [
+          HealthSleepSession(
+            uuid: 'own-record',
+            startedAt: DateTime(2026, 10, 19, 22),
+            endedAt: DateTime(2026, 10, 20, 6),
+            sourceId: 'com.sleepy3.app',
+          ),
+        ],
+      );
+      final syncStore = FakeHealthSyncStore()
+        ..loadError = StateError('local metadata unavailable');
+
+      final sessions = await HealthConnectSleepHistoryRepository(
+        gateway,
+        () => now,
+        syncStore: syncStore,
+      ).loadClosedSessions();
+
+      expect(syncStore.localMetadataLoads, 1);
+      expect(sessions, hasLength(1));
+      expect(sessions.single.healthRecordId, 'own-record');
+      expect(sessions.single.localId, isNull);
+      expect(sessions.single.healthClientRecordId, isNull);
     });
 
     test('reads the full history through the next day when granted', () async {

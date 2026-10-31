@@ -11,12 +11,16 @@ import '../../health/application/health_history_permission_controller.dart';
 import '../../health/application/sleep_data_source_controller.dart';
 import '../../health/domain/health_history_access.dart';
 import '../../health/domain/sleep_data_source.dart';
+import '../../health/domain/sleepy3_health_source.dart';
 import '../../health/presentation/health_history_banner.dart';
 import '../../health/presentation/health_sync_banner.dart';
+import '../../sleep_tracking/application/sleep_session_edit_service.dart';
 import '../../sleep_tracking/application/sleep_tracking_controller.dart';
+import '../../sleep_tracking/domain/session_edit.dart';
 import '../../sleep_tracking/domain/sleep_history.dart';
 import '../../sleep_tracking/domain/sleep_session.dart';
 import '../../sleep_tracking/presentation/widgets/sleep_history_status.dart';
+import 'widgets/session_editor.dart';
 import 'widgets/sleep_history_list.dart';
 import 'widgets/stats_range_selector.dart';
 import 'widgets/stats_summary_card.dart';
@@ -166,6 +170,9 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                   history: history,
                   today: today,
                   use24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+                  isEditable: (session) =>
+                      _accessFor(session, source) != SessionEditAccess.readOnly,
+                  onEdit: (session) => unawaited(_openEditor(session)),
                 ),
               ),
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
@@ -173,6 +180,44 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
         );
       },
     );
+  }
+
+  SessionEditAccess _accessFor(SleepSession session, SleepDataSource source) {
+    return sessionEditAccess(
+      session,
+      healthConnectSource: source == SleepDataSource.healthConnect,
+      isOwnHealthRecord: isSleepy3HealthRecord(session.sourceId),
+    );
+  }
+
+  /// Opens the editor and reports only outcomes the user must know about.
+  Future<void> _openEditor(SleepSession session) async {
+    final source = ref.read(sleepDataSourceProvider);
+    final access = _accessFor(session, source);
+    if (access == SessionEditAccess.readOnly) return;
+
+    final result = await showSessionEditor(
+      context,
+      session: session,
+      source: source,
+      access: access,
+    );
+    if (!mounted || result == null) return;
+
+    final message = switch (result.status) {
+      SleepSessionEditStatus.saved => null,
+      SleepSessionEditStatus.savedPendingSync =>
+        'Saved. Google Health will update when it can.',
+      SleepSessionEditStatus.deleted => 'Session deleted.',
+      SleepSessionEditStatus.permissionNeeded =>
+        result.hasLocalChange
+            ? 'Saved locally. Allow Google Health write access to sync it.'
+            : null,
+      SleepSessionEditStatus.failed => null,
+    };
+    if (message != null) {
+      M3ESnackbar.show(context, message: message);
+    }
   }
 
   /// Applies a range, asking for the full history first when the user selects

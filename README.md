@@ -45,6 +45,9 @@ restarting the phone.
   day, with a real average and bars against an eight-hour goal.
 - A Stats screen with 7-day, 30-day and all-time filters, a range average and one row
   per closed session.
+- Edit or delete a night from Stats. Editable rows open an adaptive editor for the exact
+  start and end times; deleting asks first. Copies downloaded from Health Connect and
+  records from other apps stay read-only.
 - Local persistence; an open session survives the app being closed or killed.
 - Optional Health Connect support: choose **Local** or **Google Health**, keep pending
   sessions safe when a write fails, and copy sessions in either direction from Settings.
@@ -103,7 +106,8 @@ open it.
 3. The header shows the day/night state and the clock shows the current time with
    seconds. The line under the date tells you what is happening.
 4. Use the bottom bar to open **Stats** and browse your history with the 7-day, 30-day
-   or all-time filter. Open **Settings** to choose the theme, switch between **Local**
+   or all-time filter. Tap a row to adjust its start or end time, or delete the session
+   after a confirmation. Open **Settings** to choose the theme, switch between **Local**
    and **Google Health**, copy sessions, or open the app version and licenses. The
    system back gesture returns to Home.
 
@@ -165,6 +169,9 @@ sessions. The app does not use a separate preferences plugin.
   and writes sleep records in Health Connect with explicit permission. Denying it never
   blocks local tracking. Records older than 30 days are only read when you also grant the
   Health Connect history permission; otherwise the app applies that limit itself.
+- Editing or deleting a session in Stats changes the local database and, when that session
+  belongs to Sleepy3 in Health Connect, the same Health Connect record. Records written
+  by other apps are never changed.
 - Sleepy3 talks to Health Connect on your phone, not to Google's cloud. A record that only
   exists in the Google Health cloud appears after Google Health syncs it to Health
   Connect.
@@ -177,11 +184,15 @@ sessions. The app does not use a separate preferences plugin.
 Sleepy3 can use Health Connect in two ways:
 
 - **Local (default).** Home and Stats read only the Sleepy3 database. Sleep and Wake do
-  not touch Health Connect.
+  not touch Health Connect. Editing a session that was already synced updates its Health
+  Connect record too; deleting removes the record first. A failed update stays pending
+  and is retried later.
 - **Google Health.** Home and Stats read every `SLEEP_SESSION` in Health Connect, from any
   app. Sleep and Wake still keep a local safety copy, and Wake writes the session to
   Health Connect. If the write fails, the session stays pending, a banner offers
-  **Retry**, and the app retries when you open or resume it.
+  **Retry**, and the app retries when you open or resume it. Only records written by
+  Sleepy3 can be edited or deleted; records from other apps are read-only, and a Sleepy3
+  record without a local copy can only be deleted.
 
 In Google Health mode, a pending session is not counted in the graphs until Health
 Connect confirms it. Zero-duration sessions are skipped. Settings shows the connection
@@ -193,7 +204,8 @@ The copy actions are explicit and idempotent:
 - **Add** sends every pending local session, oldest first.
 - **Import** downloads every Health Connect session into the local copy.
 
-Uploads use a stable client record id, so retrying does not duplicate a record. Downloads
+Uploads use a stable client record id, so retrying does not duplicate a record. Editing a
+synced session reuses that id with a higher version, replacing the same record. Downloads
 deduplicate by Health Connect UUID and, when it is missing, by exact start and end times.
 They add new rows or update previously downloaded rows, never overwrite or delete local
 sessions, and downloaded rows are not uploaded again. None of the actions changes the
@@ -236,12 +248,12 @@ lib/
 │   └── time/          # clock formatting, day/night rule and LocalDayBuilder
 └── features/
     ├── sleep_tracking/
-    │   ├── domain/        # sessions, durations, history, store contract
+    │   ├── domain/        # sessions, durations, history, edit draft, store contract
     │   ├── data/          # Drift database and store implementation
-    │   ├── application/   # Riverpod controller and state
+    │   ├── application/   # Riverpod controllers, edit service and state
     │   └── presentation/  # home screen, header, live clock and buttons
     ├── stats/
-    │   └── presentation/  # stats screen, range chips, summary and history list
+    │   └── presentation/  # stats screen, chips, summary, history list, session editor
     ├── health/
     │   ├── domain/        # gateway, source, history access, sync store and stored session
     │   ├── data/          # Health Connect gateway, repositories and Drift sync store
@@ -360,8 +372,10 @@ never counted. A local-day timer flips `Today` to `Yesterday` at midnight and ca
 when the app returns from the background, without rebuilding the offstage tab every
 second. In Google Health mode, **All** can reveal more than 30 days only after the Health
 Connect history permission is granted; otherwise an outlined banner explains the limit and
-offers **Allow full history**. This first version has no chart and no editable or tappable
-rows.
+offers **Allow full history**. Editable rows add an edit icon and open an adaptive editor:
+full-screen on phones, a dialog on wider windows. It has `Fell asleep` and `Woke up` date
+and time rows, live duration, inline validation for future or overlapping times, and a
+separate delete action with confirmation. Read-only copies have no edit action.
 
 Settings uses the same header and section rhythm as Stats. Each section is a grouped
 `M3EList` with 16 dp outer and 4 dp inner corners and a 2 dp gap. The theme row opens a
@@ -386,6 +400,7 @@ changing UI.
 - [x] Health Connect sync with retries, pending queue and idempotent writes.
 - [x] Copy actions: Sync last, Add all and Import from Google Health.
 - [x] Health Connect history permission and Stats All beyond 30 days.
+- [x] Edit and delete sleep sessions from the Stats history.
 - [ ] Home-screen widget with Sleep / Wake actions and a pending-events queue.
 - [ ] Device QA for the release APK with Health Connect and Google Health.
 - [ ] Motion and accessibility polish.

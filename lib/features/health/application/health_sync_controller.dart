@@ -138,19 +138,22 @@ class HealthSyncController extends Notifier<HealthSyncState> {
     return result;
   }
 
-  /// Retries every pending upload. Does nothing in Local mode.
+  /// Retries pending uploads.
+  ///
+  /// In Google Health mode every pending row is sent. In Local mode only
+  /// updates of sessions that already exist in Health Connect are sent; new
+  /// local sessions are never uploaded automatically.
   ///
   /// Concurrent calls share one run so an app resume and a banner tap cannot
   /// upload the same session twice at the same time.
   Future<SleepUploadBatchResult> retryPending() {
-    if (ref.read(sleepDataSourceProvider) != SleepDataSource.healthConnect) {
-      return Future.value(const SleepUploadBatchResult());
-    }
+    final updatesOnly =
+        ref.read(sleepDataSourceProvider) == SleepDataSource.local;
 
     final running = _retryFuture;
     if (running != null) return running;
 
-    final future = _runRetryPending();
+    final future = _runRetryPending(updatesOnly: updatesOnly);
     _retryFuture = future;
     future.whenComplete(() {
       if (identical(_retryFuture, future)) _retryFuture = null;
@@ -239,10 +242,14 @@ class HealthSyncController extends Notifier<HealthSyncState> {
     }
   }
 
-  Future<SleepUploadBatchResult> _runRetryPending() async {
+  Future<SleepUploadBatchResult> _runRetryPending({
+    required bool updatesOnly,
+  }) async {
     state = state.copyWith(syncing: true, lastError: null);
 
-    final result = await ref.read(sleepUploadServiceProvider).retryPending();
+    final result = await ref
+        .read(sleepUploadServiceProvider)
+        .retryPending(updatesOnly: updatesOnly);
 
     if (!ref.mounted) return result;
 
