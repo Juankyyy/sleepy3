@@ -11,7 +11,7 @@ import 'widgets/settings_section.dart';
 import 'widgets/sleep_data_source_setting.dart';
 import 'widgets/theme_setting.dart';
 
-/// The Settings destination: appearance, sleep data and app info.
+/// The Settings destination: appearance, sleep data, Google Health and app info.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 

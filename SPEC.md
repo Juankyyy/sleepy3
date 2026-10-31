@@ -3,7 +3,9 @@
 **Proyecto:** Sleepy3
 **Plataforma:** Android
 **Stack principal:** Flutter + Material 3 Expressive
-**Estado:** migración a Flutter en curso; Home, Stats, la persistencia local y Health Connect ya funcionan.
+**Estado:** migración a Flutter en curso; Home, Stats, Settings, la persistencia local y
+Health Connect (Local/Google Health) ya funcionan. El widget de pantalla de inicio es lo
+siguiente.
 
 ---
 
@@ -168,9 +170,9 @@ Reglas:
 - Si ya hay una sesión abierta, Sleep no hace nada.
 - Si no hay sesión abierta, Wake no hace nada.
 - Una sesión cerrada con una hora anterior al inicio se recorta a duración cero.
-- Al arrancar la app se restaura la sesión abierta y todas las sesiones cerradas,
-  ordenadas de más antigua a más reciente. Home filtra los últimos 3 días para su
-  resumen y `Stats` filtra el rango elegido.
+- Al arrancar la app se restaura la sesión abierta; las sesiones cerradas se cargan de la
+  fuente elegida (ver 3.6), ordenadas de más antigua a más reciente. Home filtra los
+  últimos 3 días para su resumen y `Stats` filtra el rango elegido.
 - Las escrituras a disco se serializan: un Wake inmediatamente después de Sleep no puede
   adelantarse al inicio.
 - El día va de 07:00 a 18:59 y la noche de 19:00 a 06:59, en hora local. Es una regla
@@ -229,6 +231,12 @@ Reglas:
 - La tarjeta de resumen muestra la media de los días con datos, el número de noches y el
   total del rango. Si no hay noches en el rango muestra `—`, `No nights in this range` y,
   cuando existe historial más antiguo, un botón `Show all` que cambia el filtro a `All`.
+- En modo `Google Health`, elegir `All` pide el permiso de historial de Health Connect. Si
+  ya estaba concedido, no se vuelve a preguntar. Si se deniega, el rango sigue siendo
+  `All`, pero la lectura se limita a los últimos 30 días; un banner explica el límite y
+  ofrece `Allow full history`, que vuelve a pedir el permiso y recarga el historial. Los
+  rangos `7 days` y `30 days` no piden nada. Al volver del segundo plano se relee el
+  permiso por si el usuario lo cambió en Health Connect.
 - Debajo, una sola lista muestra una fila por sesión cerrada, de la más reciente a la
   más antigua. Cada fila tiene tres líneas: el día de despertar como overline
   (`Today`, `Yesterday`, `Tue, Oct 20` o con año si no es el año actual), la duración
@@ -265,7 +273,10 @@ Reglas:
     el permiso, la fuente se queda en `Local` y un snackbar explica el motivo. Volver a
     `Local` guarda y recarga, pero no revoca permisos.
   - `Import` con apoyo `Download from Google Health to the local copy.`. Ejecuta la
-    descarga de todas las sesiones de Health Connect.
+    descarga de todas las sesiones de Health Connect. Pide el permiso de historial antes
+    de descargar; si se deniega, baja solo los últimos 30 días y el resultado lo indica.
+- La sección `Google Health` se muestra en ambos modos: el estado de conexión y las
+  acciones de copia no dependen de la fuente activa.
 - `Google Health` contiene:
   - `Status`, con `Checking…`, `Connected`, `Connected · {n} pending`,
     `Connected · Last sync {time}`, `Permission needed`, `Not available` o
@@ -321,8 +332,12 @@ Reglas:
   está disponible o el permiso se deniega, la app sigue funcionando localmente.
 - Sleepy3 lee y escribe en Health Connect, no en la nube de Google Health. Un registro que
   solo esté en la nube aparece cuando Google Health lo sincroniza con Health Connect.
-- El acceso al historial completo de Health Connect (más de 30 días) queda para el módulo
-  siguiente; hasta entonces la lectura usa lo que la plataforma devuelva.
+- El historial completo (más de 30 días) requiere `READ_HEALTH_DATA_HISTORY`. Sleepy3 lo
+  pide al elegir `All` en Stats o al usar `Import`; si se deniega, aplica un límite de 30
+  días por su cuenta. Stats muestra el banner `Only the last 30 days are available` con
+  `Allow full history`, e `Import` añade al resultado `Only the last 30 days were
+  downloaded.`. El permiso se relee al cargar el historial y al volver del segundo plano,
+  así que una concesión hecha en Health Connect se aplica sin reiniciar la app.
 
 ### 3.7 Accesibilidad
 
@@ -449,6 +464,9 @@ Reglas:
 | Resumen de Stats | `Average sleep` |
 | Sin noches en el rango | `No nights in this range` |
 | Mostrar todo el historial | `Show all` |
+| Límite de historial en Stats | `Only the last 30 days are available` / `Allow full history in Google Health to see older sessions.` / `Allow full history` |
+| Historial denegado desde el banner | `Google Health needs permission to read older sleep sessions.` |
+| Descarga limitada al historial | `Only the last 30 days were downloaded.` |
 | Encabezado de la lista | `History` |
 | Stats sin historial | `No sleep history yet` |
 | Apoyo sin historial | `Your nights will appear here after you wake up.` |
@@ -504,6 +522,9 @@ Notas:
   `package:material_ui/material_ui.dart` y los componentes `M3E*`.
 - No se requiere Android Studio. Flutter CLI + Android command-line tools alcanzan.
 - Hot reload: `flutter run`, luego `r`.
+- Los builds debug usan `applicationId` `com.sleepy3.app.debug`, etiqueta `Sleepy3 Debug` y
+  sufijo de versión `-debug`, para convivir con la release firmada. Cada variante mantiene
+  su propia base de datos local.
 
 ---
 
@@ -535,10 +556,10 @@ lib/
     │   ├── application/    # theme controller and providers
     │   └── presentation/   # settings screen, theme dialog and about list
     ├── health/
-    │   ├── domain/         # gateway, data source, sync store and stored session
+    │   ├── domain/         # gateway, source, history access, sync store and stored session
     │   ├── data/           # Health Connect gateway and Drift sync store
-    │   ├── application/    # source, history, sync, upload and copy controllers
-    │   └── presentation/   # copy dialogs, sync banner and source text
+    │   ├── application/    # source, history, history-permission, sync, upload and copy
+    │   └── presentation/   # copy dialogs, sync and history banners, source text
     └── widget/             # planificado
 ```
 
@@ -573,7 +594,9 @@ splash.
   `Google Health`; si falla, conserva `Local`.
 - `HealthSyncController` mantiene el estado de conexión, la cola de pendientes y el
   último sync. `SleepCopyController` expone las tres acciones de copia y comparte el
-  servicio con la UI.
+  servicio con la UI. `HealthHistoryPermissionController` posee el permiso de historial
+  (`unknown`, `authorized`, `denied`), comparte una sola petición concurrente y relee el
+  estado al cargar el historial y al volver al primer plano.
 - `ThemeModeController` es un `Notifier<AppThemeMode>`. Actualiza el estado al instante,
   serializa las escrituras y conserva la elección visible si una escritura falla.
 - `Sleepy3App` resuelve el brillo con el modo de tema y el brillo del sistema; mantiene
@@ -588,7 +611,10 @@ splash.
   filtra los 3 días y `Stats` el rango elegido en memoria; la base de datos no se consulta
   desde la UI.
 - `SleepHistoryRepository` tiene dos implementaciones: `LocalSleepHistoryRepository`
-  (Drift) y `HealthConnectSleepHistoryRepository` (Health Connect).
+  (Drift) y `HealthConnectSleepHistoryRepository` (Health Connect). La segunda lee desde
+  el epoch solo con `HealthHistoryAccess.authorized`; en caso contrario aplica
+  `healthConnectHistoryLimit` (30 días) e incluye hasta el día siguiente para tolerar
+  relojes desfasados.
 - `HealthSyncStore` y `DriftHealthSyncStore` gestionan pendientes, UUID descargados y
   deduplicación sobre la misma base.
 - `SettingsStore` es la interfaz de preferencias y `DriftSettingsStore` su implementación.
@@ -664,6 +690,9 @@ dart run build_runner build
   escribe automáticamente.
 - En `Google Health`, Sleepy3 lee y escribe `SleepSessionRecord` en Health Connect con
   permiso explícito. La copia local se mantiene como red de seguridad.
+- El historial anterior a 30 días solo se lee si el usuario concede
+  `READ_HEALTH_DATA_HISTORY`; sin él, la app aplica el límite localmente y lo explica en
+  Stats y en el resultado de `Import`.
 - Sleepy3 no accede a la nube de Google Health ni a una API cloud; solo al proveedor de
   Health Connect del dispositivo.
 - Denegar un permiso nunca bloquea el registro local.
@@ -706,19 +735,25 @@ dart run build_runner build
 - Acciones de copia:
   - `Sync`: sube la sesión `origin='local'` pendiente más reciente.
   - `Add`: sube todas las `origin='local'` pendientes, de la más antigua a la más reciente.
-  - `Import`: lee todas las sesiones de Health Connect y las añade o actualiza en local.
+  - `Import`: lee las sesiones de Health Connect y las añade o actualiza en local.
   - La descarga deduplica por `health_record_id` y, si falta, por inicio y fin exactos.
   - Inserta las nuevas con `origin='healthConnect'` y `health_synced_at_millis`.
   - Actualiza las `origin='healthConnect'` existentes si cambiaron sus horas.
   - No sobrescribe ni borra filas `origin='local'`, y no vuelve a subir las descargadas.
+  - Si ya hay una fila `origin='local'` con el mismo UUID o las mismas horas, se omite.
   - Las acciones no cambian la fuente mostrada. Si faltan permisos, se piden al pulsarlas.
+- Historial:
+  - `READ_HEALTH_DATA_HISTORY` se pide al elegir `All` en Stats o al iniciar `Import`.
+  - Con el permiso, las lecturas empiezan en el epoch; sin él, en los últimos 30 días.
+  - Stats muestra `Only the last 30 days are available` y `Allow full history` cuando el
+    permiso falta; `Import` avisa en el resultado de que solo bajó 30 días.
+  - El permiso se comprueba de nuevo al cargar el historial y al volver del segundo plano.
 - Si el usuario deniega permisos o Health Connect no está disponible, no se bloquea el
   registro local; Settings explica el estado y ofrece `Connect` o `Install`.
-- El acceso al historial completo (más de 30 días) se pedirá en el módulo 6; hasta
-  entonces `Import` usa lo que Health Connect devuelva.
 - La publicación en Play Console requiere la declaración de Health Connect.
-- Tests cubiertos: permiso concedido y denegado, API no disponible, actualización
-  requerida, reintento idempotente, fallo parcial, deduplicación y acciones de copia.
+- Tests cubiertos: permiso de sueño e historial concedidos y denegados, API no disponible,
+  actualización requerida, reintento idempotente, fallo parcial, deduplicación, límite de
+  30 días y acciones de copia.
 
 ---
 
@@ -751,22 +786,25 @@ dart run build_runner build
   abiertas y futuras excluidas, cambio de fecha, DST, `Show all`, 12/24 h, semántica,
   layout a 360 dp con texto al 200 % y `LocalDayBuilder` al pasar medianoche o volver
   del segundo plano.
+- Stats en Google Health: `All` pide historial, una concesión recarga el historial
+  completo, una denegación mantiene los 30 días con el banner y `Allow full history`
+  vuelve a pedir el permiso.
 - Settings: tema por defecto y persistido, diálogo de selección con `Cancel`/`Apply`,
   resolución `System`/`Light`/`Dark`, fuente `Local`/`Google Health`, diálogo de fuente,
   estado de conexión, `Connect`/`Install`, `Import`/`Sync`/`Add`, primer cambio con aviso
   de copia, permiso denegado, versión oculta si no está disponible, página de licencias,
   semántica, migraciones v1→v2 y v2→v3, y layout a 360 dp con texto al 200 %.
-- Health Connect: disponibilidad, permisos, lectura/escritura, cola de pendientes,
-  reintento idempotente, banner, sesiones omitidas, acciones de copia, deduplicación por
-  UUID y horas exactas, fallo parcial y protección de filas locales.
+- Health Connect: disponibilidad, permisos de sueño e historial, lectura/escritura,
+  cola de pendientes, reintento idempotente, banner, sesiones omitidas, acciones de copia,
+  deduplicación por UUID y horas exactas, fallo parcial, protección de filas locales,
+  límite de 30 días y recarga al conceder el historial.
 - Tema: claro/oscuro desde la misma semilla, roles M3 y tipografía Roboto Flex.
-- Build Android debug correcto.
+- Build Android debug y release correctos.
 
 ### Cobertura pendiente
 
 - Widget nativo: taps, cola de pendientes y reconciliación.
-- Permiso de historial de Health Connect y límite de 30 días en Stats `All`.
-- Prueba manual del APK release con Health Connect y Google Health.
+- Prueba manual del APK release en un dispositivo con Health Connect y Google Health.
 - Golden tests o capturas de referencia para claro/oscuro.
 
 ### Criterio de done por módulo
@@ -796,18 +834,19 @@ dart run build_runner build
 - Pantalla `Settings` con tema `System`/`Light`/`Dark` persistido, fuente de datos
   `Local`/`Google Health`, estado de Google Health, acciones de copia y `About` con
   privacidad, versión y licencias.
-- Health Connect: permisos, lectura y escritura, cola de pendientes, reintento al abrir o
-  volver a la app, banner de pendientes y acciones `Import`/`Sync`/`Add`.
+- Health Connect: permisos de sueño e historial, lectura y escritura, cola de pendientes,
+  reintento al abrir o volver a la app, banner de pendientes, acciones
+  `Import`/`Sync`/`Add` y fallback de 30 días en Stats `All`.
+- Builds debug (`com.sleepy3.app.debug`) y release firmada que conviven en el dispositivo.
 - Releases automáticas de dos canales: pre-releases por push a `dev` y estables por push a
   `main`, con versionado, firma y notas generadas.
 - Tests de estado, persistencia y UI.
 
 ### Siguiente
 
-1. Permiso de historial de Health Connect y Stats `All` con fallback de 30 días.
-2. Widget de pantalla de inicio con Glance y `home_widget`.
-3. Documentación final, QA en dispositivo y release estable.
-4. Pulido de motion y accesibilidad.
+1. Widget de pantalla de inicio con Glance y `home_widget`.
+2. Prueba manual en dispositivo del APK release y release estable (con autorización).
+3. Pulido de motion y accesibilidad.
 
 ---
 
@@ -817,4 +856,6 @@ dart run build_runner build
 - Si el widget mostrará la duración en vivo o solo el estado.
 - Si los reintentos pasarán a WorkManager en segundo plano o seguirán al abrir/volver a
   la app.
+- Si `Import` recordará una denegación del permiso de historial para no volver a pedirla
+  en cada intento hasta que el usuario la reactive.
 - Si se agregará localización completa después de la primera release en inglés.

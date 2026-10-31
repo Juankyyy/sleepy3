@@ -19,8 +19,9 @@ accounts, no onboarding.
   Sleepy3 stores the real start and end times, not a rounded guess.
 - **See the last three nights at a glance.** Closed sessions are grouped by the day you
   woke up, with a three-day average and bars against an eight-hour goal.
-- **Your data stays yours.** Sessions live in a local SQLite database. There is no
-  backend, no account and no cloud of our own.
+- **Your data stays yours.** Local mode keeps sessions in a local SQLite database, and
+  Google Health mode only talks to Health Connect on your phone. There is no backend, no
+  account and no cloud of our own.
 - **Designed for 3 a.m.** Large targets, one-hand use, light and dark themes, and a
   home-screen widget is on the way so you never have to open the app.
 
@@ -45,6 +46,8 @@ a night, close it, and find it intact after restarting the phone.
 - Local persistence; an open session survives the app being closed or killed.
 - Optional Health Connect support: choose **Local** or **Google Health**, keep pending
   sessions safe when a write fails, and copy sessions in either direction from Settings.
+- Health Connect history access: **All** in Stats and **Import** ask for the history
+  permission, with a clear 30-day fallback when it is declined.
 - Fixed Material 3 Expressive theme with matching light and dark schemes. It follows the
   system by default, and Settings can pin it to Light or Dark.
 - Bundled Roboto Flex typeface, accessible labels, visible focus and a layout that
@@ -55,7 +58,6 @@ a night, close it, and find it intact after restarting the phone.
 **Coming next**
 
 - Home-screen widget to log Sleep / Wake without opening the app.
-- Health Connect history access for ranges longer than 30 days.
 - Motion and accessibility polish.
 
 The native Android prototype that came before this app is preserved at the Git tag
@@ -87,8 +89,10 @@ The APK is written to `build/app/outputs/flutter-apk/app-release.apk`. Install i
 open it.
 
 > Release builds are signed with the project's release key. Android only installs an
-> update over a copy signed with the same key, so uninstall a debug-signed build (for
-> example, one from a local `flutter run --release`) before installing a release APK.
+> update over a copy signed with the same key, so uninstall a debug-signed copy of
+> `com.sleepy3.app` (for example, one from a local `flutter run --release`) before
+> installing a release APK. The regular `flutter run` debug app uses
+> `com.sleepy3.app.debug` and can coexist with release builds.
 
 ## Usage
 
@@ -126,7 +130,8 @@ Settings is split into four sections:
 - **Sleep data.** **Source** switches between **Local** and **Google Health**. Choosing
   Google Health checks that Health Connect is available and asks for sleep read/write
   access; if you decline, the app stays on Local. **Import** downloads every session
-  from Health Connect into the local copy.
+  from Health Connect into the local copy. It asks for full history first; if you
+  decline, it downloads the last 30 days and the result says so.
 - **Google Health.** **Status** reports the connection (`Connected`, `Permission needed`,
   `Not available`, `Update required`) and offers **Connect** or **Install** when needed.
   **Sync** sends the most recent pending local session; **Add** sends every pending local
@@ -156,7 +161,8 @@ sessions. The app does not use a separate preferences plugin.
   anywhere.
 - Local mode never reads or writes Health Connect automatically. Google Health mode reads
   and writes sleep records in Health Connect with explicit permission. Denying it never
-  blocks local tracking.
+  blocks local tracking. Records older than 30 days are only read when you also grant the
+  Health Connect history permission; otherwise the app applies that limit itself.
 - Sleepy3 talks to Health Connect on your phone, not to Google's cloud. A record that only
   exists in the Google Health cloud appears after Google Health syncs it to Health
   Connect.
@@ -191,11 +197,16 @@ They add new rows or update previously downloaded rows, never overwrite or delet
 sessions, and downloaded rows are not uploaded again. None of the actions changes the
 selected data source.
 
+Health Connect only exposes records older than 30 days with its history permission.
+Sleepy3 asks for it when you select **All** in Stats or start **Import**. If you decline,
+Stats keeps the **All** filter but shows `Only the last 30 days are available` with an
+**Allow full history** button, and Import reports that it only copied 30 days. Granting
+the permission in Health Connect settings is picked up when you return to the app, without
+a restart.
+
 - Requires Android 9 (API 28) or newer.
 - On Android 13 and lower the Health Connect app must be installed.
 - Permissions are requested when the feature is first used, not at launch.
-- Reading history older than 30 days will ask for the Health Connect history permission
-  in an upcoming release; until then, Import reads what Health Connect returns.
 - Publishing on Play requires the Health Connect declaration.
 
 ## Tech stack
@@ -230,10 +241,10 @@ lib/
     ├── stats/
     │   └── presentation/  # stats screen, range chips, summary and history list
     ├── health/
-    │   ├── domain/        # Health Connect gateway, data source and sync store
-    │   ├── data/          # Health Connect gateway and Drift sync store
-    │   ├── application/   # source, history, sync, upload and copy controllers
-    │   └── presentation/  # copy dialogs, sync banner and source text
+    │   ├── domain/        # gateway, source, history access, sync store and stored session
+    │   ├── data/          # Health Connect gateway, repositories and Drift sync store
+    │   ├── application/   # source, history, history permission, sync, upload and copy
+    │   └── presentation/  # copy dialogs, sync and history banners, source text
     └── settings/
         ├── domain/        # theme mode, app version and store contract
         ├── data/          # Drift settings store
@@ -284,6 +295,9 @@ Project conventions worth knowing:
   a migration, then run `dart run build_runner build`.
 - Domain logic never calls `DateTime.now()`; the clock is injected through
   `sleepClockProvider`.
+- `flutter run` installs a separate **Sleepy3 Debug** app (`com.sleepy3.app.debug`, version
+  suffix `-debug`), so it can live next to a signed release APK. The two apps keep separate
+  local databases.
 
 ### Releasing
 
@@ -342,7 +356,10 @@ and the number of nights. Below it, one expressive list row per closed session s
 wake day, duration and start–end range. Open sessions are explained in the header but
 never counted. A local-day timer flips `Today` to `Yesterday` at midnight and catches up
 when the app returns from the background, without rebuilding the offstage tab every
-second. This first version has no chart and no editable or tappable rows.
+second. In Google Health mode, **All** can reveal more than 30 days only after the Health
+Connect history permission is granted; otherwise an outlined banner explains the limit and
+offers **Allow full history**. This first version has no chart and no editable or tappable
+rows.
 
 Settings uses the same header and section rhythm as Stats. Each section is a grouped
 `M3EList` with 16 dp outer and 4 dp inner corners and a 2 dp gap. The theme row opens a
@@ -366,9 +383,9 @@ changing UI.
 - [x] Settings with appearance, sleep data source and About.
 - [x] Health Connect sync with retries, pending queue and idempotent writes.
 - [x] Copy actions: Sync last, Add all and Import from Google Health.
-- [ ] Health Connect history permission and Stats All beyond 30 days.
+- [x] Health Connect history permission and Stats All beyond 30 days.
 - [ ] Home-screen widget with Sleep / Wake actions and a pending-events queue.
-- [ ] Widget and Health Connect integration tests.
+- [ ] Device QA for the release APK with Health Connect and Google Health.
 - [ ] Motion and accessibility polish.
 - [x] Two-channel GitHub Actions releases with generated notes.
 
@@ -395,6 +412,8 @@ updated when the change affects behavior or the user experience.
   stay on 1.7.0 until `material_3_expressive` supports the newer symbol.
 - **Health Connect is missing**: on Android 13 or lower, install the Health Connect app
   from the Play Store.
+- **Stats All stops at 30 days**: allow full history for Sleepy3 in Health Connect, then
+  use **Allow full history** in Stats or reopen the app.
 - **The app looks empty after reinstalling**: there is no account to sign in to. If the
   system did not restore the local database from a backup, earlier sessions are gone.
 - **A release APK will not install over an older build**: Android requires the same signing

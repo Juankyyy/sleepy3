@@ -10,7 +10,8 @@ import 'settings_list.dart';
 
 /// The Google Health status row and its reconnect or install action.
 ///
-/// Only shown while Google Health is the selected source. The status is read
+/// Shown in Settings in both source modes, next to the copy actions, so the
+/// connection state is visible without switching sources. The status is read
 /// again when the row appears, so revoking permissions in Health Connect is
 /// reflected without restarting the app.
 class GoogleHealthStatusList extends ConsumerStatefulWidget {

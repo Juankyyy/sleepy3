@@ -3,7 +3,8 @@
 ## Project
 
 Sleepy3 is a Flutter Android app for zero-friction sleep tracking: two large buttons
-(Sleep / Wake), a home-screen widget, local session history, and Health Connect sync.
+(Sleep / Wake), a home-screen widget, local session history, and Health Connect as an
+optional data source.
 
 - Flutter stable 3.47.x / Dart 3.13.x, Android only, `minSdk` 28.
 - The previous native Android prototype is archived at Git tag
@@ -13,9 +14,10 @@ Sleepy3 is a Flutter Android app for zero-friction sleep tracking: two large but
 - Platform features that cannot run in Flutter (the widget, Health Connect manifest
   entries) stay in the Android layer behind small, documented bridges.
 - Current state: the home screen, sleep state machine, Drift persistence, Stats history,
-  Settings and the two-channel release workflow work. The Glance widget and Health
-  Connect are next. Sessions and the theme preference are stored in `sleepy3.sqlite`
-  (schema v2); generated Drift code is committed.
+  Settings, Health Connect (Local/Google Health, pending uploads, copy actions and full
+  history access) and the two-channel release workflow work. The Glance widget is next.
+  Sessions, preferences and Health Connect metadata live in `sleepy3.sqlite` (schema v3);
+  generated Drift code is committed.
 
 ## Commands
 
@@ -47,7 +49,7 @@ lib/
     ├── sleep_tracking/  # domain, data, application, presentation
     ├── stats/           # presentation
     ├── settings/        # theme, app version, about and preferences
-    ├── health/          # Health Connect permissions and sync
+    ├── health/          # sources, Health Connect gateway, sync, copy, history access
     └── widget/          # home_widget bridge and pending events
 ```
 
@@ -63,12 +65,24 @@ lib/
   `.g.dart` file is committed. Bump `schemaVersion` and add a migration before
   changing an existing column. Settings use the same database through the
   `preferences` key/value table; do not add `shared_preferences`.
+- Sleep data source: `Local` (default) reads only Drift; `Google Health` reads all
+  `SLEEP_SESSION` records from Health Connect. Never mix the two lists. The open
+  session and every finished session are always written locally first as a safety copy.
+- Health Connect: keep the platform behind `HealthConnectGateway`. Uploads use the stable
+  `clientRecordId = sleepy3-<startedAtMillis>` and only send `origin='local'` rows that
+  are pending. Downloads deduplicate by `healthRecordId` and exact start/end times, only
+  update `origin='healthConnect'` rows and never delete or overwrite local rows. Without
+  `READ_HEALTH_DATA_HISTORY`, reads stop at 30 days and the UI says so.
+- Retries: pending uploads are retried on launch/resume by `Sleepy3App`; copy actions are
+  explicit and never change the selected source. WorkManager is reserved for future
+  background work.
 - Theme: `ThemeModeController` owns `System` / `Light` / `Dark`; `Sleepy3App`
   resolves the brightness with the fixed Sleepy3 schemes. Keep
   `M3EMaterialApp.autoTheming` disabled.
 - App version: load `package_info_plus` before `runApp`; `appVersionProvider` is null
   when the platform cannot provide it and Settings hides the row.
-- Background work: WorkManager for Flutter.
+- Debug builds use `com.sleepy3.app.debug` (label `Sleepy3 Debug`, `-debug` version
+  suffix) so they coexist with signed release APKs. Do not remove the suffix.
 - The widget uses `home_widget` and native Jetpack Glance. Widget taps are written to
   a pending-events queue and reconciled by the Flutter app on launch/resume.
 - Keep time-dependent logic testable by injecting a clock; never call
