@@ -52,6 +52,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Debug builds are a separate app so they can live next to a signed release
+            // APK instead of failing with a signature mismatch.
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             signingConfig = if (keystorePropertiesFile.exists()) {
                 signingConfigs.getByName("release")
