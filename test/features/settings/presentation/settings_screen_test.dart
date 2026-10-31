@@ -367,6 +367,49 @@ void main() {
     expect(find.text('Download complete'), findsNothing);
   });
 
+  testWidgets('a download without history access copies the last 30 days', (
+    tester,
+  ) async {
+    final recent = HealthSleepSession(
+      uuid: 'recent',
+      startedAt: DateTime(2026, 10, 20, 22),
+      endedAt: DateTime(2026, 10, 21, 6),
+    );
+    final old = HealthSleepSession(
+      uuid: 'old',
+      startedAt: DateTime(2026, 8, 1, 22),
+      endedAt: DateTime(2026, 8, 2, 6),
+    );
+    final gateway = FakeHealthConnectGateway(
+      sessions: [recent, old],
+      historyPermission: false,
+      grantHistoryOnRequest: false,
+    );
+    final healthSyncStore = FakeHealthSyncStore();
+
+    await pumpSettings(
+      tester,
+      gateway: gateway,
+      healthSyncStore: healthSyncStore,
+    );
+
+    await tapLabel(tester, 'Import');
+    expect(
+      find.textContaining('without it, only the last 30 days'),
+      findsOneWidget,
+    );
+    await tapDialogLabel(tester, 'Download all');
+
+    expect(find.text('Download complete'), findsOneWidget);
+    expect(find.textContaining('1 session added'), findsOneWidget);
+    expect(
+      find.textContaining('Only the last 30 days were downloaded.'),
+      findsOneWidget,
+    );
+    expect(gateway.historyPermissionRequestCalls, 1);
+    expect(healthSyncStore.rows.single.healthRecordId, 'recent');
+  });
+
   testWidgets('sync last uploads only the newest pending session', (
     tester,
   ) async {

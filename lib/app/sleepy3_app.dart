@@ -5,6 +5,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/theme/sleepy3_theme.dart';
+import '../features/health/application/health_history_permission_controller.dart';
 import '../features/health/application/health_sync_controller.dart';
 import '../features/health/application/sleep_data_source_controller.dart';
 import '../features/health/domain/sleep_data_source.dart';
@@ -48,12 +49,21 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
 
   /// Retries failed Health Connect uploads when the app opens or comes back.
   ///
-  /// Local mode never writes to Health Connect automatically.
+  /// Local mode never writes to Health Connect automatically. Google Health
+  /// mode also re-reads the history permission, because the user can change it
+  /// in Health Connect settings while the app is in the background.
   Future<void> _retryPendingUploads() async {
     if (!mounted) return;
     if (ref.read(sleepDataSourceProvider) != SleepDataSource.healthConnect) {
       return;
     }
+
+    final history = ref.read(healthHistoryPermissionProvider.notifier);
+    final previousHistoryAccess = ref.read(healthHistoryPermissionProvider);
+    await history.refresh();
+    if (!mounted) return;
+    final historyAccessChanged =
+        ref.read(healthHistoryPermissionProvider) != previousHistoryAccess;
 
     final sync = ref.read(healthSyncControllerProvider.notifier);
     final result = await sync.retryPending();
@@ -63,6 +73,11 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
       // Nothing to upload; still refresh the status because the connection
       // state can change while the app is in the background.
       await sync.refresh();
+      if (historyAccessChanged) {
+        await ref
+            .read(sleepTrackingControllerProvider.notifier)
+            .reloadHistory();
+      }
       return;
     }
 

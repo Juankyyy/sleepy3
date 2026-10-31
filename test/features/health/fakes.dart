@@ -62,6 +62,7 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
   Object? readError;
   Object? writeError;
   Object? permissionError;
+  Object? historyError;
 
   int installCalls = 0;
   int permissionRequestCalls = 0;
@@ -97,6 +98,8 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
   @override
   Future<bool> requestHistoryPermission() async {
     historyPermissionRequestCalls++;
+    final error = historyError;
+    if (error != null) throw error;
     if (availability != HealthConnectAvailability.available) return false;
     if (historyPermission) return true;
 
@@ -105,7 +108,11 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
   }
 
   @override
-  Future<bool> isHistoryAuthorized() async => historyPermission;
+  Future<bool> isHistoryAuthorized() async {
+    final error = historyError;
+    if (error != null) throw error;
+    return historyPermission;
+  }
 
   @override
   Future<List<HealthSleepSession>> readSleepSessions({

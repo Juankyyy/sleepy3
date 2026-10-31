@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../sleep_tracking/domain/sleep_session.dart';
 import '../domain/health_connect_gateway.dart';
+import '../domain/health_history_access.dart';
 import '../domain/health_sleep_session.dart';
 import '../domain/health_sync_store.dart';
 import '../domain/stored_sleep_session.dart';
@@ -35,6 +36,7 @@ class CopyResult {
     this.skipped = 0,
     this.failed = 0,
     this.total = 0,
+    this.historyLimited = false,
     this.failure,
     this.error,
   });
@@ -44,6 +46,10 @@ class CopyResult {
   final int skipped;
   final int failed;
   final int total;
+
+  /// Whether a download only covered the last [healthConnectHistoryLimit]
+  /// because the history permission is not granted.
+  final bool historyLimited;
 
   /// Set when the action could not run at all.
   final SleepCopyFailure? failure;
@@ -67,8 +73,8 @@ class CopyResult {
 class SleepCopyService {
   SleepCopyService(this._gateway, this._store, this._upload, this._clock);
 
-  /// Reads from the epoch so no record is excluded by a range guess. Health
-  /// Connect itself limits the result when history access is not granted.
+  /// Reads from the epoch when the history permission is granted, so no record
+  /// is excluded by a range guess.
   static final DateTime _earliest = DateTime.fromMillisecondsSinceEpoch(0);
 
   final HealthConnectGateway _gateway;
@@ -143,15 +149,20 @@ class SleepCopyService {
   }
 
   /// Downloads every Health Connect sleep session into the local database.
+  ///
+  /// Without the history permission only the last
+  /// [healthConnectHistoryLimit] are read, and [CopyResult.historyLimited] says
+  /// so. The caller asks for the permission before starting.
   Future<CopyResult> downloadAllFromHealthConnect() async {
     final blocked = await _ensurePermissions(read: true);
     if (blocked != null) return blocked;
 
     final now = _clock();
+    final fullHistory = await _isHistoryAuthorized();
     List<HealthSleepSession> records;
     try {
       records = await _gateway.readSleepSessions(
-        from: _earliest,
+        from: fullHistory ? _earliest : now.subtract(healthConnectHistoryLimit),
         // A record from another device can end slightly in the future when the
         // clocks disagree. Include that day so the session is not dropped.
         to: now.add(const Duration(days: 1)),
@@ -201,6 +212,7 @@ class SleepCopyService {
       skipped: skipped,
       failed: failed,
       total: records.length,
+      historyLimited: !fullHistory,
       error: lastError,
     );
   }
@@ -248,6 +260,21 @@ class SleepCopyService {
       syncedAt,
     );
     return _DownloadOutcome.added;
+  }
+
+  /// Whether Health Connect will return records older than the fallback
+  /// window. A platform failure counts as no access: a download must still
+  /// work with the last [healthConnectHistoryLimit].
+  Future<bool> _isHistoryAuthorized() async {
+    try {
+      return await _gateway.isHistoryAuthorized();
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Sleepy3: could not read the Health Connect history permission: '
+        '$error\n$stackTrace',
+      );
+      return false;
+    }
   }
 
   Future<CopyResult?> _ensurePermissions({

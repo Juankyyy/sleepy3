@@ -469,4 +469,103 @@ void main() {
     expect(find.text('Average sleep'), findsOneWidget);
     expect(find.text('Across 1 night · 8h 0m total'), findsOneWidget);
   });
+
+  group('history permission', () {
+    final recent = HealthSleepSession(
+      uuid: 'recent',
+      startedAt: DateTime(2026, 10, 20, 22),
+      endedAt: DateTime(2026, 10, 21, 6),
+    );
+    final old = HealthSleepSession(
+      uuid: 'old',
+      startedAt: DateTime(2026, 9, 1, 22),
+      endedAt: DateTime(2026, 9, 2, 6),
+    );
+
+    testWidgets('All without history access keeps 30 days and explains it', (
+      tester,
+    ) async {
+      final gateway = FakeHealthConnectGateway(
+        sessions: [old, recent],
+        historyPermission: false,
+        grantHistoryOnRequest: false,
+      );
+
+      await pumpStats(
+        tester,
+        clock: () => DateTime(2026, 10, 21, 10),
+        source: SleepDataSource.healthConnect,
+        gateway: gateway,
+      );
+
+      // The initial read already stops 30 days back, so the old night is out.
+      expect(find.text('Across 1 night · 8h 0m total'), findsOneWidget);
+      expect(find.text('Wed, Sep 2'), findsNothing);
+
+      await tester.tap(find.text('All'));
+      await tester.pumpAndSettle();
+
+      expect(gateway.historyPermissionRequestCalls, 1);
+      expect(find.text('Only the last 30 days are available'), findsOneWidget);
+      expect(find.text('Allow full history'), findsOneWidget);
+      expect(find.text('Wed, Sep 2'), findsNothing);
+      expect(find.text('Across 1 night · 8h 0m total'), findsOneWidget);
+    });
+
+    testWidgets('All requests full history and reveals older sessions', (
+      tester,
+    ) async {
+      final gateway = FakeHealthConnectGateway(
+        sessions: [old, recent],
+        historyPermission: false,
+        grantHistoryOnRequest: true,
+      );
+
+      await pumpStats(
+        tester,
+        clock: () => DateTime(2026, 10, 21, 10),
+        source: SleepDataSource.healthConnect,
+        gateway: gateway,
+      );
+
+      expect(find.text('Wed, Sep 2'), findsNothing);
+
+      await tester.tap(find.text('All'));
+      await tester.pumpAndSettle();
+
+      expect(gateway.historyPermissionRequestCalls, 1);
+      expect(find.text('Only the last 30 days are available'), findsNothing);
+      expect(find.text('Wed, Sep 2'), findsOneWidget);
+      expect(find.text('Across 2 nights · 16h 0m total'), findsOneWidget);
+    });
+
+    testWidgets('Allow full history in the banner reloads after a denial', (
+      tester,
+    ) async {
+      final gateway = FakeHealthConnectGateway(
+        sessions: [old, recent],
+        historyPermission: false,
+        grantHistoryOnRequest: false,
+      );
+
+      await pumpStats(
+        tester,
+        clock: () => DateTime(2026, 10, 21, 10),
+        source: SleepDataSource.healthConnect,
+        gateway: gateway,
+      );
+
+      await tester.tap(find.text('All'));
+      await tester.pumpAndSettle();
+      expect(find.text('Only the last 30 days are available'), findsOneWidget);
+
+      gateway.grantHistoryOnRequest = true;
+      await tester.tap(find.text('Allow full history'));
+      await tester.pumpAndSettle();
+
+      expect(gateway.historyPermissionRequestCalls, 2);
+      expect(find.text('Only the last 30 days are available'), findsNothing);
+      expect(find.text('Wed, Sep 2'), findsOneWidget);
+    });
+  });
 }

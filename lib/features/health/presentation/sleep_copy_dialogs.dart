@@ -5,6 +5,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../sleep_tracking/application/sleep_tracking_controller.dart';
+import '../application/health_history_permission_controller.dart';
 import '../application/sleep_copy_controller.dart';
 import '../application/sleep_copy_service.dart';
 
@@ -39,6 +40,13 @@ Future<CopyResult?> showSleepCopyFlow(
       ),
     );
     if (!context.mounted || confirmed != true) return null;
+  }
+
+  // Ask for full history before downloading. Denying is not a failure: the
+  // service falls back to the last 30 days and the result says so.
+  if (action == SleepCopyAction.downloadAll) {
+    await ref.read(healthHistoryPermissionProvider.notifier).ensureAuthorized();
+    if (!context.mounted) return null;
   }
 
   final navigator = Navigator.of(context, rootNavigator: true);
@@ -116,7 +124,9 @@ String _confirmBody(SleepCopyAction action) {
           'twice.',
     SleepCopyAction.downloadAll =>
       'Add every sleep session from Google Health to the local copy. '
-          'Local sessions are not changed.',
+          'Local sessions are not changed. Google Health also asks for access '
+          'to your full history; without it, only the last 30 days are '
+          'downloaded.',
   };
 }
 
@@ -153,9 +163,12 @@ String _resultMessage(SleepCopyAction action, CopyResult result) {
   if (failure != null) return _failureMessage(action, failure);
 
   if (result.total == 0) {
-    return action == SleepCopyAction.downloadAll
-        ? 'There are no sleep sessions in Google Health.'
-        : 'There are no local sessions to sync.';
+    if (action == SleepCopyAction.downloadAll) {
+      return result.historyLimited
+          ? 'There are no sleep sessions in the last 30 days of Google Health.'
+          : 'There are no sleep sessions in Google Health.';
+    }
+    return 'There are no local sessions to sync.';
   }
 
   final parts = <String>[];
@@ -202,7 +215,12 @@ String _resultMessage(SleepCopyAction action, CopyResult result) {
       }
   }
 
-  return parts.join(' · ');
+  final summary = parts.join(' · ');
+  if (action == SleepCopyAction.downloadAll && result.historyLimited) {
+    return '$summary. Only the last 30 days were downloaded. '
+        'Allow full history in Google Health to copy older sessions.';
+  }
+  return summary;
 }
 
 String _failureMessage(SleepCopyAction action, SleepCopyFailure failure) {

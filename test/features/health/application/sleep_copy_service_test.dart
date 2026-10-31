@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sleepy3/features/health/application/sleep_copy_service.dart';
 import 'package:sleepy3/features/health/application/sleep_upload_service.dart';
 import 'package:sleepy3/features/health/domain/health_connect_gateway.dart';
+import 'package:sleepy3/features/health/domain/health_history_access.dart';
 import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
 import 'package:sleepy3/features/health/domain/stored_sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
@@ -28,7 +29,12 @@ void main() {
 
     void create({List<HealthSleepSession> sessions = const []}) {
       now = DateTime(2026, 10, 21, 6, 20);
-      gateway = FakeHealthConnectGateway(sessions: sessions);
+      gateway = FakeHealthConnectGateway(
+        sessions: sessions,
+        // Copy tests start with full history unless they say otherwise, so
+        // deduplication is exercised independently of the 30-day fallback.
+        historyPermission: true,
+      );
       store = FakeHealthSyncStore();
       service = SleepCopyService(
         gateway,
@@ -195,6 +201,7 @@ void main() {
       expect(result.total, 2);
       expect(result.added, 2);
       expect(result.updated, 0);
+      expect(result.historyLimited, isFalse);
       expect(store.rows, hasLength(2));
       expect(
         store.rows.every(
@@ -204,6 +211,44 @@ void main() {
       );
       expect(store.rows.every((row) => row.healthSyncedAt == now), isTrue);
       expect(await store.loadPendingCount(), 0);
+    });
+
+    test(
+      'download limits the read to the last 30 days without access',
+      () async {
+        final old = record(
+          'old',
+          DateTime(2026, 8, 1, 22),
+          DateTime(2026, 8, 2, 6),
+        );
+        create(sessions: [old, record('new', olderStart, olderEnd)]);
+        gateway.historyPermission = false;
+
+        final result = await service.downloadAllFromHealthConnect();
+
+        expect(result.total, 1);
+        expect(result.added, 1);
+        expect(result.historyLimited, isTrue);
+        expect(gateway.lastReadFrom, now.subtract(healthConnectHistoryLimit));
+        expect(store.rows.single.healthRecordId, 'new');
+      },
+    );
+
+    test('download reads the full history with access', () async {
+      final old = record(
+        'old',
+        DateTime(2026, 8, 1, 22),
+        DateTime(2026, 8, 2, 6),
+      );
+      create(sessions: [old]);
+
+      final result = await service.downloadAllFromHealthConnect();
+
+      expect(result.total, 1);
+      expect(result.added, 1);
+      expect(result.historyLimited, isFalse);
+      expect(gateway.lastReadFrom, DateTime.fromMillisecondsSinceEpoch(0));
+      expect(store.rows.single.healthRecordId, 'old');
     });
 
     test('download updates an existing downloaded row', () async {

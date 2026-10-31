@@ -7,8 +7,11 @@ import 'package:material_ui/material_ui.dart';
 import '../../../core/time/clock_format.dart';
 import '../../../core/time/local_day_builder.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../health/application/health_history_permission_controller.dart';
 import '../../health/application/sleep_data_source_controller.dart';
+import '../../health/domain/health_history_access.dart';
 import '../../health/domain/sleep_data_source.dart';
+import '../../health/presentation/health_history_banner.dart';
 import '../../health/presentation/health_sync_banner.dart';
 import '../../sleep_tracking/application/sleep_tracking_controller.dart';
 import '../../sleep_tracking/domain/sleep_history.dart';
@@ -64,6 +67,14 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
             padding: EdgeInsets.fromLTRB(margin, 16, margin, 0),
             child: _StatsHeader(openSession: state.openSession),
           ),
+          // With no recent sessions the range chips are hidden, so this is the
+          // only place to ask for the full history when it is available.
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: margin),
+            child: HealthHistoryBanner(
+              visible: source == SleepDataSource.healthConnect,
+            ),
+          ),
           Expanded(
             child: Sleepy3EmptyState(
               icon: M3EIcons.insights_rounded,
@@ -116,17 +127,20 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                     StatsRangeSelector(
                       selected: _range,
                       onChanged: (range) {
-                        setState(() => _range = range);
+                        unawaited(_selectRange(range));
                       },
+                    ),
+                    HealthHistoryBanner(
+                      visible:
+                          source == SleepDataSource.healthConnect &&
+                          _range == SleepHistoryRange.all,
                     ),
                     const SizedBox(height: 24),
                     StatsSummaryCard(
                       history: history,
                       onShowAll: showAll
                           ? () {
-                              setState(() {
-                                _range = SleepHistoryRange.all;
-                              });
+                              unawaited(_selectRange(SleepHistoryRange.all));
                             }
                           : null,
                     ),
@@ -159,6 +173,38 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
         );
       },
     );
+  }
+
+  /// Applies a range, asking for the full history first when the user selects
+  /// All in Google Health mode.
+  ///
+  /// A denial still selects All: the list keeps the last 30 days already
+  /// loaded and the banner explains the limit.
+  Future<void> _selectRange(SleepHistoryRange range) async {
+    if (range == _range) return;
+
+    final needsHistory =
+        range == SleepHistoryRange.all &&
+        ref.read(sleepDataSourceProvider) == SleepDataSource.healthConnect &&
+        ref.read(healthHistoryPermissionProvider) !=
+            HealthHistoryAccess.authorized;
+
+    if (needsHistory) {
+      final granted = await ref
+          .read(healthHistoryPermissionProvider.notifier)
+          .ensureAuthorized();
+      if (!mounted) return;
+
+      if (granted) {
+        await ref
+            .read(sleepTrackingControllerProvider.notifier)
+            .reloadHistory();
+        if (!mounted) return;
+      }
+    }
+
+    if (!mounted) return;
+    setState(() => _range = range);
   }
 }
 

@@ -6,6 +6,7 @@ import 'package:sleepy3/features/health/application/health_connect_gateway_provi
 import 'package:sleepy3/features/health/application/health_sync_controller.dart';
 import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
 import 'package:sleepy3/features/health/application/sleep_data_source_controller.dart';
+import 'package:sleepy3/features/health/domain/health_history_access.dart';
 import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/settings/application/theme_mode_controller.dart';
@@ -312,6 +313,48 @@ void main() {
       expect(state.closedSessions.single.endedAt, health.endedAt);
       expect(store.closedLoads, 0);
       expect(gateway.lastReadFrom, isNotNull);
+    });
+
+    test(
+      'Google Health limits the history to 30 days without access',
+      () async {
+        final old = HealthSleepSession(
+          uuid: 'old',
+          startedAt: DateTime(2026, 8, 1, 22),
+          endedAt: DateTime(2026, 8, 2, 6),
+        );
+        create(
+          source: SleepDataSource.healthConnect,
+          healthGateway: FakeHealthConnectGateway(sessions: [old]),
+        );
+        await controller.historyLoad;
+
+        final state = container.read(sleepTrackingControllerProvider);
+        expect(state.historyStatus, SleepHistoryStatus.ready);
+        expect(state.closedSessions, isEmpty);
+        expect(gateway.lastReadFrom, now.subtract(healthConnectHistoryLimit));
+      },
+    );
+
+    test('Google Health reads older sessions with history access', () async {
+      final old = HealthSleepSession(
+        uuid: 'old',
+        startedAt: DateTime(2026, 8, 1, 22),
+        endedAt: DateTime(2026, 8, 2, 6),
+      );
+      create(
+        source: SleepDataSource.healthConnect,
+        healthGateway: FakeHealthConnectGateway(
+          sessions: [old],
+          historyPermission: true,
+        ),
+      );
+      await controller.historyLoad;
+
+      final state = container.read(sleepTrackingControllerProvider);
+      expect(state.closedSessions.single.startedAt, old.startedAt);
+      expect(state.closedSessions.single.endedAt, old.endedAt);
+      expect(gateway.lastReadFrom, DateTime.fromMillisecondsSinceEpoch(0));
     });
 
     test('switching source clears and reloads without mixing', () async {

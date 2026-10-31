@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../health/application/health_history_permission_controller.dart';
 import '../../health/application/health_sync_controller.dart';
 import '../../health/application/sleep_data_source_controller.dart';
 import '../../health/application/sleep_history_controller.dart';
@@ -182,6 +183,15 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
     );
 
     try {
+      // Resolve the history grant before choosing the read window. This also
+      // happens on the first load, so a grant made in Health Connect settings
+      // is honoured without opening Stats first.
+      if (source == SleepDataSource.healthConnect) {
+        await ref.read(healthHistoryPermissionProvider.notifier).refresh();
+        if (!ref.mounted || !_history.isCurrent(generation)) return;
+        if (ref.read(sleepDataSourceProvider) != source) return;
+      }
+
       final repository = ref.read(sleepHistoryRepositoryProvider);
       final sessions = await repository.loadClosedSessions();
       if (!ref.mounted || !_history.isCurrent(generation)) return;
