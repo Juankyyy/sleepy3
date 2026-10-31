@@ -27,8 +27,10 @@ accounts, no onboarding.
 
 ## Status
 
-Sleepy3 is in early development at **v0.1.0**. The core loop is already usable: start
-a night, close it, and find it intact after restarting the phone.
+Sleepy3 is in early development and has no stable release yet. Every push to `dev`
+publishes a signed pre-release (`v0.0.x`); the first stable release will be `v0.1.0`.
+The core loop is already usable: start a night, close it, and find it intact after
+restarting the phone.
 
 **Working today**
 
@@ -65,10 +67,10 @@ The native Android prototype that came before this app is preserved at the Git t
 
 ## Install
 
-Sleepy3 is not on Google Play yet. Download the latest stable APK from
-[Releases](https://github.com/Juankyyy/sleepy3/releases/latest), open it on your phone and
-allow installation from your browser or file manager. Builds from the `dev` branch are
-published as pre-releases and may be unstable.
+Sleepy3 is not on Google Play yet. Download the newest APK from
+[Releases](https://github.com/Juankyyy/sleepy3/releases), open it on your phone and allow
+installation from your browser or file manager. There is no stable release yet; builds
+from the `dev` branch are published as pre-releases and may be unstable.
 
 Alternatively, build the APK from source:
 
