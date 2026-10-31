@@ -69,18 +69,20 @@ lib/
   `SLEEP_SESSION` records from Health Connect. Never mix the two lists. The open
   session and every finished session are always written locally first as a safety copy.
   In Local, only rows owned by Sleepy3 can be edited or deleted; downloaded copies are
-  read-only. In Google Health, only Sleepy3 records are actionable, and one without a
-  local copy can only be deleted. Other apps' records are read-only.
+  read-only. In Google Health, Sleepy3 records are editable with or without a local copy.
+  Other apps' records are read-only.
 - Health Connect: keep the platform behind `HealthConnectGateway`. Uploads and edits use
   the stable `clientRecordId = sleepy3-<startedAtMillis>` with an increasing
   `clientRecordVersion`; only `origin='local'` rows are written. Editing a synced session
-  updates the same record, never a duplicate. Downloads deduplicate by `healthRecordId`
-  and exact start/end times, only update `origin='healthConnect'` rows and never delete
-  or overwrite local rows. Without `READ_HEALTH_DATA_HISTORY`, reads stop at 30 days and
-  the UI says so.
+  updates the same record, never a duplicate. Without a local copy, the native
+  `HealthConnectBridge` reads the record's client id and version first; records from other
+  packages stay read-only. Downloads deduplicate by `healthRecordId` and exact start/end
+  times, only update `origin='healthConnect'` rows and never delete or overwrite local
+  rows. Without `READ_HEALTH_DATA_HISTORY`, reads stop at 30 days and the UI says so.
 - Editing: `sleep_session_edit_service.dart` decides whether Health Connect or the local
   row goes first, validates the draft through `session_edit.dart` and returns an explicit
-  result for the editor. The editor lives in
+  result for the editor. In Google Health, a record without a local copy goes through
+  `HealthConnectGateway.updateSleepSession`. The editor lives in
   `lib/features/stats/presentation/widgets/session_editor.dart`; the tracking controller
   updates `closedSessions` in memory without reloading the history.
 - Retries: pending uploads are retried on launch/resume by `Sleepy3App`; copy actions are

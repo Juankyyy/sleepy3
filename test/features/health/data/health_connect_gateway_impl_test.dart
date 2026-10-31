@@ -66,4 +66,40 @@ void main() {
       expect(healthDataAccessForPermission(read: false, write: false), isNull);
     });
   });
+
+  group('healthSleepSessionFromDataPoint', () {
+    HealthDataPoint point({
+      String sourceId = '',
+      String sourceName = 'com.sleepy3.app',
+    }) {
+      return HealthDataPoint(
+        uuid: 'record-1',
+        value: NumericHealthValue(numericValue: 480),
+        type: HealthDataType.SLEEP_SESSION,
+        unit: HealthDataUnit.MINUTE,
+        dateFrom: DateTime(2026, 10, 20, 22),
+        dateTo: DateTime(2026, 10, 21, 6),
+        sourcePlatform: HealthPlatformType.googleHealthConnect,
+        sourceDeviceId: 'device',
+        sourceId: sourceId,
+        sourceName: sourceName,
+      );
+    }
+
+    test('uses source_name when Android leaves source_id empty', () {
+      final session = healthSleepSessionFromDataPoint(point());
+
+      expect(session.sourceId, 'com.sleepy3.app');
+      expect(session.startedAt, DateTime(2026, 10, 20, 22));
+      expect(session.endedAt, DateTime(2026, 10, 21, 6));
+    });
+
+    test('prefers a non-empty source_id', () {
+      final session = healthSleepSessionFromDataPoint(
+        point(sourceId: 'com.example.other', sourceName: 'com.sleepy3.app'),
+      );
+
+      expect(session.sourceId, 'com.example.other');
+    });
+  });
 }

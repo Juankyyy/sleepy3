@@ -19,6 +19,19 @@ class RecordedSleepWrite {
   final int clientRecordVersion;
 }
 
+/// One call recorded by [FakeHealthConnectGateway.updateSleepSession].
+class RecordedSleepUpdate {
+  const RecordedSleepUpdate({
+    required this.healthRecordId,
+    required this.startedAt,
+    required this.endedAt,
+  });
+
+  final String healthRecordId;
+  final DateTime startedAt;
+  final DateTime endedAt;
+}
+
 /// One call recorded by [FakeHealthConnectGateway.deleteSleepSession].
 class RecordedSleepDelete {
   const RecordedSleepDelete({this.clientRecordId, this.healthRecordId});
@@ -63,6 +76,9 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
   /// When false, [deleteSleepSession] returns false without touching [sessions].
   bool deleteSucceeds = true;
 
+  /// When false, [updateSleepSession] returns false without touching [sessions].
+  bool updateSucceeds = true;
+
   /// Sessions that throw instead of being written, for partial-failure tests.
   final Set<DateTime> failWriteStarts = {};
 
@@ -75,8 +91,12 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
   /// Every delete call, including failed and ignored ones.
   final List<RecordedSleepDelete> deletes = [];
 
+  /// Every update-by-record-id call, including failed ones.
+  final List<RecordedSleepUpdate> updates = [];
+
   Object? readError;
   Object? writeError;
+  Object? updateError;
   Object? deleteError;
   Object? permissionError;
   Object? historyError;
@@ -191,6 +211,42 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
       sessions[index] = written;
     }
     return uuid;
+  }
+
+  @override
+  Future<bool> updateSleepSession({
+    required String healthRecordId,
+    required DateTime startedAt,
+    required DateTime endedAt,
+  }) async {
+    updates.add(
+      RecordedSleepUpdate(
+        healthRecordId: healthRecordId,
+        startedAt: startedAt,
+        endedAt: endedAt,
+      ),
+    );
+    final error = updateError;
+    if (error != null) throw error;
+    if (availability != HealthConnectAvailability.available) {
+      throw StateError('Health Connect is not available');
+    }
+    if (!updateSucceeds) return false;
+
+    final index = sessions.indexWhere(
+      (session) => session.uuid == healthRecordId,
+    );
+    if (index == -1) return false;
+
+    final previous = sessions[index];
+    sessions[index] = HealthSleepSession(
+      uuid: previous.uuid,
+      startedAt: startedAt,
+      endedAt: endedAt,
+      sourceId: previous.sourceId,
+      sourceName: previous.sourceName,
+    );
+    return true;
   }
 
   @override

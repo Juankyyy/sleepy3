@@ -62,6 +62,19 @@ abstract interface class HealthConnectGateway {
     required int clientRecordVersion,
   });
 
+  /// Updates a sleep record written by Sleepy3, even without a local copy.
+  ///
+  /// Reads the record's stable client id and version from Health Connect and
+  /// writes the new times with the next version, so the same record is
+  /// replaced. Returns false when the record has no stable id, belongs to
+  /// another app, or the platform rejects the update. Throws when the platform
+  /// call itself fails.
+  Future<bool> updateSleepSession({
+    required String healthRecordId,
+    required DateTime startedAt,
+    required DateTime endedAt,
+  });
+
   /// Deletes a sleep record written by Sleepy3.
   ///
   /// Uses [clientRecordId] when known and falls back to [healthRecordId].

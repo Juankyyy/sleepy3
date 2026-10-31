@@ -259,10 +259,12 @@ Reglas:
 - En `Local` se pueden editar y borrar las sesiones cuya fila Drift pertenece a Sleepy3.
   Las filas descargadas de Health Connect (`origin='healthConnect'`) son copias de solo
   lectura: una importación posterior podría reemplazarlas.
-- En `Google Health` solo se pueden modificar los registros escritos por Sleepy3 (paquete
-  release `com.sleepy3.app` o debug `com.sleepy3.app.debug`). Si existe una copia local
-  con `healthClientRecordId`, se pueden cambiar las horas y borrar; si no, el registro
-  solo se puede borrar. Los registros de otras apps no tienen acciones.
+- En `Google Health` se pueden editar y borrar todos los registros escritos por Sleepy3
+  (paquete release `com.sleepy3.app` o debug `com.sleepy3.app.debug`), tengan o no copia
+  local. Si existe una copia local con `healthClientRecordId`, se reutiliza su id y
+  versión; si no, la app lee `clientRecordId` y `clientRecordVersion` de Health Connect y
+  escribe la versión siguiente, actualizando el mismo registro. Los registros de otras
+  apps no tienen acciones.
 - El editor de sesión es un diálogo adaptativo M3: pantalla completa en ventanas
   compactas y diálogo básico en medianas y grandes. Título `Edit session`, acción `Save`
   y cierre con `Cancel` o la X. Tiene secciones `Fell asleep` y `Woke up` con filas de
@@ -372,7 +374,8 @@ Reglas:
   - En `Google Health`, la escritura o el borrado van primero a Health Connect; la copia
     local y la lista visible solo cambian cuando la plataforma confirma.
   - Los registros de otras apps y las copias descargadas en `Local` son de solo lectura.
-    Un registro propio de Health Connect sin copia local solo se puede borrar.
+    Un registro propio de Health Connect sin copia local se actualiza en su sitio con los
+    metadatos de Health Connect, sin duplicarlo.
 - Los reintentos de `Sleepy3App` dependen de la fuente. En `Local` solo reintenta
   actualizaciones de sesiones que ya tienen registro en Health Connect; nunca sube
   sesiones nuevas automáticamente. En `Google Health` reintenta todas las pendientes,
@@ -533,7 +536,6 @@ Reglas:
 | Filas de fecha y hora | `Date`, `Time` |
 | Acciones del editor | `Save`, `Cancel`, `Close`, `Delete session` |
 | Aviso de Google Health | `This night is also in Google Health. Saving updates both copies.` / `This night is stored in Google Health. Saving updates the Health Connect record.` |
-| Solo borrado | `This Google Health record has no local copy. You can delete it, but its times cannot be edited here.` |
 | Confirmación de borrado | `Delete session?`, `Delete`, `Cancel` |
 | Errores de validación | `The wake time must be after the sleep time.`, `The sleep time cannot be in the future.`, `The wake time cannot be in the future.`, `This session overlaps another sleep session.`, `This session overlaps the session in progress.` |
 | Descartar cambios | `Discard unsaved changes?`, `Keep editing`, `Discard` |
@@ -696,9 +698,14 @@ splash.
   `healthConnectHistoryLimit` (30 días) e incluye hasta el día siguiente para tolerar
   relojes desfasados. Además enriquece cada registro con `localId` y
   `healthClientRecordId` si existe una copia local; un fallo al leer esos metadatos no
-  oculta el historial y deja las filas sin posibilidad de editar horas.
-- `sessionEditAccess` decide qué ofrece cada sesión: editar y borrar, solo borrar o nada.
+  oculta el historial, y las filas propias siguen siendo editables por su UUID.
+- `healthSleepSessionFromDataPoint` usa `sourceName` como paquete cuando el plugin deja
+  `sourceId` vacío en Android, para que los registros propios se reconozcan.
+- `sessionEditAccess` decide qué ofrece cada sesión: editar y borrar o nada.
   `isSleepy3HealthRecord` reconoce los paquetes release y debug de Sleepy3.
+- `HealthConnectBridge` es un puente Android mínimo que lee `clientRecordId` y
+  `clientRecordVersion` de un registro; el gateway reutiliza la escritura idempotente con
+  la versión siguiente. No se usa para registros de otras apps ni de otro paquete.
 - `HealthSyncStore` y `DriftHealthSyncStore` gestionan pendientes, UUID descargados,
   versiones estables y deduplicación sobre la misma base. `loadPendingUpdates` devuelve
   solo actualizaciones de registros ya existentes; `loadLocalSessionsWithHealthRecordId`
@@ -846,15 +853,16 @@ dart run build_runner build
   - Una sesión pendiente no aparece en las gráficas de Google Health hasta que Health
     Connect confirma la escritura.
   - Editar un registro propio escribe primero en Health Connect y, si confirma, actualiza
-    la copia local y la lista visible. Si falla, el editor sigue abierto. Un registro
-    propio sin copia local solo se puede borrar.
+    la copia local (si existe) y la lista visible. Si falla, el editor sigue abierto. Sin
+    copia local se leen de Health Connect el `clientRecordId` y la versión y se escribe la
+    siguiente, sin duplicar el registro.
   - Borrar un registro propio lo elimina de Health Connect y después de la copia local.
     Los registros de otras apps son de solo lectura.
 - Escritura idempotente: el `clientRecordId` estable y la versión creciente evitan
   duplicados al reintentar o actualizar una sesión editada.
 - El historial de Google Health adjunta `localId` y `healthClientRecordId` desde la copia
-  local. Si esa lectura falla, el historial se muestra igualmente y esas filas no ofrecen
-  editar horas.
+  local. Si esa lectura falla, el historial se muestra igualmente; las filas propias
+  siguen siendo editables por su UUID.
 - Sesiones de duración cero: se marcan `health_sync_skipped` y no se suben.
 - Acciones de copia:
   - `Sync`: sube la sesión `origin='local'` pendiente más reciente.
@@ -916,9 +924,9 @@ dart run build_runner build
   validación inline, descarte, 24 h, 200 % de texto, borrado con confirmación, empty
   state tras borrar la última sesión y actualización del resumen sin recargar.
 - Edición y borrado: `updateSession`/`deleteSession` de Drift, rechazo de descargadas,
-  permisos por fuente, actualización del mismo registro de Health Connect, reintentos
-  pendientes, resultados explícitos, filas propias de Google Health con y sin copia local
-  y registros de otras apps de solo lectura.
+  permisos por fuente, actualización del mismo registro de Health Connect, lectura del
+  token de escritura nativo, reintentos pendientes, resultados explícitos, filas propias
+  de Google Health con y sin copia local y registros de otras apps de solo lectura.
 - Stats en Google Health: `All` pide historial, una concesión recarga el historial
   completo, una denegación mantiene los 30 días con el banner y `Allow full history`
   vuelve a pedir el permiso.

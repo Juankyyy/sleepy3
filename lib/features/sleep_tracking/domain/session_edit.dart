@@ -122,9 +122,6 @@ enum SessionEditAccess {
   /// The session cannot be changed or deleted.
   readOnly,
 
-  /// The session can only be deleted, because there is no local copy to edit.
-  deleteOnly,
-
   /// Both times and deletion are available.
   editAndDelete,
 }
@@ -133,8 +130,9 @@ enum SessionEditAccess {
 ///
 /// Local mode edits rows stored by Sleepy3; downloaded copies stay read-only.
 /// In Google Health mode only records written by Sleepy3 are actionable, and
-/// [isOwnHealthRecord] carries that ownership check. A record with a local
-/// copy can also change its hours; without one, only deletion is offered.
+/// [isOwnHealthRecord] carries that ownership check. Every own record with a
+/// stable identity can be edited: a local copy with a Health Connect client id,
+/// or the Health Connect UUID used to update the record in place.
 SessionEditAccess sessionEditAccess(
   SleepSession session, {
   required bool healthConnectSource,
@@ -150,13 +148,8 @@ SessionEditAccess sessionEditAccess(
 
   if (!isOwnHealthRecord) return SessionEditAccess.readOnly;
 
-  final canDelete =
-      session.healthRecordId != null || session.healthClientRecordId != null;
-  if (!canDelete) return SessionEditAccess.readOnly;
-
-  final hasEditableLocalCopy =
-      session.localId != null && session.healthClientRecordId != null;
-  return hasEditableLocalCopy
-      ? SessionEditAccess.editAndDelete
-      : SessionEditAccess.deleteOnly;
+  final canEdit =
+      session.healthRecordId != null ||
+      (session.localId != null && session.healthClientRecordId != null);
+  return canEdit ? SessionEditAccess.editAndDelete : SessionEditAccess.readOnly;
 }

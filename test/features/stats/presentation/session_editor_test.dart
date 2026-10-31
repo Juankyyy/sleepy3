@@ -478,7 +478,7 @@ void main() {
     expect(find.text('No sleep history yet'), findsOneWidget);
   });
 
-  testWidgets('offers only delete for an own Health Connect record', (
+  testWidgets('edits an own Health Connect record without a local copy', (
     tester,
   ) async {
     final gateway = FakeHealthConnectGateway(
@@ -503,25 +503,21 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Edit session'), findsOneWidget);
-    expect(find.text('Save'), findsNothing);
-    expect(
-      find.text(
-        'This Google Health record has no local copy. You can delete it, but '
-        'its times cannot be edited here.',
-      ),
-      findsOneWidget,
-    );
+    expect(find.text('Fell asleep'), findsOneWidget);
+    expect(find.text('Woke up'), findsOneWidget);
 
-    await tester.tap(find.text('Delete session'));
+    await tester.tap(find.text('Date').first);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Delete'));
+    await pickDay(tester, '19');
+    await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
-    expect(gateway.deletes, hasLength(1));
-    expect(gateway.deletes.single.healthRecordId, 'own-record');
-    expect(gateway.deletes.single.clientRecordId, isNull);
-    expect(find.text('Session deleted.'), findsOneWidget);
-    expect(find.text('No sleep history in Google Health'), findsOneWidget);
+    expect(find.text('Edit session'), findsNothing);
+    expect(gateway.updates, hasLength(1));
+    expect(gateway.updates.single.healthRecordId, 'own-record');
+    expect(gateway.updates.single.startedAt, DateTime(2026, 10, 19, 22));
+    expect(gateway.updates.single.endedAt, DateTime(2026, 10, 21, 6));
+    expect(find.text('32h 0m'), findsWidgets);
   });
 
   testWidgets('leaves records from other apps read-only', (tester) async {

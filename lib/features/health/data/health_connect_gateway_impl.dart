@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:health/health.dart';
 
 import '../domain/health_connect_gateway.dart';
@@ -35,11 +36,34 @@ HealthDataAccess? healthDataAccessForPermission({
   return null;
 }
 
+/// Maps one plugin data point to the gateway model.
+///
+/// On Android the `health` plugin reports the writing package in `source_name`
+/// and leaves `source_id` empty. Prefer `source_id` when the platform provides
+/// it, then fall back to the package name so Sleepy3 can recognise its own
+/// records in Google Health mode.
+@visibleForTesting
+HealthSleepSession healthSleepSessionFromDataPoint(HealthDataPoint point) {
+  final sourceId = point.sourceId.trim();
+  final sourceName = point.sourceName.trim();
+  return HealthSleepSession(
+    uuid: point.uuid,
+    startedAt: point.dateFrom,
+    endedAt: point.dateTo,
+    sourceId: sourceId.isNotEmpty ? sourceId : sourceName,
+    sourceName: point.sourceName,
+  );
+}
+
 /// `HealthConnectGateway` backed by the `health` plugin.
 class HealthConnectGatewayImpl implements HealthConnectGateway {
   HealthConnectGatewayImpl({Health? health}) : _health = health ?? Health();
 
   static const _sleepType = HealthDataType.SLEEP_SESSION;
+
+  /// Small native bridge that exposes Health Connect write metadata the
+  /// plugin does not map to Dart.
+  static const _bridgeChannel = MethodChannel('com.sleepy3.app/health_connect');
 
   final Health _health;
   Future<void>? _configuration;
@@ -156,14 +180,7 @@ class HealthConnectGatewayImpl implements HealthConnectGateway {
     );
 
     final sessions = [
-      for (final point in points)
-        HealthSleepSession(
-          uuid: point.uuid,
-          startedAt: point.dateFrom,
-          endedAt: point.dateTo,
-          sourceId: point.sourceId,
-          sourceName: point.sourceName,
-        ),
+      for (final point in points) healthSleepSessionFromDataPoint(point),
     ]..sort((a, b) => a.startedAt.compareTo(b.startedAt));
     return sessions;
   }
@@ -204,6 +221,61 @@ class HealthConnectGatewayImpl implements HealthConnectGateway {
     // The plugin stringifies a null method-channel result as "null".
     if (uuid == null || uuid.isEmpty || uuid == 'null') return null;
     return uuid;
+  }
+
+  @override
+  Future<bool> updateSleepSession({
+    required String healthRecordId,
+    required DateTime startedAt,
+    required DateTime endedAt,
+  }) async {
+    final token = await _readWriteToken(healthRecordId);
+    if (token == null) return false;
+
+    final uuid = await writeSleepSession(
+      startedAt: startedAt,
+      endedAt: endedAt,
+      clientRecordId: token.clientRecordId,
+      clientRecordVersion: token.clientRecordVersion + 1,
+    );
+    return uuid != null && uuid.isNotEmpty;
+  }
+
+  /// Reads the stable client id and version of a record written by Sleepy3.
+  ///
+  /// The `health` plugin does not expose these metadata fields, so a small
+  /// Android bridge reads them directly. The bridge also verifies that the
+  /// record belongs to this package; Health Connect would reject an update
+  /// from another data origin anyway.
+  Future<_HealthWriteToken?> _readWriteToken(String healthRecordId) async {
+    try {
+      final result = await _bridgeChannel.invokeMapMethod<String, Object?>(
+        'readSleepSessionWriteToken',
+        {'healthRecordId': healthRecordId},
+      );
+      if (result == null) return null;
+
+      final clientRecordId = result['clientRecordId'];
+      final clientRecordVersion = result['clientRecordVersion'];
+      if (clientRecordId is! String ||
+          clientRecordId.isEmpty ||
+          clientRecordVersion is! num) {
+        return null;
+      }
+      return _HealthWriteToken(clientRecordId, clientRecordVersion.toInt());
+    } on PlatformException catch (error, stackTrace) {
+      debugPrint(
+        'Sleepy3: could not read Health Connect record metadata: '
+        '$error\n$stackTrace',
+      );
+      return null;
+    } on MissingPluginException catch (error, stackTrace) {
+      debugPrint(
+        'Sleepy3: Health Connect record metadata bridge is unavailable: '
+        '$error\n$stackTrace',
+      );
+      return null;
+    }
   }
 
   @override
@@ -248,4 +320,12 @@ class HealthConnectGatewayImpl implements HealthConnectGateway {
 
   Future<bool> _isAvailable() async =>
       await checkAvailability() == HealthConnectAvailability.available;
+}
+
+/// Metadata needed to replace an existing Health Connect record by client id.
+class _HealthWriteToken {
+  const _HealthWriteToken(this.clientRecordId, this.clientRecordVersion);
+
+  final String clientRecordId;
+  final int clientRecordVersion;
 }

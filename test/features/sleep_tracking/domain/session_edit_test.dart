@@ -239,7 +239,7 @@ void main() {
       );
     });
 
-    test('edits own Health Connect records only when a local copy exists', () {
+    test('edits every own Health Connect record with a stable identity', () {
       final ownRecord = SleepSession(
         startedAt: DateTime(2026, 10, 20, 23),
         endedAt: DateTime(2026, 10, 21, 7),
@@ -270,7 +270,7 @@ void main() {
           healthConnectSource: true,
           isOwnHealthRecord: true,
         ),
-        SessionEditAccess.deleteOnly,
+        SessionEditAccess.editAndDelete,
       );
       expect(
         sessionEditAccess(
@@ -286,7 +286,7 @@ void main() {
           healthConnectSource: true,
           isOwnHealthRecord: true,
         ),
-        SessionEditAccess.deleteOnly,
+        SessionEditAccess.editAndDelete,
       );
     });
 

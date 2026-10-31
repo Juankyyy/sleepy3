@@ -16,41 +16,16 @@ import '../../../sleep_tracking/domain/sleep_session.dart';
 /// Opens the session editor for one closed session.
 ///
 /// The editor is a full-screen dialog on compact windows and a basic dialog on
-/// medium and expanded ones, matching the M3 adaptive dialog pattern. A session
-/// that can only be deleted (a Google Health record without a local copy) uses
-/// a basic dialog because it has no form to fill in.
+/// medium and expanded ones, matching the M3 adaptive dialog pattern.
 Future<SleepSessionEditResult?> showSessionEditor(
   BuildContext context, {
   required SleepSession session,
   required SleepDataSource source,
-  required SessionEditAccess access,
 }) async {
   final dialogController = M3EDialogController();
   final editorKey = GlobalKey<SessionEditorState>();
 
   try {
-    if (access == SessionEditAccess.deleteOnly) {
-      return await M3EDialog.show<SleepSessionEditResult>(
-        context,
-        dialog: M3EDialog(
-          title: 'Edit session',
-          content: SessionEditor(
-            key: editorKey,
-            session: session,
-            source: source,
-            access: access,
-          ),
-          actions: [
-            M3EButton(
-              style: M3EButtonStyle.text,
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-          ],
-        ),
-      );
-    }
-
     return await M3EDialog.showAdaptive<SleepSessionEditResult>(
       context,
       title: 'Edit session',
@@ -58,7 +33,6 @@ Future<SleepSessionEditResult?> showSessionEditor(
         key: editorKey,
         session: session,
         source: source,
-        access: access,
         dialogController: dialogController,
       ),
       confirmLabel: 'Save',
@@ -83,13 +57,11 @@ class SessionEditor extends ConsumerStatefulWidget {
     super.key,
     required this.session,
     required this.source,
-    required this.access,
     this.dialogController,
   }) : assert(session.endedAt != null, 'The editor needs a closed session');
 
   final SleepSession session;
   final SleepDataSource source;
-  final SessionEditAccess access;
 
   /// Keeps the discard confirmation in sync with the draft.
   final M3EDialogController? dialogController;
@@ -105,16 +77,13 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
   bool _saving = false;
   bool _deleting = false;
 
-  bool get _canEdit => widget.access == SessionEditAccess.editAndDelete;
-
   bool get _isDirty =>
       _startedAt != widget.session.startedAt ||
       _endedAt != widget.session.endedAt;
 
   bool get _showsHealthNotice =>
-      _canEdit &&
-      (widget.source == SleepDataSource.healthConnect ||
-          widget.session.healthRecordId != null);
+      widget.source == SleepDataSource.healthConnect ||
+      widget.session.healthRecordId != null;
 
   @override
   void initState() {
@@ -125,7 +94,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
 
   /// Validates and saves the draft. Called by the adaptive dialog's Save action.
   Future<void> save() async {
-    if (!_canEdit || _saving || _deleting) return;
+    if (_saving || _deleting) return;
 
     final errors = _validate();
     if (errors.isNotEmpty) {
@@ -365,56 +334,27 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_canEdit) ...[
-          _DurationSummary(
-            duration: duration,
-            endedAt: _endedAt,
-            spokenDate: _spokenDate.format(_endedAt),
-          ),
-          const SizedBox(height: 24),
-          _SessionSection(
-            title: 'Fell asleep',
-            date: _formatEditorDate(_startedAt),
-            time: formatSessionTime(
-              _startedAt,
-              use24HourFormat: use24HourFormat,
-            ),
-            onPickDate: _pickStartDate,
-            onPickTime: _pickStartTime,
-          ),
-          const SizedBox(height: 24),
-          _SessionSection(
-            title: 'Woke up',
-            date: _formatEditorDate(_endedAt),
-            time: formatSessionTime(_endedAt, use24HourFormat: use24HourFormat),
-            onPickDate: _pickEndDate,
-            onPickTime: _pickEndTime,
-          ),
-        ] else ...[
-          Text(
-            'This Google Health record has no local copy. You can delete it, '
-            'but its times cannot be edited here.',
-            style: theme.typography.baseline.bodyMedium.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _DurationSummary(
-            duration: duration,
-            endedAt: _endedAt,
-            spokenDate: _spokenDate.format(_endedAt),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${_formatEditorDate(_startedAt)} at '
-            '${formatSessionTime(_startedAt, use24HourFormat: use24HourFormat)}'
-            ' to ${_formatEditorDate(_endedAt)} at '
-            '${formatSessionTime(_endedAt, use24HourFormat: use24HourFormat)}',
-            style: theme.typography.baseline.bodyMedium.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          ),
-        ],
+        _DurationSummary(
+          duration: duration,
+          endedAt: _endedAt,
+          spokenDate: _spokenDate.format(_endedAt),
+        ),
+        const SizedBox(height: 24),
+        _SessionSection(
+          title: 'Fell asleep',
+          date: _formatEditorDate(_startedAt),
+          time: formatSessionTime(_startedAt, use24HourFormat: use24HourFormat),
+          onPickDate: _pickStartDate,
+          onPickTime: _pickStartTime,
+        ),
+        const SizedBox(height: 24),
+        _SessionSection(
+          title: 'Woke up',
+          date: _formatEditorDate(_endedAt),
+          time: formatSessionTime(_endedAt, use24HourFormat: use24HourFormat),
+          onPickDate: _pickEndDate,
+          onPickTime: _pickEndTime,
+        ),
         if (_showsHealthNotice) ...[
           const SizedBox(height: 16),
           _HealthNotice(

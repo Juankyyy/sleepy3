@@ -1060,7 +1060,7 @@ void main() {
       });
 
       test(
-        'Google Health deletes an own record without a local copy',
+        'Google Health updates and deletes an own record without a local copy',
         () async {
           final session = SleepSession(
             startedAt: start,
@@ -1081,13 +1081,27 @@ void main() {
           create(source: SleepDataSource.healthConnect, healthGateway: gateway);
           await controller.historyLoad;
 
+          final newStart = start.add(const Duration(minutes: 30));
+          final newEnd = end.add(const Duration(minutes: 30));
           final update = await controller.updateClosedSession(
             session: session,
-            startedAt: start.add(const Duration(minutes: 30)),
-            endedAt: end.add(const Duration(minutes: 30)),
+            startedAt: newStart,
+            endedAt: newEnd,
           );
-          expect(update.status, SleepSessionEditStatus.failed);
+
+          expect(update.status, SleepSessionEditStatus.saved);
           expect(gateway.writes, isEmpty);
+          expect(gateway.updates, hasLength(1));
+          expect(gateway.updates.single.healthRecordId, 'health-record-1');
+          expect(gateway.sessions.single.startedAt, newStart);
+          expect(
+            container
+                .read(sleepTrackingControllerProvider)
+                .closedSessions
+                .single
+                .startedAt,
+            newStart,
+          );
 
           final delete = await controller.deleteClosedSession(session);
 

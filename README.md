@@ -46,8 +46,9 @@ restarting the phone.
 - A Stats screen with 7-day, 30-day and all-time filters, a range average and one row
   per closed session.
 - Edit or delete a night from Stats. Editable rows open an adaptive editor for the exact
-  start and end times; deleting asks first. Copies downloaded from Health Connect and
-  records from other apps stay read-only.
+  start and end times; deleting asks first. In Local mode, copies downloaded from Health
+  Connect and records from other apps stay read-only. In Google Health, your own records
+  stay editable even without a local copy.
 - Local persistence; an open session survives the app being closed or killed.
 - Optional Health Connect support: choose **Local** or **Google Health**, keep pending
   sessions safe when a write fails, and copy sessions in either direction from Settings.
@@ -169,9 +170,9 @@ sessions. The app does not use a separate preferences plugin.
   and writes sleep records in Health Connect with explicit permission. Denying it never
   blocks local tracking. Records older than 30 days are only read when you also grant the
   Health Connect history permission; otherwise the app applies that limit itself.
-- Editing or deleting a session in Stats changes the local database and, when that session
-  belongs to Sleepy3 in Health Connect, the same Health Connect record. Records written
-  by other apps are never changed.
+- Editing or deleting a session in Stats changes the local copy when there is one and,
+  when that session belongs to Sleepy3 in Health Connect, the same Health Connect record.
+  Records written by other apps are never changed.
 - Sleepy3 talks to Health Connect on your phone, not to Google's cloud. A record that only
   exists in the Google Health cloud appears after Google Health syncs it to Health
   Connect.
@@ -191,8 +192,8 @@ Sleepy3 can use Health Connect in two ways:
   app. Sleep and Wake still keep a local safety copy, and Wake writes the session to
   Health Connect. If the write fails, the session stays pending, a banner offers
   **Retry**, and the app retries when you open or resume it. Only records written by
-  Sleepy3 can be edited or deleted; records from other apps are read-only, and a Sleepy3
-  record without a local copy can only be deleted.
+  Sleepy3 can be edited or deleted, with or without a local copy; records from other apps
+  are read-only.
 
 In Google Health mode, a pending session is not counted in the graphs until Health
 Connect confirms it. Zero-duration sessions are skipped. Settings shows the connection
@@ -205,7 +206,8 @@ The copy actions are explicit and idempotent:
 - **Import** downloads every Health Connect session into the local copy.
 
 Uploads use a stable client record id, so retrying does not duplicate a record. Editing a
-synced session reuses that id with a higher version, replacing the same record. Downloads
+synced session reuses that id with a higher version, replacing the same record. Without a
+local copy, the app reads the id and version from Health Connect first. Downloads
 deduplicate by Health Connect UUID and, when it is missing, by exact start and end times.
 They add new rows or update previously downloaded rows, never overwrite or delete local
 sessions, and downloaded rows are not uploaded again. None of the actions changes the

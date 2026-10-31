@@ -74,6 +74,14 @@ kotlin {
     }
 }
 
+dependencies {
+    // The health plugin keeps these transitive. The native edit bridge compiles
+    // against them directly, so pin the same Health Connect version the plugin
+    // uses.
+    implementation("androidx.health.connect:connect-client:1.2.0-alpha02")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+}
+
 flutter {
     source = "../.."
 }

@@ -218,7 +218,10 @@ class SleepSessionEditService {
     DateTime endedAt,
   ) async {
     final localId = session.localId;
-    if (localId == null || session.healthClientRecordId == null) {
+    final healthRecordId = session.healthRecordId;
+    final hasLocalClientId =
+        localId != null && session.healthClientRecordId != null;
+    if (healthRecordId == null && !hasLocalClientId) {
       return const SleepSessionEditResult.failed();
     }
 
@@ -231,32 +234,71 @@ class SleepSessionEditService {
         break;
     }
 
-    final stored = await _sync.findById(localId);
-    if (stored == null) return const SleepSessionEditResult.failed();
+    final stored = localId == null ? null : await _sync.findById(localId);
 
-    final upload = await _upload.updateSyncedSession(
-      stored,
-      startedAt,
-      endedAt,
-    );
-    if (upload.status != SleepUploadStatus.uploaded) {
-      return SleepSessionEditResult.failed(error: upload.error);
+    // The local copy carries the exact client id and version used to replace
+    // the record. This is the original path for synced sessions.
+    if (stored != null && stored.healthClientRecordId != null) {
+      final upload = await _upload.updateSyncedSession(
+        stored,
+        startedAt,
+        endedAt,
+      );
+      if (upload.status != SleepUploadStatus.uploaded) {
+        return SleepSessionEditResult.failed(error: upload.error);
+      }
+
+      final localUpdated = await _updateLocalCopy(stored, startedAt, endedAt);
+      if (!localUpdated) return const SleepSessionEditResult.failed();
+
+      return SleepSessionEditResult.saved(
+        session.withTimes(startedAt, endedAt),
+      );
     }
 
-    final bool localUpdated;
+    // A Google Health record can exist without a local copy, for example after
+    // reinstalling the app. Update it in place through its stable client id
+    // instead of guessing a new id, which would duplicate the record.
+    if (healthRecordId == null) {
+      return const SleepSessionEditResult.failed();
+    }
+
+    final updated = await _gateway.updateSleepSession(
+      healthRecordId: healthRecordId,
+      startedAt: startedAt,
+      endedAt: endedAt,
+    );
+    if (!updated) return const SleepSessionEditResult.failed();
+
+    if (stored != null) {
+      final localUpdated = await _updateLocalCopy(stored, startedAt, endedAt);
+      if (!localUpdated) {
+        // Health Connect already confirmed the update and is the source of
+        // truth in this mode; keep the new times visible and leave the stale
+        // local copy for the next import to repair.
+        debugPrint(
+          'Sleepy3: updated a Health Connect record but not its local copy.',
+        );
+      }
+    }
+
+    return SleepSessionEditResult.saved(session.withTimes(startedAt, endedAt));
+  }
+
+  Future<bool> _updateLocalCopy(
+    StoredSleepSession stored,
+    DateTime startedAt,
+    DateTime endedAt,
+  ) {
     if (stored.origin == SleepSessionOrigin.local) {
-      localUpdated = await _sessions.updateSession(
-        localId,
+      return _sessions.updateSession(
+        stored.id,
         startedAt,
         endedAt,
         markHealthPending: false,
       );
-    } else {
-      localUpdated = await _sync.updateDownloaded(localId, startedAt, endedAt);
     }
-    if (!localUpdated) return const SleepSessionEditResult.failed();
-
-    return SleepSessionEditResult.saved(session.withTimes(startedAt, endedAt));
+    return _sync.updateDownloaded(stored.id, startedAt, endedAt);
   }
 
   Future<SleepSessionEditResult> _deleteLocal(SleepSession session) async {
