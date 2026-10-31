@@ -8,16 +8,19 @@ import 'package:sleepy3/features/health/application/health_connect_gateway_provi
 import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
 import 'package:sleepy3/features/health/application/sleep_data_source_controller.dart';
 import 'package:sleepy3/features/health/domain/health_connect_gateway.dart';
+import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/settings/application/app_version_provider.dart';
 import 'package:sleepy3/features/settings/application/theme_mode_controller.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_version.dart';
 import 'package:sleepy3/features/settings/presentation/settings_screen.dart';
+import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_providers.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 
 import '../../health/fakes.dart';
 import '../fakes.dart';
+import '../../sleep_tracking/fakes.dart';
 
 void main() {
   Future<FakeSettingsStore> pumpSettings(
@@ -53,6 +56,10 @@ void main() {
           healthSyncStoreProvider.overrideWithValue(
             healthSyncStore ?? FakeHealthSyncStore(),
           ),
+          sleepSessionStoreProvider.overrideWithValue(FakeSleepSessionStore()),
+          sleepClockProvider.overrideWithValue(
+            () => DateTime(2026, 10, 21, 6, 20),
+          ),
           appVersionProvider.overrideWithValue(version),
         ],
         child: M3EMaterialApp(
@@ -73,13 +80,47 @@ void main() {
   // Labels sit inside the row's tappable surface, so the label itself is not
   // the hit target. Tapping its center still activates the row.
   Future<void> tapLabel(WidgetTester tester, String label) async {
-    await tester.tap(find.text(label), warnIfMissed: false);
+    final finder = find.text(label);
+    if (finder.evaluate().isEmpty) {
+      await tester.scrollUntilVisible(
+        finder,
+        160,
+        scrollable: find.byType(Scrollable).first,
+      );
+    } else {
+      await tester.ensureVisible(finder.first);
+    }
+    await tester.pumpAndSettle();
+    await tester.tap(finder, warnIfMissed: false);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> scrollToLabel(WidgetTester tester, String label) async {
+    final finder = find.text(label);
+    if (finder.evaluate().isEmpty) {
+      await tester.scrollUntilVisible(
+        finder,
+        160,
+        scrollable: find.byType(Scrollable).first,
+      );
+    } else {
+      await tester.ensureVisible(finder.first);
+    }
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> tapDialogLabel(WidgetTester tester, String label) async {
+    final finder = find.descendant(
+      of: find.byType(M3EDialog),
+      matching: find.text(label),
+    );
+    await tester.tap(finder.last, warnIfMissed: false);
     await tester.pumpAndSettle();
   }
 
   Future<void> chooseSource(WidgetTester tester, String label) async {
     await tapLabel(tester, 'Source');
-    await tapLabel(tester, label);
+    await tapDialogLabel(tester, label);
     await tester.tap(find.text('Apply'));
     await tester.pumpAndSettle();
   }
@@ -100,6 +141,12 @@ void main() {
     expect(find.text('Sleep data'), findsOneWidget);
     expect(find.text('Source'), findsOneWidget);
     expect(find.text('Local'), findsOneWidget);
+    expect(find.text('Import'), findsOneWidget);
+    expect(find.textContaining('Download from Google Health'), findsOneWidget);
+    expect(find.text('Google Health'), findsOneWidget);
+    expect(find.text('Status'), findsOneWidget);
+    expect(find.text('Sync'), findsOneWidget);
+    expect(find.text('Add'), findsOneWidget);
     expect(find.text('About'), findsOneWidget);
     expect(find.text('Privacy'), findsOneWidget);
     expect(find.text('On-device only.'), findsOneWidget);
@@ -107,8 +154,8 @@ void main() {
     expect(find.text('0.1.0 (1)'), findsOneWidget);
     expect(find.text('Licenses'), findsOneWidget);
 
-    expect(find.byType(M3EList), findsNWidgets(4));
-    expect(find.byType(M3EListItem), findsNWidgets(5));
+    expect(find.byType(M3EList), findsNWidgets(6));
+    expect(find.byType(M3EListItem), findsNWidgets(9));
   });
 
   testWidgets('opens the source dialog with Local and Google Health', (
@@ -122,7 +169,7 @@ void main() {
     expect(find.text('Cancel'), findsOneWidget);
     expect(find.text('Apply'), findsOneWidget);
     expect(find.text('Local'), findsNWidgets(2));
-    expect(find.text('Google Health'), findsOneWidget);
+    expect(find.text('Google Health'), findsNWidgets(2));
 
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
@@ -147,13 +194,20 @@ void main() {
 
     expect(gateway.permissionRequestCalls, 1);
     expect(store.sourceSaves, [SleepDataSource.healthConnect]);
-    expect(find.text('Connected'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byType(M3EListItem),
         matching: find.text('Google Health'),
       ),
       findsOneWidget,
+    );
+
+    await scrollToLabel(tester, 'Connected');
+    expect(find.text('Connected'), findsOneWidget);
+
+    await scrollToLabel(
+      tester,
+      'Stored in Health Connect. Google Health can read it.',
     );
     expect(
       find.text('Stored in Health Connect. Google Health can read it.'),
@@ -176,6 +230,7 @@ void main() {
 
     expect(store.sourceSaves, isEmpty);
     expect(find.text('Local'), findsOneWidget);
+    await scrollToLabel(tester, 'On-device only.');
     expect(find.text('On-device only.'), findsOneWidget);
     expect(
       find.text('Google Health needs permission to read and write sleep.'),
@@ -257,7 +312,7 @@ void main() {
     expect(gateway.writePermission, isTrue);
     expect(find.text('Local'), findsOneWidget);
     expect(find.text('On-device only.'), findsOneWidget);
-    expect(find.text('Google Health'), findsNothing);
+    expect(find.text('Google Health'), findsOneWidget);
   });
 
   testWidgets('shows the connected status and the pending uploads', (
@@ -275,6 +330,158 @@ void main() {
     );
 
     expect(find.text('Connected · 1 pending'), findsOneWidget);
+  });
+
+  testWidgets('downloads every Health Connect session into the local copy', (
+    tester,
+  ) async {
+    final session = HealthSleepSession(
+      uuid: 'record-1',
+      startedAt: DateTime(2026, 10, 20, 22),
+      endedAt: DateTime(2026, 10, 21, 6),
+    );
+    final healthSyncStore = FakeHealthSyncStore();
+
+    await pumpSettings(
+      tester,
+      gateway: FakeHealthConnectGateway(sessions: [session]),
+      healthSyncStore: healthSyncStore,
+    );
+
+    await tapLabel(tester, 'Import');
+
+    expect(find.text('Download from Google Health?'), findsOneWidget);
+    expect(
+      find.textContaining('Local sessions are not changed.'),
+      findsOneWidget,
+    );
+
+    await tapDialogLabel(tester, 'Download all');
+
+    expect(find.text('Download complete'), findsOneWidget);
+    expect(find.text('1 session added'), findsOneWidget);
+    expect(healthSyncStore.rows, hasLength(1));
+    expect(healthSyncStore.rows.single.healthRecordId, 'record-1');
+
+    await tapLabel(tester, 'Close');
+    expect(find.text('Download complete'), findsNothing);
+  });
+
+  testWidgets('sync last uploads only the newest pending session', (
+    tester,
+  ) async {
+    final older = SleepSession(
+      startedAt: DateTime(2026, 10, 18, 22),
+      endedAt: DateTime(2026, 10, 19, 6),
+    );
+    final newer = SleepSession(
+      startedAt: DateTime(2026, 10, 19, 22),
+      endedAt: DateTime(2026, 10, 20, 6),
+    );
+    final gateway = FakeHealthConnectGateway();
+    final healthSyncStore = FakeHealthSyncStore()
+      ..addLocal(older)
+      ..addLocal(newer);
+
+    await pumpSettings(
+      tester,
+      gateway: gateway,
+      healthSyncStore: healthSyncStore,
+    );
+
+    await tapLabel(tester, 'Sync');
+    expect(find.text('Sync last session?'), findsOneWidget);
+
+    await tapDialogLabel(tester, 'Sync');
+
+    expect(find.text('Sync complete'), findsOneWidget);
+    expect(find.text('1 session sent to Google Health'), findsOneWidget);
+    expect(gateway.writes.single.startedAt, newer.startedAt);
+    expect(
+      healthSyncStore.rows.where((row) => row.isPendingUpload),
+      hasLength(1),
+    );
+
+    await tapLabel(tester, 'Close');
+  });
+
+  testWidgets('add all warns about sessions added manually', (tester) async {
+    await pumpSettings(tester);
+
+    await tapLabel(tester, 'Add');
+
+    expect(find.text('Add all previous sessions?'), findsOneWidget);
+    expect(find.textContaining('may appear twice'), findsOneWidget);
+
+    await tapDialogLabel(tester, 'Cancel');
+  });
+
+  testWidgets('a denied read permission explains the download failure', (
+    tester,
+  ) async {
+    await pumpSettings(
+      tester,
+      gateway: FakeHealthConnectGateway(
+        readPermission: false,
+        grantReadOnRequest: false,
+      ),
+    );
+
+    await tapLabel(tester, 'Import');
+    await tapDialogLabel(tester, 'Download all');
+
+    expect(find.text("Couldn't download"), findsOneWidget);
+    expect(
+      find.text('Google Health needs permission to read sleep.'),
+      findsOneWidget,
+    );
+
+    await tapLabel(tester, 'Close');
+  });
+
+  testWidgets(
+    'the first switch to Google Health offers to copy local sessions',
+    (tester) async {
+      final session = SleepSession(
+        startedAt: DateTime(2026, 10, 20, 22),
+        endedAt: DateTime(2026, 10, 21, 6),
+      );
+      final gateway = FakeHealthConnectGateway();
+      final healthSyncStore = FakeHealthSyncStore()..addLocal(session);
+
+      await pumpSettings(
+        tester,
+        gateway: gateway,
+        healthSyncStore: healthSyncStore,
+      );
+
+      await chooseSource(tester, 'Google Health');
+
+      expect(find.text('Copy local sessions?'), findsOneWidget);
+      expect(
+        find.text('1 local session is not in Google Health yet.'),
+        findsOneWidget,
+      );
+
+      await tapDialogLabel(tester, 'Sync');
+
+      expect(find.text('Sync complete'), findsOneWidget);
+      expect(find.text('1 session sent to Google Health'), findsOneWidget);
+      expect(gateway.writes, hasLength(1));
+
+      await tapLabel(tester, 'Close');
+    },
+  );
+
+  testWidgets('switching with no local history does not prompt', (
+    tester,
+  ) async {
+    await pumpSettings(tester);
+
+    await chooseSource(tester, 'Google Health');
+
+    expect(find.text('Copy local sessions?'), findsNothing);
+    expect(find.text('Connected'), findsOneWidget);
   });
 
   testWidgets('Connect requests permissions again after a revoke', (
@@ -351,7 +558,12 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
+
+    await scrollToLabel(tester, 'Status');
+    expect(find.text('Status'), findsOneWidget);
     expect(find.text('Permission needed'), findsOneWidget);
+
+    await scrollToLabel(tester, 'Connect');
     expect(find.text('Connect'), findsOneWidget);
 
     for (final label in ['Status', 'Permission needed', 'Connect']) {
@@ -360,7 +572,7 @@ void main() {
         await tester.scrollUntilVisible(
           finder,
           160,
-          scrollable: find.byType(Scrollable),
+          scrollable: find.byType(Scrollable).first,
         );
         await tester.pumpAndSettle();
       }
@@ -415,7 +627,7 @@ void main() {
 
     expect(find.text('Version'), findsNothing);
     expect(find.text('Licenses'), findsOneWidget);
-    expect(find.byType(M3EListItem), findsNWidgets(4));
+    expect(find.byType(M3EListItem), findsNWidgets(8));
   });
 
   testWidgets('announces the current theme, version and source', (
@@ -481,6 +693,11 @@ void main() {
       'Sleep data',
       'Source',
       'Local',
+      'Import',
+      'Google Health',
+      'Status',
+      'Sync',
+      'Add',
       'About',
       'Privacy',
       'On-device only.',

@@ -5,8 +5,11 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/app/navigation/sleepy3_destination.dart';
 import 'package:sleepy3/app/sleepy3_app.dart';
+import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
+import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
 
+import '../features/health/fakes.dart';
 import '../features/sleep_tracking/fakes.dart';
 
 void main() {
@@ -30,6 +33,10 @@ void main() {
             () => DateTime(2026, 10, 20, 22, 30),
           ),
           sleepSessionStoreProvider.overrideWithValue(FakeSleepSessionStore()),
+          healthConnectGatewayProvider.overrideWithValue(
+            FakeHealthConnectGateway(),
+          ),
+          healthSyncStoreProvider.overrideWithValue(FakeHealthSyncStore()),
         ],
         child: const Sleepy3App(),
       ),

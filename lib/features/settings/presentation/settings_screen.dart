@@ -6,6 +6,7 @@ import '../../health/application/sleep_data_source_controller.dart';
 import '../application/app_version_provider.dart';
 import '../application/theme_mode_controller.dart';
 import 'widgets/about_list.dart';
+import 'widgets/google_health_status_list.dart';
 import 'widgets/settings_section.dart';
 import 'widgets/sleep_data_source_setting.dart';
 import 'widgets/theme_setting.dart';
@@ -51,6 +52,11 @@ class SettingsScreen extends ConsumerWidget {
         SettingsSection(
           title: 'Sleep data',
           child: SleepDataSourceSetting(source: dataSource),
+        ),
+        const SizedBox(height: 24),
+        const SettingsSection(
+          title: 'Google Health',
+          child: GoogleHealthStatusList(),
         ),
         const SizedBox(height: 24),
         SettingsSection(

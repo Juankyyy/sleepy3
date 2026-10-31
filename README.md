@@ -35,13 +35,16 @@ a night, close it, and find it intact after restarting the phone.
 - Centered Sleepy3 header with a day/night status pill and a live clock with seconds,
   a date line and a session line. The clock follows the system's 12- or 24-hour setting.
 - Three-tab Material 3 shell: Home, Stats and Settings. Stats has the full history;
-  Settings has appearance, a Health Connect placeholder and app information.
+  Settings has appearance, the sleep data source, Google Health status and app
+  information.
 - Exact session times with a duration line for the last night.
 - A three-day summary card on Home: today, yesterday and two days ago grouped by wake
   day, with a real average and bars against an eight-hour goal.
 - A Stats screen with 7-day, 30-day and all-time filters, a range average and one row
   per closed session.
 - Local persistence; an open session survives the app being closed or killed.
+- Optional Health Connect support: choose **Local** or **Google Health**, keep pending
+  sessions safe when a write fails, and copy sessions in either direction from Settings.
 - Fixed Material 3 Expressive theme with matching light and dark schemes. It follows the
   system by default, and Settings can pin it to Light or Dark.
 - Bundled Roboto Flex typeface, accessible labels, visible focus and a layout that
@@ -52,7 +55,7 @@ a night, close it, and find it intact after restarting the phone.
 **Coming next**
 
 - Home-screen widget to log Sleep / Wake without opening the app.
-- Health Connect sync with background retry.
+- Health Connect history access for ranges longer than 30 days.
 - Motion and accessibility polish.
 
 The native Android prototype that came before this app is preserved at the Git tag
@@ -94,9 +97,9 @@ open it.
 3. The header shows the day/night state and the clock shows the current time with
    seconds. The line under the date tells you what is happening.
 4. Use the bottom bar to open **Stats** and browse your history with the 7-day, 30-day
-   or all-time filter. Open **Settings** to choose the theme, preview the Health Connect
-   placeholder or open the app version and licenses. The system back gesture returns to
-   Home.
+   or all-time filter. Open **Settings** to choose the theme, switch between **Local**
+   and **Google Health**, copy sessions, or open the app version and licenses. The
+   system back gesture returns to Home.
 
 | Situation | What you see |
 |---|---|
@@ -114,41 +117,85 @@ happens the moment you tap.
 
 ## Settings
 
-Settings is split into three sections:
+Settings is split into four sections:
 
 - **Appearance.** The theme row shows the current choice: System, Light or Dark. Tap it,
   pick a mode and press **Apply**. The change is immediate and survives a restart;
   **Cancel** leaves the current theme untouched. System is the default and follows the
   phone's light/dark setting.
-- **Health Connect.** Sync is not available yet, so the Sleep row is disabled and says
-  **Coming soon.** It does not request permissions or pretend to be connected.
-- **About.** Privacy (`On-device only.`), the installed version and a **Licenses** entry
-  that opens the bundled open-source notices and the GPLv3 notice.
+- **Sleep data.** **Source** switches between **Local** and **Google Health**. Choosing
+  Google Health checks that Health Connect is available and asks for sleep read/write
+  access; if you decline, the app stays on Local. **Import** downloads every session
+  from Health Connect into the local copy.
+- **Google Health.** **Status** reports the connection (`Connected`, `Permission needed`,
+  `Not available`, `Update required`) and offers **Connect** or **Install** when needed.
+  **Sync** sends the most recent pending local session; **Add** sends every pending local
+  session. Both actions work in Local and Google Health mode and never change the
+  selected source. If permissions are missing, the app asks for them when you tap.
+- **About.** Privacy follows the selected source (`On-device only.` for Local,
+  `Stored in Health Connect. Google Health can read it.` for Google Health), plus the
+  installed version and a **Licenses** entry that opens the bundled open-source notices
+  and the GPLv3 notice.
 
-The theme choice is stored in the same local SQLite database as your sessions. The app
-does not use a separate preferences plugin.
+Copy actions show a confirmation, a progress dialog that cannot be dismissed, and a
+result with the number of sessions sent, added, updated, skipped or failed. Uploads only
+send local sessions that are still pending. Downloads add new rows or update downloaded
+rows, and never overwrite a local session. Repeating an action does not create
+duplicates. When you switch to Google Health for the first time with pending local
+sessions, Sleepy3 offers to copy them with **Sync** or **Add**, or to skip with
+**Not now**.
+
+The theme choice and the data source are stored in the same local SQLite database as your
+sessions. The app does not use a separate preferences plugin.
 
 ## Privacy and your data
 
-- Sessions and the theme preference are stored in `sleepy3.sqlite`, a SQLite database in
-  the app's documents directory.
+- Sessions, the theme preference and the selected data source are stored in
+  `sleepy3.sqlite`, a SQLite database in the app's documents directory.
 - There is no account, no backend and no analytics. Sleepy3 does not upload your sessions
   anywhere.
-- Health Connect sync will be optional and will require explicit permission. Denying it
-  will never block local tracking.
+- Local mode never reads or writes Health Connect automatically. Google Health mode reads
+  and writes sleep records in Health Connect with explicit permission. Denying it never
+  blocks local tracking.
+- Sleepy3 talks to Health Connect on your phone, not to Google's cloud. A record that only
+  exists in the Google Health cloud appears after Google Health syncs it to Health
+  Connect.
 - Timestamps are saved in milliseconds so the exact local time is preserved.
 - Uninstalling the app removes the local database; if Android backup is enabled on your
   device, the system may restore it on reinstall.
 
 ## Health Connect
 
-Health Connect support is planned. Each completed session will be written as a
-`SleepSessionRecord`, with retries for transient failures and without duplicates. Until
-then, Settings shows a disabled **Sleep / Coming soon.** row and never requests access.
+Sleepy3 can use Health Connect in two ways:
+
+- **Local (default).** Home and Stats read only the Sleepy3 database. Sleep and Wake do
+  not touch Health Connect.
+- **Google Health.** Home and Stats read every `SLEEP_SESSION` in Health Connect, from any
+  app. Sleep and Wake still keep a local safety copy, and Wake writes the session to
+  Health Connect. If the write fails, the session stays pending, a banner offers
+  **Retry**, and the app retries when you open or resume it.
+
+In Google Health mode, a pending session is not counted in the graphs until Health
+Connect confirms it. Zero-duration sessions are skipped. Settings shows the connection
+state and lets you reconnect or install Health Connect.
+
+The copy actions are explicit and idempotent:
+
+- **Sync** sends the most recent pending local session to Health Connect.
+- **Add** sends every pending local session, oldest first.
+- **Import** downloads every Health Connect session into the local copy.
+
+Uploads use a stable client record id, so retrying does not duplicate a record. Downloads
+deduplicate by Health Connect UUID and, when it is missing, by exact start and end times.
+They add new rows or update previously downloaded rows, never overwrite or delete local
+sessions, and downloaded rows are not uploaded again. None of the actions changes the
+selected data source.
 
 - Requires Android 9 (API 28) or newer.
 - On Android 13 and lower the Health Connect app must be installed.
-- Permissions will be requested when the feature is first used, not at launch.
+- Permissions are requested when the feature is first used, not at launch.
+- Reading history older than 30 days will ask for the Health Connect history permission
+  in an upcoming release; until then, Import reads what Health Connect returns.
 - Publishing on Play requires the Health Connect declaration.
 
 ## Tech stack
@@ -182,6 +229,11 @@ lib/
     │   └── presentation/  # home screen, header, live clock and buttons
     ├── stats/
     │   └── presentation/  # stats screen, range chips, summary and history list
+    ├── health/
+    │   ├── domain/        # Health Connect gateway, data source and sync store
+    │   ├── data/          # Health Connect gateway and Drift sync store
+    │   ├── application/   # source, history, sync, upload and copy controllers
+    │   └── presentation/  # copy dialogs, sync banner and source text
     └── settings/
         ├── domain/        # theme mode, app version and store contract
         ├── data/          # Drift settings store
@@ -194,10 +246,11 @@ android/
     └── MainActivity.kt    # native widget and platform bridges land here
 ```
 
-On launch, Sleepy3 opens the database, loads the open session, the full closed history
-and the saved theme, reads the installed version with `package_info_plus`, and injects
-all of it into the Riverpod scope before the first frame. If a read fails, the app starts
-with the empty/default value and logs the error instead of getting stuck.
+On launch, Sleepy3 opens the database, loads the open session, the saved theme, the
+selected data source and the installed version with `package_info_plus`, then injects
+them into the Riverpod scope before the first frame. The closed history is loaded
+asynchronously from the selected source. If a read fails, the app starts with the
+empty/default value and logs the error instead of getting stuck.
 
 The controller is a Riverpod `Notifier`: it updates in-memory state first so the buttons
 answer instantly, then serializes the disk write behind it. The UI never reads the
@@ -294,9 +347,12 @@ second. This first version has no chart and no editable or tappable rows.
 Settings uses the same header and section rhythm as Stats. Each section is a grouped
 `M3EList` with 16 dp outer and 4 dp inner corners and a 2 dp gap. The theme row opens a
 short M3 selection dialog; the current mode is part of the row's supporting text so a
-screen reader announces it. The Health Connect row is disabled on purpose. Version comes
-from the platform package info, and Licenses uses Flutter's standard license page rather
-than an M3 Expressive component. Everything fits a 360 dp phone at 200% text.
+screen reader announces it. The source row opens a full-width radio list so **Google
+Health** fits narrow screens, and the Google Health section separates the connection
+status from the copy actions. Copy actions use confirmation, progress and result dialogs;
+the progress dialog cannot be dismissed. Version comes from the platform package info,
+and Licenses uses Flutter's standard license page rather than an M3 Expressive component.
+Everything fits a 360 dp phone at 200% text.
 
 Roboto Flex is distributed under the SIL Open Font License; the license text ships with
 the app at `assets/fonts/OFL.txt`.
@@ -307,9 +363,11 @@ changing UI.
 ## Roadmap
 
 - [x] Stats history with 7-day, 30-day and all-time filters.
-- [x] Settings with appearance, Health Connect placeholder and About.
+- [x] Settings with appearance, sleep data source and About.
+- [x] Health Connect sync with retries, pending queue and idempotent writes.
+- [x] Copy actions: Sync last, Add all and Import from Google Health.
+- [ ] Health Connect history permission and Stats All beyond 30 days.
 - [ ] Home-screen widget with Sleep / Wake actions and a pending-events queue.
-- [ ] Health Connect sync with retries and idempotent writes.
 - [ ] Widget and Health Connect integration tests.
 - [ ] Motion and accessibility polish.
 - [x] Two-channel GitHub Actions releases with generated notes.

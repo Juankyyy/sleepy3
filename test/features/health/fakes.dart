@@ -50,6 +50,9 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
   /// When false, [writeSleepSession] returns null without touching [sessions].
   bool writeSucceeds;
 
+  /// Sessions that throw instead of being written, for partial-failure tests.
+  final Set<DateTime> failWriteStarts = {};
+
   /// Every session currently in Health Connect, from any app.
   final List<HealthSleepSession> sessions;
 
@@ -139,6 +142,9 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
     );
     final error = writeError;
     if (error != null) throw error;
+    if (failWriteStarts.contains(startedAt)) {
+      throw StateError('write failed');
+    }
     if (availability != HealthConnectAvailability.available) {
       throw StateError('Health Connect is not available');
     }
@@ -181,6 +187,9 @@ class FakeHealthSyncStore implements HealthSyncStore {
 
   /// When set, every read throws it.
   Object? loadError;
+
+  /// Sessions that throw instead of being inserted, for partial failures.
+  final Set<DateTime> failInsertStarts = {};
 
   int pendingCountLoads = 0;
   final markedUploaded = <int>[];
@@ -310,6 +319,9 @@ class FakeHealthSyncStore implements HealthSyncStore {
         'session',
         'Downloaded sessions must be closed',
       );
+    }
+    if (failInsertStarts.contains(session.startedAt)) {
+      throw StateError('insert failed');
     }
     final id = _nextId++;
     rows.add(

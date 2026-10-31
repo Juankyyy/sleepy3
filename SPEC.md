@@ -3,7 +3,7 @@
 **Proyecto:** Sleepy3
 **Plataforma:** Android
 **Stack principal:** Flutter + Material 3 Expressive
-**Estado:** migración a Flutter en curso; Home, Stats y la persistencia local ya funcionan.
+**Estado:** migración a Flutter en curso; Home, Stats, la persistencia local y Health Connect ya funcionan.
 
 ---
 
@@ -132,7 +132,8 @@ Sleepy3 es una app Android de registro de sueño con fricción cero.
   obligatorio.
 - Guarda la hora exacta de inicio y fin de cada sesión.
 - Los datos son locales por defecto. No hay backend ni nube propia.
-- Health Connect es opcional y se usará para sincronizar `SleepSessionRecord`.
+- Health Connect es opcional: el usuario elige `Local` o `Google Health` como fuente de
+  datos, y puede copiar sesiones entre ambos.
 - Un widget de pantalla de inicio permitirá registrar Sleep/Wake sin abrir la app.
 
 ### Objetivo de diseño
@@ -209,7 +210,8 @@ Reglas:
 - Barra de navegación M3 flexible (`M3ENavigationBar`, 64 dp) con tres destinos de
   igual importancia: `Home`, `Stats` y `Settings`.
 - `Home` es el destino inicial. `Stats` muestra el resumen por rango y el historial;
-  `Settings` contiene apariencia, el estado de Health Connect y la información de la app.
+  `Settings` contiene apariencia, la fuente de datos, el estado de Google Health y la
+  información de la app.
 - El destino activo usa icono relleno, etiqueta en negrita y la píldora de selección;
   los inactivos usan icono outline.
 - Un `IndexedStack` conserva el estado de cada pestaña al cambiar de destino, incluido
@@ -247,22 +249,46 @@ Reglas:
 
 ### 3.4 Settings
 
-- La pantalla tiene cabecera `Settings` y línea de apoyo `Theme, Health Connect and app
-  info.`, seguida de tres secciones: `Appearance`, `Health Connect` y `About`.
+- La pantalla tiene cabecera `Settings` y línea de apoyo `Theme, sleep data and app info.`,
+  seguida de cuatro secciones: `Appearance`, `Sleep data`, `Google Health` y `About`.
 - Cada sección usa un encabezado `titleMedium` emphasized y una lista agrupada
   `M3EList`/`M3EListItem` con radio exterior 16 dp, interior 4 dp y gap 2 dp.
 - `Appearance` contiene una fila `Theme` cuyo supporting text muestra el modo actual:
   `System`, `Light` o `Dark`. Al tocarla se abre un diálogo M3 de selección con opciones
   de radio y acciones `Cancel` / `Apply`. `Apply` aplica y persiste el modo; `Cancel`
   no cambia nada. El valor por defecto es `System`.
-- `Health Connect` contiene una fila deshabilitada `Sleep` con supporting text
-  `Coming soon.`. No pide permisos, no sincroniza y no simula un estado de conexión.
-- `About` contiene `Privacy` con apoyo `On-device only.`, `Version` con
-  `{version} ({build})` cuando el plugin de información de la app responde (la fila se
+- `Sleep data` contiene:
+  - `Source`, cuyo supporting text muestra `Local` o `Google Health`. Al tocarla se abre
+    el diálogo `Sleep data source` con una fila de radio por fuente y `Cancel` / `Apply`.
+    Al elegir `Google Health` se comprueba la disponibilidad y se piden `READ_SLEEP` y
+    `WRITE_SLEEP`; si no está disponible, hay que actualizar Health Connect o se deniega
+    el permiso, la fuente se queda en `Local` y un snackbar explica el motivo. Volver a
+    `Local` guarda y recarga, pero no revoca permisos.
+  - `Import` con apoyo `Download from Google Health to the local copy.`. Ejecuta la
+    descarga de todas las sesiones de Health Connect.
+- `Google Health` contiene:
+  - `Status`, con `Checking…`, `Connected`, `Connected · {n} pending`,
+    `Connected · Last sync {time}`, `Permission needed`, `Not available` o
+    `Update required`. `Permission needed` añade una fila `Connect`; `Not available` y
+    `Update required` añaden `Install`.
+  - `Sync` con apoyo `Send the most recent local session.` y `Add` con apoyo
+    `Send local sessions that aren't in Google Health.`. Ambas acciones están disponibles
+    tanto en `Local` como en `Google Health` y nunca cambian la fuente mostrada.
+- Las tres acciones de copia (`Import`, `Sync`, `Add`) piden permiso al pulsarlas si
+  falta. Muestran un diálogo de confirmación, un diálogo de progreso no descartable y un
+  diálogo de resultado con el recuento de añadidas, actualizadas, omitidas y fallidas.
+  `Sync` y `Add` solo envían filas `origin='local'` pendientes; `Import` añade o actualiza
+  filas descargadas y nunca sobrescribe una fila local. Repetir una acción no duplica.
+- El primer cambio a `Google Health` con sesiones locales pendientes muestra el diálogo
+  opcional `Copy local sessions?` con `Sync`, `Add` y `Not now`. Los botones de copia
+  siguen disponibles después en la sección `Google Health`.
+- `About` contiene `Privacy` con apoyo `On-device only.` en `Local` o
+  `Stored in Health Connect. Google Health can read it.` en `Google Health`, `Version`
+  con `{version} ({build})` cuando el plugin de información de la app responde (la fila se
   oculta si no hay dato) y `Licenses`, que abre la página de licencias de Flutter con el
   nombre, la versión y la leyenda GPLv3.
-- El modo de tema se guarda en la tabla `preferences` de la misma base Drift; no se usa
-  `shared_preferences`.
+- El modo de tema y la fuente de datos se guardan en la tabla `preferences` de la misma
+  base Drift; no se usa `shared_preferences`.
 
 ### 3.5 Widget de pantalla de inicio (planificado)
 
@@ -272,14 +298,31 @@ Reglas:
 - La app reconcilia la cola al abrirse o volver al primer plano.
 - El widget refleja el estado actual (despierto/durmiendo) con los roles del tema M3.
 
-### 3.6 Health Connect (planificado)
+### 3.6 Health Connect y Google Health
 
-- Sincronizar cada sesión cerrada como `SleepSessionRecord`.
-- Pedir permisos en el momento adecuado, no en el primer arranque.
-- Si Health Connect no está disponible o el permiso se deniega, la app sigue funcionando
-  localmente.
-- Reintentar fallos transitorios con WorkManager.
-- Evitar duplicados al reintentar.
+- La fuente de datos es `Local` (por defecto) o `Google Health`. Nunca se mezclan: `Local`
+  lee solo Drift y `Google Health` lee solo Health Connect.
+- En `Local`, Health Connect no se lee ni se escribe automáticamente. En `Google Health`,
+  Home y Stats leen todas las sesiones `SLEEP_SESSION` de Health Connect, vengan de la app
+  que vengan.
+- `Sleep` y `Wake` siempre escriben la fila local como copia de seguridad. En `Google
+  Health`, `Wake` escribe además en Health Connect con un `clientRecordId` estable; si
+  falla, la fila queda pendiente, Home y Stats muestran `{n} sessions waiting to sync` con
+  `Retry`, y el reintento ocurre al abrir o volver a la app. Una sesión pendiente no entra
+  en las gráficas de Google Health hasta que se confirma la escritura.
+- Las sesiones de duración cero se marcan como omitidas y no se suben ni se reintentan.
+- Las acciones de copia son explícitas y no cambian la fuente: `Sync` sube la sesión local
+  pendiente más reciente, `Add` sube todas las pendientes de la más antigua a la más
+  reciente e `Import` descarga todas las sesiones de Health Connect a la copia local.
+- La descarga deduplica por UUID y, si falta, por inicio y fin exactos. Inserta las nuevas
+  con `origin='healthConnect'`, actualiza las descargadas que cambiaron y nunca sobrescribe
+  ni borra filas `origin='local'`. Las descargadas no se vuelven a subir.
+- Los permisos se piden al usar la función, no en el primer arranque. Si Health Connect no
+  está disponible o el permiso se deniega, la app sigue funcionando localmente.
+- Sleepy3 lee y escribe en Health Connect, no en la nube de Google Health. Un registro que
+  solo esté en la nube aparece cuando Google Health lo sincroniza con Health Connect.
+- El acceso al historial completo de Health Connect (más de 30 días) queda para el módulo
+  siguiente; hasta entonces la lectura usa lo que la plataforma devuelva.
 
 ### 3.7 Accesibilidad
 
@@ -359,16 +402,23 @@ Reglas:
 - Pantalla Settings:
   - Título `Settings` en `headlineMedium` emphasized y apoyo en `bodyMedium`; márgenes
     laterales de 16 dp, y 24 dp desde 600 dp de ancho (decisión de layout).
-  - Secciones `Appearance`, `Health Connect` y `About` con encabezado `titleMedium`
-    emphasized y 8 dp hasta la lista.
+  - Secciones `Appearance`, `Sleep data`, `Google Health` y `About` con encabezado
+    `titleMedium` emphasized y 8 dp hasta la lista.
   - Filas `M3EListItem` dentro de `M3EList` con radio exterior 16 dp, interior 4 dp y gap
     2 dp. Las filas crecen con el texto del sistema.
   - La fila `Theme` usa el supporting text para el valor actual (`System`, `Light` o
     `Dark`), de modo que el lector de pantalla lo anuncie como parte de la etiqueta. El
     diálogo de selección usa opciones cortas para caber al 200 % de texto.
-  - `Health Connect` es informativa y deshabilitada: `Sleep` / `Coming soon.`, sin tap ni
-    permisos. No se presenta como una integración conectada.
-  - `About` muestra `Privacy` / `On-device only.`, `Version` con el dato de
+  - `Sleep data` muestra `Source` con el valor actual y `Import` para bajar todas las
+    sesiones de Health Connect. El diálogo de fuente usa filas de radio a ancho completo
+    para que `Google Health` no se recorte en pantallas angostas.
+  - `Google Health` muestra `Status` y, si hace falta, `Connect` o `Install`. Debajo,
+    `Sync` y `Add` son acciones de copia, no de conexión. Las tres acciones de copia
+    (incluida `Import`) usan diálogos M3E de confirmación, progreso y resultado.
+  - El progreso no se puede descartar mientras la copia está en curso. El resultado
+    distingue añadidas, actualizadas, omitidas y fallidas, y no promete éxito parcial.
+  - `About` muestra `Privacy` con el texto que corresponde a la fuente (`On-device only.`
+    o `Stored in Health Connect. Google Health can read it.`), `Version` con el dato de
     `package_info_plus` como supporting text (se oculta si no está disponible) y
     `Licenses`, que abre `showLicensePage` (API estándar de Flutter, no un componente
     M3E).
@@ -404,13 +454,23 @@ Reglas:
 | Apoyo sin historial | `Your nights will appear here after you wake up.` |
 | Apoyo sin historial durmiendo | `Your first night will appear here when you wake up.` |
 | Título de Settings | `Settings` |
-| Apoyo de Settings | `Theme, Health Connect and app info.` |
-| Secciones de Settings | `Appearance`, `Health Connect`, `About` |
+| Apoyo de Settings | `Theme, sleep data and app info.` |
+| Secciones de Settings | `Appearance`, `Sleep data`, `Google Health`, `About` |
 | Fila de tema | `Theme` |
 | Modos de tema | `System`, `Light`, `Dark` |
-| Fila de Health Connect | `Sleep` |
-| Apoyo de Health Connect | `Coming soon.` |
-| Privacidad | `Privacy` / `On-device only.` |
+| Fila de fuente | `Source` |
+| Fuentes de datos | `Local`, `Google Health` |
+| Diálogo de fuente | `Sleep data source`, `Cancel`, `Apply` |
+| Fila de descarga | `Import` / `Download from Google Health to the local copy.` |
+| Estado de Google Health | `Status` |
+| Estados de conexión | `Checking…`, `Connected`, `Permission needed`, `Not available`, `Update required` |
+| Acciones de conexión | `Connect`, `Install` |
+| Acciones de copia | `Sync`, `Add`, `Import` |
+| Diálogos de copia | `Sync last session?`, `Add all previous sessions?`, `Download from Google Health?` |
+| Botones de copia | `Cancel`, `Sync`, `Add all`, `Download all`, `Close` |
+| Primer cambio a Google Health | `Copy local sessions?` / `Sync`, `Add`, `Not now` |
+| Privacidad en Local | `Privacy` / `On-device only.` |
+| Privacidad en Google Health | `Privacy` / `Stored in Health Connect. Google Health can read it.` |
 | Otras filas de About | `Version`, `Licenses` |
 | Acciones del diálogo de tema | `Cancel`, `Apply` |
 
@@ -431,7 +491,7 @@ Reglas:
 | Persistencia | Drift + SQLite (`drift_flutter`, `sqlite3`) |
 | Info de la app | `package_info_plus` 10.x |
 | Widget | `home_widget` + Jetpack Glance nativo |
-| Salud | Health Connect `SleepSessionRecord` |
+| Salud | `health` 13.x sobre Health Connect `SleepSessionRecord` |
 | Background | WorkManager para Flutter |
 | Android | `minSdk` 28, `applicationId` `com.sleepy3.app` |
 
@@ -474,7 +534,11 @@ lib/
     │   ├── data/           # Drift-backed settings store
     │   ├── application/    # theme controller and providers
     │   └── presentation/   # settings screen, theme dialog and about list
-    ├── health/             # planificado
+    ├── health/
+    │   ├── domain/         # gateway, data source, sync store and stored session
+    │   ├── data/           # Health Connect gateway and Drift sync store
+    │   ├── application/    # source, history, sync, upload and copy controllers
+    │   └── presentation/   # copy dialogs, sync banner and source text
     └── widget/             # planificado
 ```
 
@@ -484,9 +548,10 @@ lib/
 2. Abre `Sleepy3Database`.
 3. Carga un `SleepSnapshot` con la sesión abierta y todas las sesiones cerradas,
    ordenadas de más antigua a más reciente.
-4. Carga el modo de tema de `preferences` y la versión instalada con
+4. Carga el modo de tema y la fuente de datos de `preferences`, y la versión instalada con
    `package_info_plus`.
-5. Inyecta los stores, el snapshot, el tema inicial y la versión en `ProviderScope`.
+5. Inyecta los stores, el snapshot, el tema inicial, la fuente y la versión en
+   `ProviderScope`.
 6. Recién entonces muestra la app.
 
 Si una lectura inicial falla, la app arranca con el valor por defecto (estado vacío,
@@ -501,6 +566,14 @@ splash.
 - La UI escucha el estado; no lee la base de datos directamente.
 - El reloj se inyecta con `sleepClockProvider`; la lógica de dominio no llama a
   `DateTime.now()`.
+- `SleepTrackingController` siempre escribe la fila local y carga `closedSessions` desde
+  la fuente elegida mediante `SleepHistoryRepository`. `historyStatus` y `historyError`
+  cubren carga y error; al cambiar de fuente se vacía la lista visible antes de recargar.
+- `SleepDataSourceController` valida disponibilidad y permisos antes de guardar
+  `Google Health`; si falla, conserva `Local`.
+- `HealthSyncController` mantiene el estado de conexión, la cola de pendientes y el
+  último sync. `SleepCopyController` expone las tres acciones de copia y comparte el
+  servicio con la UI.
 - `ThemeModeController` es un `Notifier<AppThemeMode>`. Actualiza el estado al instante,
   serializa las escrituras y conserva la elección visible si una escritura falla.
 - `Sleepy3App` resuelve el brillo con el modo de tema y el brillo del sistema; mantiene
@@ -511,11 +584,17 @@ splash.
 - `SleepSessionStore` es la interfaz de persistencia.
 - `DriftSleepSessionStore` es la implementación. Una sola consulta ordenada carga la
   sesión abierta y todo el historial cerrado; `SleepSnapshot.lastSession` es un getter.
-- `SleepTrackingState` mantiene `closedSessions` completo. Home filtra los 3 días y
-  `Stats` el rango elegido en memoria; la base de datos no se consulta desde la UI.
+- `SleepTrackingState` mantiene `closedSessions` completo de la fuente elegida. Home
+  filtra los 3 días y `Stats` el rango elegido en memoria; la base de datos no se consulta
+  desde la UI.
+- `SleepHistoryRepository` tiene dos implementaciones: `LocalSleepHistoryRepository`
+  (Drift) y `HealthConnectSleepHistoryRepository` (Health Connect).
+- `HealthSyncStore` y `DriftHealthSyncStore` gestionan pendientes, UUID descargados y
+  deduplicación sobre la misma base.
 - `SettingsStore` es la interfaz de preferencias y `DriftSettingsStore` su implementación.
   Usa la tabla `preferences` de la misma base; no hay `shared_preferences`.
-- Los tests usan `FakeSleepSessionStore`, `FakeSettingsStore` o una base Drift en memoria.
+- Los tests usan `FakeSleepSessionStore`, `FakeSettingsStore`, `FakeHealthConnectGateway`,
+  `FakeHealthSyncStore` o una base Drift en memoria.
 
 ### Widget y Health Connect
 
@@ -535,9 +614,15 @@ splash.
 | `id` | INTEGER | PRIMARY KEY AUTOINCREMENT |
 | `started_at_millis` | INTEGER | Unix milliseconds, obligatorio |
 | `ended_at_millis` | INTEGER | Unix milliseconds, nullable |
+| `health_record_id` | TEXT | UUID de Health Connect; único cuando no es null |
+| `health_synced_at_millis` | INTEGER | Última subida o descarga correcta |
+| `health_sync_skipped` | INTEGER | 0/1; sesión no elegible (por ejemplo, duración cero) |
+| `origin` | TEXT | `local` o `healthConnect`; por defecto `local` |
 
-- `schemaVersion = 2`.
+- `schemaVersion = 3`.
 - Base: `sleepy3.sqlite` en el directorio de documentos de la app.
+- La migración v2 → v3 añade las cuatro columnas con defaults y el índice único de
+  `health_record_id`; las filas existentes quedan locales, pendientes y elegibles.
 - El resumen de 3 días no añade columnas ni migración: consulta las cerradas con
   `ended_at_millis` entre el inicio local de hace 2 días y el inicio local de mañana.
 - Al agregar o cambiar columnas, subir `schemaVersion` y escribir una migración.
@@ -555,10 +640,13 @@ dart run build_runner build
 | `setting_key` | TEXT | PRIMARY KEY |
 | `setting_value` | TEXT | Valor serializado como texto |
 
-- Clave `theme_mode` con valores `system`, `light` o `dark`.
-- Un valor ausente o desconocido se interpreta como `system`.
+- Clave `theme_mode` con valores `system`, `light` o `dark`; un valor ausente o
+  desconocido se interpreta como `system`.
+- Clave `sleep_data_source` con valores `local` o `healthConnect`; un valor ausente o
+  desconocido se interpreta como `local`.
 - La migración de v1 a v2 crea `preferences`; las sesiones existentes no se tocan.
-- El modo de tema se guarda en la misma base para no abrir un segundo almacén.
+- El modo de tema y la fuente se guardan en la misma base para no abrir un segundo
+  almacén.
 
 ### Invariantes
 
@@ -572,8 +660,13 @@ dart run build_runner build
 ### Privacidad
 
 - No hay backend propio.
-- La base local es la fuente de verdad.
-- Health Connect es opcional y solo se usa con permiso explícito.
+- En `Local`, la base local es la fuente de verdad y Health Connect no se lee ni se
+  escribe automáticamente.
+- En `Google Health`, Sleepy3 lee y escribe `SleepSessionRecord` en Health Connect con
+  permiso explícito. La copia local se mantiene como red de seguridad.
+- Sleepy3 no accede a la nube de Google Health ni a una API cloud; solo al proveedor de
+  Health Connect del dispositivo.
+- Denegar un permiso nunca bloquea el registro local.
 
 ---
 
@@ -590,21 +683,42 @@ dart run build_runner build
 
 ---
 
-## 9. Health Connect (planificado)
+## 9. Health Connect y Google Health
 
-- API: `SleepSessionRecord`.
-- Requiere Android 9 (API 28) o superior.
-- En Android 13 o inferior, Health Connect debe estar instalado.
-- Flujo:
-  1. Al cerrar una sesión, construir el registro con inicio y fin.
-  2. Escribirlo en Health Connect.
-  3. Si falla por un error transitorio, encolar un reintento con WorkManager.
-  4. Reintentar de forma idempotente para no duplicar registros.
-- Si el usuario deniega permisos, no bloquear el registro local.
-- Mientras no esté implementado, `Settings` muestra una fila deshabilitada `Sleep` /
-  `Coming soon.` y no solicita permisos ni simula una conexión.
+- API: `SleepSessionRecord` a través del paquete `health`.
+- Requiere Android 9 (API 28) o superior. En Android 13 o inferior, Health Connect debe
+  estar instalado.
+- Fuente `Local`:
+  - Drift es la fuente de verdad. Home y Stats no leen Health Connect.
+  - `Sleep` y `Wake` no escriben en Health Connect.
+  - Las acciones manuales `Sync`, `Add` e `Import` siguen disponibles.
+- Fuente `Google Health`:
+  - Home y Stats leen todas las sesiones `SLEEP_SESSION` de Health Connect, de cualquier
+    app, ordenadas de más antigua a más reciente.
+  - `Wake` cierra la fila local y escribe el registro en Health Connect con
+    `clientRecordId = sleepy3-<startedAtMillis>` y `clientRecordVersion = 1`.
+  - Si la escritura falla, la fila local queda pendiente y el reintento ocurre al abrir o
+    volver a la app. El banner de Home/Stats muestra el recuento y `Retry`.
+  - Una sesión pendiente no aparece en las gráficas de Google Health hasta que Health
+    Connect confirma la escritura.
+- Escritura idempotente: el `clientRecordId` estable evita duplicados al reintentar.
+- Sesiones de duración cero: se marcan `health_sync_skipped` y no se suben.
+- Acciones de copia:
+  - `Sync`: sube la sesión `origin='local'` pendiente más reciente.
+  - `Add`: sube todas las `origin='local'` pendientes, de la más antigua a la más reciente.
+  - `Import`: lee todas las sesiones de Health Connect y las añade o actualiza en local.
+  - La descarga deduplica por `health_record_id` y, si falta, por inicio y fin exactos.
+  - Inserta las nuevas con `origin='healthConnect'` y `health_synced_at_millis`.
+  - Actualiza las `origin='healthConnect'` existentes si cambiaron sus horas.
+  - No sobrescribe ni borra filas `origin='local'`, y no vuelve a subir las descargadas.
+  - Las acciones no cambian la fuente mostrada. Si faltan permisos, se piden al pulsarlas.
+- Si el usuario deniega permisos o Health Connect no está disponible, no se bloquea el
+  registro local; Settings explica el estado y ofrece `Connect` o `Install`.
+- El acceso al historial completo (más de 30 días) se pedirá en el módulo 6; hasta
+  entonces `Import` usa lo que Health Connect devuelva.
 - La publicación en Play Console requiere la declaración de Health Connect.
-- Tests pendientes: permiso concedido, denegado, API no disponible y reintento.
+- Tests cubiertos: permiso concedido y denegado, API no disponible, actualización
+  requerida, reintento idempotente, fallo parcial, deduplicación y acciones de copia.
 
 ---
 
@@ -638,16 +752,21 @@ dart run build_runner build
   layout a 360 dp con texto al 200 % y `LocalDayBuilder` al pasar medianoche o volver
   del segundo plano.
 - Settings: tema por defecto y persistido, diálogo de selección con `Cancel`/`Apply`,
-  resolución `System`/`Light`/`Dark`, fila de Health Connect deshabilitada, versión
-  oculta si no está disponible, página de licencias, semántica, migración v1→v2 y layout
-  a 360 dp con texto al 200 %.
+  resolución `System`/`Light`/`Dark`, fuente `Local`/`Google Health`, diálogo de fuente,
+  estado de conexión, `Connect`/`Install`, `Import`/`Sync`/`Add`, primer cambio con aviso
+  de copia, permiso denegado, versión oculta si no está disponible, página de licencias,
+  semántica, migraciones v1→v2 y v2→v3, y layout a 360 dp con texto al 200 %.
+- Health Connect: disponibilidad, permisos, lectura/escritura, cola de pendientes,
+  reintento idempotente, banner, sesiones omitidas, acciones de copia, deduplicación por
+  UUID y horas exactas, fallo parcial y protección de filas locales.
 - Tema: claro/oscuro desde la misma semilla, roles M3 y tipografía Roboto Flex.
 - Build Android debug correcto.
 
 ### Cobertura pendiente
 
 - Widget nativo: taps, cola de pendientes y reconciliación.
-- Health Connect: permisos, sync, reintentos e idempotencia.
+- Permiso de historial de Health Connect y límite de 30 días en Stats `All`.
+- Prueba manual del APK release con Health Connect y Google Health.
 - Golden tests o capturas de referencia para claro/oscuro.
 
 ### Criterio de done por módulo
@@ -674,17 +793,21 @@ dart run build_runner build
 - Resumen de los últimos 3 días con datos reales, media y barras contra una meta de 8 h.
 - Pantalla `Stats` con filtros 7 días / 30 días / todo, resumen del rango y una fila por
   sesión.
-- Pantalla `Settings` con tema `System`/`Light`/`Dark` persistido, fila informativa de
-  Health Connect y `About` con privacidad, versión y licencias.
+- Pantalla `Settings` con tema `System`/`Light`/`Dark` persistido, fuente de datos
+  `Local`/`Google Health`, estado de Google Health, acciones de copia y `About` con
+  privacidad, versión y licencias.
+- Health Connect: permisos, lectura y escritura, cola de pendientes, reintento al abrir o
+  volver a la app, banner de pendientes y acciones `Import`/`Sync`/`Add`.
 - Releases automáticas de dos canales: pre-releases por push a `dev` y estables por push a
   `main`, con versionado, firma y notas generadas.
 - Tests de estado, persistencia y UI.
 
 ### Siguiente
 
-1. Widget de pantalla de inicio con Glance y `home_widget`.
-2. Health Connect y reintentos.
-3. Pulido de motion y accesibilidad.
+1. Permiso de historial de Health Connect y Stats `All` con fallback de 30 días.
+2. Widget de pantalla de inicio con Glance y `home_widget`.
+3. Documentación final, QA en dispositivo y release estable.
+4. Pulido de motion y accesibilidad.
 
 ---
 
@@ -692,5 +815,6 @@ dart run build_runner build
 
 - Si se agregará un gráfico de 7 días a `Stats` en una versión posterior.
 - Si el widget mostrará la duración en vivo o solo el estado.
-- Estrategia de reintentos de Health Connect (cantidad y backoff).
+- Si los reintentos pasarán a WorkManager en segundo plano o seguirán al abrir/volver a
+  la app.
 - Si se agregará localización completa después de la primera release en inglés.

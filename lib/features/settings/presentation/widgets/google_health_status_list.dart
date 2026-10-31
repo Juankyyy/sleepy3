@@ -4,6 +4,8 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../../core/time/clock_format.dart';
 import '../../../health/application/health_sync_controller.dart';
+import '../../../health/application/sleep_copy_controller.dart';
+import '../../../health/presentation/sleep_copy_dialogs.dart';
 import 'settings_list.dart';
 
 /// The Google Health status row and its reconnect or install action.
@@ -61,6 +63,30 @@ class _GoogleHealthStatusListState
             ],
           ),
         ],
+        // 2dp separates the status from the copy actions, which are available
+        // in both Local and Google Health modes.
+        const SizedBox(height: 2),
+        SettingsList(
+          onTap: (index) => _runCopy(
+            index == 0 ? SleepCopyAction.syncLast : SleepCopyAction.uploadAll,
+            context,
+          ),
+          children: const [
+            M3EListItem(
+              leading: Icon(M3EIcons.cloud_upload_outlined),
+              headline: 'Sync',
+              supportingText: 'Send the most recent local session.',
+              trailing: Icon(M3EIcons.chevron_right),
+            ),
+            M3EListItem(
+              leading: Icon(M3EIcons.library_add_outlined),
+              headline: 'Add',
+              supportingText:
+                  "Send local sessions that aren't in Google Health.",
+              trailing: Icon(M3EIcons.chevron_right),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -105,6 +131,9 @@ class _GoogleHealthStatusListState
         await controller.install();
     }
   }
+
+  Future<void> _runCopy(SleepCopyAction action, BuildContext context) =>
+      showSleepCopyFlow(context, ref, action);
 
   static IconData _iconFor(HealthConnectConnectionStatus status) {
     return switch (status) {

@@ -102,6 +102,13 @@ class SleepUploadService {
     return _upload(session, stored);
   }
 
+  /// Uploads a row that was already loaded from the sync store.
+  ///
+  /// Used by the copy actions, which already know which row they are sending,
+  /// so the row cannot be confused with another one with the same times.
+  Future<SleepUploadResult> uploadStored(StoredSleepSession stored) =>
+      _upload(stored.session, stored);
+
   /// Uploads every local session that still needs Health Connect.
   Future<SleepUploadBatchResult> retryPending() async {
     List<StoredSleepSession> pending;

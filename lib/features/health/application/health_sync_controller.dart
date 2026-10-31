@@ -93,6 +93,11 @@ class HealthSyncController extends Notifier<HealthSyncState> {
   /// Re-reads only the pending queue, without touching the platform.
   Future<void> refreshPendingCount() => _refreshPendingCount();
 
+  /// Records a manual copy that successfully wrote to Health Connect.
+  void recordManualUpload(DateTime syncedAt) {
+    state = state.copyWith(lastSyncedAt: syncedAt, lastError: null);
+  }
+
   /// Writes one just-finished session after Wake.
   ///
   /// The local row is the safety copy and stays untouched while Health Connect
