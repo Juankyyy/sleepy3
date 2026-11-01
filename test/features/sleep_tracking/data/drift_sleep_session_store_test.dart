@@ -184,6 +184,52 @@ void main() {
     expect(snapshot.lastSession?.endedAt, endedAt);
   });
 
+  test('discardOpenSession removes the open row without recording', () async {
+    final startedAt = DateTime(2026, 10, 20, 22, 30);
+    await store.startSession(SleepSession(startedAt: startedAt));
+
+    await store.discardOpenSession();
+
+    final snapshot = await store.load();
+    expect(snapshot.openSession, isNull);
+    expect(snapshot.lastSession, isNull);
+    expect(snapshot.closedSessions, isEmpty);
+  });
+
+  test(
+    'discardOpenSession keeps closed sessions and drops open duplicates',
+    () async {
+      await database
+          .into(database.sleepSessions)
+          .insert(
+            SleepSessionsCompanion.insert(
+              startedAtMillis: DateTime(
+                2026,
+                10,
+                18,
+                23,
+              ).millisecondsSinceEpoch,
+              endedAtMillis: Value(
+                DateTime(2026, 10, 19, 7).millisecondsSinceEpoch,
+              ),
+            ),
+          );
+      await store.startSession(
+        SleepSession(startedAt: DateTime(2026, 10, 20, 23)),
+      );
+      await store.startSession(
+        SleepSession(startedAt: DateTime(2026, 10, 19, 20)),
+      );
+
+      await store.discardOpenSession();
+
+      final snapshot = await store.load();
+      expect(snapshot.openSession, isNull);
+      expect(snapshot.closedSessions, hasLength(1));
+      expect(snapshot.lastSession?.endedAt, DateTime(2026, 10, 19, 7));
+    },
+  );
+
   group('Health Connect identity', () {
     Future<int> insertSession({
       required DateTime startedAt,
@@ -366,5 +412,75 @@ void main() {
       final rows = await database.select(database.sleepSessions).get();
       expect(rows.map((row) => row.id), [downloadedId]);
     });
+
+    test(
+      'purgeShortClosedSessions removes unpublished local short rows',
+      () async {
+        final startedAt = DateTime(2026, 10, 20, 23);
+        await insertSession(
+          startedAt: startedAt,
+          endedAt: startedAt.add(const Duration(minutes: 5)),
+        );
+        await insertSession(
+          startedAt: startedAt.add(const Duration(days: 1)),
+          endedAt: startedAt.add(const Duration(days: 1, minutes: 5)),
+        );
+
+        final purged = await store.purgeShortClosedSessions(
+          minimumRecordableSleep,
+        );
+
+        expect(purged, 2);
+        final rows = await database.select(database.sleepSessions).get();
+        expect(rows, isEmpty);
+      },
+    );
+
+    test(
+      'purgeShortClosedSessions keeps the rows that belong to Health Connect',
+      () async {
+        final startedAt = DateTime(2026, 10, 20, 23);
+        final syncedId = await insertSession(
+          startedAt: startedAt,
+          endedAt: startedAt.add(const Duration(minutes: 5)),
+          healthRecordId: 'health-record-1',
+        );
+        final downloadedId = await insertSession(
+          startedAt: startedAt.add(const Duration(days: 1)),
+          endedAt: startedAt.add(const Duration(days: 1, minutes: 5)),
+          healthRecordId: 'downloaded-1',
+          origin: SleepSessionOrigin.healthConnect,
+        );
+
+        expect(await store.purgeShortClosedSessions(minimumRecordableSleep), 0);
+
+        final rows = await database.select(database.sleepSessions).get();
+        expect(
+          rows.map((row) => row.id),
+          unorderedEquals(<int>[syncedId, downloadedId]),
+        );
+      },
+    );
+
+    test(
+      'purgeShortClosedSessions keeps rows at the minimum and open rows',
+      () async {
+        final startedAt = DateTime(2026, 10, 20, 23);
+        final exactId = await insertSession(
+          startedAt: startedAt,
+          endedAt: startedAt.add(minimumRecordableSleep),
+        );
+
+        expect(await store.purgeShortClosedSessions(minimumRecordableSleep), 0);
+
+        // An open session is never a purge candidate.
+        await store.startSession(SleepSession(startedAt: startedAt));
+        expect(await store.purgeShortClosedSessions(minimumRecordableSleep), 0);
+
+        final rows = await database.select(database.sleepSessions).get();
+        expect(rows.map((row) => row.id), contains(exactId));
+        expect(rows.where((row) => row.endedAtMillis == null), isNotEmpty);
+      },
+    );
   });
 }

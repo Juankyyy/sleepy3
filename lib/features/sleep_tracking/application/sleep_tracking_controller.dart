@@ -29,6 +29,19 @@ enum SleepHistoryStatus {
   error,
 }
 
+/// What happened after a Wake tap.
+enum SleepWakeOutcome {
+  /// The session was closed and joined the visible history, after the Health
+  /// Connect write when running in Google Health mode.
+  closed,
+
+  /// The sleep was shorter than [minimumRecordableSleep], so nothing was
+  /// recorded. The sleep tracking screen confirms it with a dialog first;
+  /// this outcome only happens when Wake reaches the controller through
+  /// another path, such as a widget tap.
+  discarded,
+}
+
 /// Owns the Sleep / Wake state machine and the closed history.
 ///
 /// The open session always lives in Drift so it can be restored after a crash.
@@ -130,12 +143,24 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
     await _enqueueWrite(() => store.startSession(session));
   }
 
-  Future<void> wake() async {
+  Future<SleepWakeOutcome> wake() async {
     final open = state.openSession;
-    if (open == null) return;
+    if (open == null) return SleepWakeOutcome.closed;
 
     final now = ref.read(sleepClockProvider)();
     final finished = open.finish(now);
+
+    // A sleep shorter than the minimum is never recorded, in any data source
+    // mode. The sleep tracking screen asks for confirmation first; this also
+    // discards wake paths that never had a dialog, such as a widget tap.
+    if (finished.duration < minimumRecordableSleep) {
+      state = state.copyWith(openSession: null);
+
+      final store = ref.read(sleepSessionStoreProvider);
+      await _enqueueWrite(() => store.discardOpenSession());
+      return SleepWakeOutcome.discarded;
+    }
+
     final source = ref.read(sleepDataSourceProvider);
 
     // In Local mode the finished session can join the list immediately. In
@@ -162,6 +187,7 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
     }
 
     await reloadHistory();
+    return SleepWakeOutcome.closed;
   }
 
   /// Saves new times for a finished session without reloading the history.

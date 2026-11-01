@@ -68,4 +68,20 @@ abstract interface class SleepSessionStore {
   /// Older open rows left behind by a crash are deleted so the history cannot
   /// grow overlapping sessions that would be uploaded to Health Connect.
   Future<void> finishOpenSession(DateTime endedAt);
+
+  /// Deletes the open session without recording it.
+  ///
+  /// Used by Wake when the sleep is shorter than [minimumRecordableSleep]:
+  /// the row is removed instead of closed, so the history never gains a
+  /// record Health Connect would reject. Open rows left behind by a crash
+  /// are deleted too.
+  Future<void> discardOpenSession();
+
+  /// Deletes local closed sessions shorter than [minimum] that were never
+  /// uploaded to Health Connect.
+  ///
+  /// Called once at startup to clean rows written before the minimum was
+  /// enforced. Synced rows, rows queued to sync and downloaded copies are
+  /// never touched. Returns how many rows were deleted.
+  Future<int> purgeShortClosedSessions(Duration minimum);
 }

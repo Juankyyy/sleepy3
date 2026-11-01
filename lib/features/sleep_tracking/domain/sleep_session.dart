@@ -1,3 +1,10 @@
+/// The shortest sleep a session can record.
+///
+/// Health Connect rejects sleep records shorter than this, so Sleepy3 never
+/// registers them, in any data source mode: they are treated as an
+/// accidental Sleep / Wake tap or as legacy rows to clean up.
+const Duration minimumRecordableSleep = Duration(minutes: 10);
+
 /// One sleep session.
 ///
 /// A session starts when the user taps "Sleep" and ends when they tap

@@ -288,7 +288,8 @@ class SleepSessionRow extends DataClass implements Insertable<SleepSessionRow> {
   /// When the record was last uploaded to or downloaded from Health Connect.
   final int? healthSyncedAtMillis;
 
-  /// Set when the session is not eligible for upload, such as a zero duration.
+  /// Set when the session is not eligible for upload, such as a sleep shorter
+  /// than the recordable minimum.
   final bool healthSyncSkipped;
 
   /// `local` for sessions started in Sleepy3, `healthConnect` for downloads.

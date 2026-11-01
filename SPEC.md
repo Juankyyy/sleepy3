@@ -169,9 +169,22 @@ Reglas:
 
 - Un toque en **Sleep** abre una sesión con la hora actual y la persiste.
 - Un toque en **Wake** cierra la sesión abierta, calcula la duración y la persiste.
+- Una sesión de menos de 10 minutos nunca se registra, en ninguna de las dos fuentes: es
+  el mínimo que Health Connect acepta y los registros tan cortos son irreales. Home lo
+  pregunta con un diálogo `Sleep too short` (`Keep sleeping` / `Discard session`); si el
+  usuario confirma, el controlador revalida con el reloj en ese momento, de modo que una
+  sesión que ya llegó a 10 minutos se cierra con normalidad. Wake alcanza a veces al
+  controlador por un camino sin diálogo (por ejemplo, un toque del widget futuro): ahí el
+  descarte es automático y deja constancia en el resultado de `wake()`
+  (`SleepWakeOutcome.discarded`).
 - Si ya hay una sesión abierta, Sleep no hace nada.
 - Si no hay sesión abierta, Wake no hace nada.
-- Una sesión cerrada con una hora anterior al inicio se recorta a duración cero.
+- Una sesión cerrada con una hora anterior al inicio se recorta a duración cero y, por el
+  mínimo de 10 minutos, se descarta en lugar de registrarse.
+- Wake con 10:00 exactas o más se registra con normalidad.
+- Al arrancar la app se restaura la sesión abierta y se purgan las filas cerradas locales
+  de menos de 10 minutos que nunca llegaron a Health Connect (sin `health_record_id`);
+  sesiones ya sincronizadas y descargas de otras apps no se tocan.
 - Al arrancar la app se restaura la sesión abierta; las sesiones cerradas se cargan de la
   fuente elegida (ver 3.6), ordenadas de más antigua a más reciente. Home filtra los
   últimos 3 días para su resumen y `Stats` filtra el rango elegido.
@@ -278,10 +291,11 @@ Reglas:
   y cierre con `Cancel` o la X. Tiene secciones `Fell asleep` y `Woke up` con filas de
   fecha y hora que abren `M3EDatePicker` y `M3ETimePicker`, duración y día de despertar
   en vivo, y un aviso cuando la sesión también está en Google Health.
-- Validación del borrador: el fin debe ser posterior al inicio, ninguna hora puede estar
-  en el futuro y la sesión no puede solaparse con otra cerrada ni con la sesión abierta.
-  Los errores se muestran inline y el editor no se cierra. Un fallo de guardado o borrado
-  abre un diálogo básico encima del editor.
+- Validación del borrador: el fin debe ser posterior al inicio, la sesión debe durar al
+  menos 10 minutos (`SessionEditError.tooShort`, idéntica regla en las dos fuentes), unas
+  horas no pueden estar en el futuro y la sesión no puede solaparse con otra cerrada ni
+  con la sesión abierta. Los errores se muestran inline y el editor no se cierra. Un fallo
+  de guardado o borrado abre un diálogo básico encima del editor.
 - Guardar y borrar dependen de la fuente:
   - `Local`: una sesión sin registro en Health Connect solo cambia en Drift. Si ya está
     en Health Connect, primero se guarda la copia local y se marca pendiente, y después
@@ -703,15 +717,18 @@ assets/
 
 1. `main()` inicializa Flutter.
 2. Abre `Sleepy3Database`.
-3. Carga un `SleepSnapshot` con la sesión abierta y todas las sesiones cerradas,
+3. Purga de una vez las sesiones cerradas locales de menos de 10 minutos que nunca
+   llegaron a Health Connect (`purgeShortClosedSessions`); un fallo solo se registra y no
+   bloquea el arranque.
+4. Carga un `SleepSnapshot` con la sesión abierta y todas las sesiones cerradas,
    ordenadas de más antigua a más reciente.
-4. Carga el modo de tema y la fuente de datos de `preferences`, y la versión instalada con
+5. Carga el modo de tema y la fuente de datos de `preferences`, y la versión instalada con
    `package_info_plus`. Después replica el modo de tema en el modo nocturno por aplicación
    de Android (API 31+), para que el próximo arranque en frío resuelva el splash con el
    mismo modo.
-5. Inyecta los stores, el snapshot, el tema inicial, la fuente y la versión en
+6. Inyecta los stores, el snapshot, el tema inicial, la fuente y la versión en
    `ProviderScope`.
-6. Muestra el shell envuelto por `SplashGate`; la intro espera al primer frame
+7. Muestra el shell envuelto por `SplashGate`; la intro espera al primer frame
    rasterizado, reproduce el zoom de marca y se retira sobre la app ya construida. El
    fondo de lanzamiento nativo ya usaba el color de cuerpo del tema, así que el handoff
    no muestra un frame negro.
@@ -933,7 +950,11 @@ dart run build_runner build
 - El historial de Google Health adjunta `localId` y `healthClientRecordId` desde la copia
   local. Si esa lectura falla, el historial se muestra igualmente; las filas propias
   siguen siendo editables por su UUID.
-- Sesiones de duración cero: se marcan `health_sync_skipped` y no se suben.
+- Sesiones más cortas que `minimumRecordableSleep` (10 minutos): la subida y las copias
+  las marca `health_sync_skipped` y no las escribe (el mínimo lo exige Health Connect);
+  en Google Health el Wake descarta antes la sesión, así que no llega ninguna corta
+  nueva. Las filas locales de menos de 10 minutos que nunca llegaron a Health Connect se
+  purgan al arrancar.
 - Acciones de copia:
   - `Sync`: sube la sesión `origin='local'` pendiente más reciente.
   - `Add`: sube todas las `origin='local'` pendientes, de la más antigua a la más reciente.
@@ -956,7 +977,8 @@ dart run build_runner build
 - Tests cubiertos: permiso de sueño e historial concedidos y denegados, API no disponible,
   actualización requerida, reintento idempotente, fallo parcial, deduplicación, límite de
   30 días, acciones de copia, edición/borrado en Local y Google Health, versiones
-  crecientes, enriquecimiento del historial y reintentos de solo actualizaciones en Local.
+  crecientes, enriquecimiento del historial, reintentos de solo actualizaciones en Local
+  y el mínimo de 10 minutos (descarte de Wake, editor y subida).
 
 ---
 
@@ -977,9 +999,11 @@ dart run tool/generate_brand_assets.dart
 
 ### Cobertura actual
 
-- Máquina de estados: inicio, Sleep, Wake, doble toque, clock skew.
-- Persistencia: alta, cierre, restauración, sesiones abiertas duplicadas y carga de todo
-  el historial cerrado.
+- Máquina de estados: inicio, Sleep, Wake, doble toque, clock skew y sesiones de menos
+  de 10 minutos (descarte con y sin síncrona exacta del diálogo).
+- Persistencia: alta, cierre, restauración, sesiones abiertas duplicadas, carga de todo
+  el historial cerrado, descarte de la sesión abierta y purga de filas locales cortas no
+  sincronizadas al arrancar.
 - UI: estado inicial, cambio Sleep/Wake, restauración y layout a 360 dp.
 - Cabecera, reloj en vivo y línea de sesión: formato 12/24 h, límites día/noche, timer,
   cambio de fecha y layout con texto al 200 %.
@@ -992,8 +1016,9 @@ dart run tool/generate_brand_assets.dart
   del segundo plano.
 - Stats editable: icono y semántica de botón solo en filas editables, filas de solo
   lectura sin acción, editor adaptativo, guardado sin cambios, cambio de fecha y hora,
-  validación inline, descarte, 24 h, 200 % de texto, borrado con confirmación, empty
-  state tras borrar la última sesión y actualización del resumen sin recargar.
+  validación inline (incluido el mínimo de 10 minutos), descarte, 24 h, 200 % de texto,
+  borrado con confirmación, empty state tras borrar la última sesión y actualización del
+  resumen sin recargar.
 - Edición y borrado: `updateSession`/`deleteSession` de Drift, rechazo de descargadas,
   permisos por fuente, actualización del mismo registro de Health Connect, lectura del
   token de escritura nativo, reintentos pendientes, resultados explícitos, filas propias

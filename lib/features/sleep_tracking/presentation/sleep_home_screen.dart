@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/time/clock_format.dart';
@@ -9,6 +10,7 @@ import '../../health/presentation/health_sync_banner.dart';
 import '../application/sleep_tracking_controller.dart';
 import '../domain/recent_sleep_summary.dart';
 import '../domain/sleep_duration.dart';
+import '../domain/sleep_session.dart';
 import 'widgets/home_clock.dart';
 import 'widgets/home_header.dart';
 import 'widgets/live_clock.dart';
@@ -57,7 +59,9 @@ class SleepHomeScreen extends ConsumerWidget {
                             TrackButtonsRow(
                               isSleeping: state.isSleeping,
                               onSleep: () => unawaited(controller.sleep()),
-                              onWake: () => unawaited(controller.wake()),
+                              onWake: () => unawaited(
+                                _wake(context, controller, state, now),
+                              ),
                             ),
                             // 16dp between the actions and the summary.
                             const SizedBox(height: 16),
@@ -78,6 +82,57 @@ class SleepHomeScreen extends ConsumerWidget {
             ],
           );
         },
+      ),
+    );
+  }
+
+  /// Confirms an under-minimum sleep, then lets the controller state machine
+  /// run. The controller still rules: it re-checks the clock when the user
+  /// confirms, so a sleep that crossed the minimum while the dialog was open
+  /// records normally, and it discards without a dialog when Wake reaches it
+  /// through another path.
+  Future<void> _wake(
+    BuildContext context,
+    SleepTrackingController controller,
+    SleepTrackingState state,
+    DateTime now,
+  ) async {
+    final open = state.openSession;
+    if (open == null) return;
+
+    if (now.difference(open.startedAt) < minimumRecordableSleep) {
+      final confirmed = await _confirmShortSleepDiscard(context);
+      if (confirmed != true) return; // Keep sleeping: nothing was recorded.
+    }
+
+    await controller.wake();
+  }
+
+  Future<bool?> _confirmShortSleepDiscard(BuildContext context) {
+    final scheme = M3ETheme.of(context).colorScheme;
+    return M3EDialog.show<bool>(
+      context,
+      dialog: M3EDialog(
+        title: 'Sleep too short',
+        content: const Text(
+          'Sleeps shorter than 10 minutes are not recorded. Are you sure '
+          'you want to discard this session?',
+        ),
+        actions: [
+          M3EButton(
+            style: M3EButtonStyle.text,
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep sleeping'),
+          ),
+          M3EButton(
+            style: M3EButtonStyle.text,
+            onPressed: () => Navigator.pop(context, true),
+            decoration: M3EButtonDecoration(
+              foregroundColor: WidgetStatePropertyAll<Color?>(scheme.error),
+            ),
+            child: const Text('Discard session'),
+          ),
+        ],
       ),
     );
   }

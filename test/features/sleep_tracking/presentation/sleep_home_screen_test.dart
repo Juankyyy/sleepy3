@@ -109,6 +109,66 @@ void main() {
     expect(buttons[1].enabled, isFalse);
   });
 
+  testWidgets('a Wake tap under 10 minutes asks before discarding', (
+    tester,
+  ) async {
+    var now = DateTime(2026, 10, 20, 22, 30);
+    final store = await pumpHome(tester, clock: () => now);
+
+    await tester.tap(find.text('Sleep'));
+    await tester.pumpAndSettle();
+
+    now = now.add(const Duration(minutes: 5));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.text('Wake'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sleep too short'), findsOneWidget);
+    expect(store.finishes, isEmpty);
+
+    await tester.tap(find.text('Keep sleeping'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sleep too short'), findsNothing);
+    expect(find.text('Sleeping since 10:30 PM'), findsOneWidget);
+
+    // Reaching the minimum records without asking again.
+    now = now.add(const Duration(minutes: 5));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.text('Wake'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sleep too short'), findsNothing);
+    expect(find.text('Last session: 10m'), findsOneWidget);
+    expect(store.finishes, hasLength(1));
+    expect(store.discards, 0);
+  });
+
+  testWidgets('a discarded short sleep leaves no record behind', (
+    tester,
+  ) async {
+    var now = DateTime(2026, 10, 20, 22, 30);
+    final store = await pumpHome(tester, clock: () => now);
+
+    await tester.tap(find.text('Sleep'));
+    await tester.pumpAndSettle();
+
+    now = now.add(const Duration(minutes: 3));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.text('Wake'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sleep too short'), findsOneWidget);
+
+    await tester.tap(find.text('Discard session'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tap Sleep when you turn off the lights'), findsOneWidget);
+    expect(find.text('Sleeping since 10:30 PM'), findsNothing);
+    expect(store.finishes, isEmpty);
+    expect(store.discards, 1);
+  });
+
   testWidgets('restores a sleeping session on launch', (tester) async {
     final now = DateTime(2026, 10, 20, 23, 10);
 

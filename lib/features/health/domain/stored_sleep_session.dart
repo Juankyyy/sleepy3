@@ -55,7 +55,8 @@ class StoredSleepSession {
   /// When the record was last synced with Health Connect, if ever.
   final DateTime? healthSyncedAt;
 
-  /// True when the session cannot be uploaded, such as a zero duration.
+  /// True when the session cannot be uploaded, such as a sleep shorter than
+  /// minimumRecordableSleep.
   final bool healthSyncSkipped;
 
   final SleepSessionOrigin origin;

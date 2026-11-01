@@ -41,7 +41,8 @@ class SleepSessions extends Table {
   /// When the record was last uploaded to or downloaded from Health Connect.
   IntColumn get healthSyncedAtMillis => integer().nullable()();
 
-  /// Set when the session is not eligible for upload, such as a zero duration.
+  /// Set when the session is not eligible for upload, such as a sleep shorter
+  /// than the recordable minimum.
   BoolColumn get healthSyncSkipped =>
       boolean().withDefault(const Constant(false))();
 

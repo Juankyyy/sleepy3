@@ -105,7 +105,8 @@ open it.
 ## Usage
 
 1. Open Sleepy3 and tap **Sleep** when you go to bed.
-2. Tap **Wake** when you get up.
+2. Tap **Wake** when you get up. If the session is under 10 minutes, Sleepy3 asks before
+   discarding it, because Health Connect does not accept such short records.
 3. The header shows the day/night state and the clock shows the current time with
    seconds. The line under the date tells you what is happening.
 4. Use the bottom bar to open **Stats** and browse your history with the 7-day, 30-day
@@ -125,8 +126,11 @@ Day runs from 07:00 to 18:59 and night from 19:00 to 06:59, in local time. The c
 shows `AM`/`PM` when the system is set to 12-hour time and no suffix in 24-hour mode.
 
 Sleep is disabled while a session is open and Wake is disabled while you are awake, so a
-double tap cannot corrupt the timeline. There are no confirmation dialogs: the action
-happens the moment you tap.
+double tap cannot corrupt the timeline. The action happens the moment you tap, with one
+exception: because Health Connect does not accept sleep records shorter than 10 minutes,
+Sleepy3 does not record them either. Waking a session that is under 10 minutes opens a
+`Sleep too short` dialog where you can keep sleeping or discard the session; waking with
+10 minutes or more records normally.
 
 ## Settings
 
@@ -387,8 +391,8 @@ than 30 days only after the Health Connect history permission is granted; otherw
 outlined banner explains the limit and offers **Allow full history**. Editable rows add
 an edit icon and open an adaptive editor: full-screen on phones, a dialog on wider
 windows. It has `Fell asleep` and `Woke up` date and time rows, live duration, inline
-validation for future or overlapping times, and a separate delete action with
-confirmation. Read-only copies have no edit action.
+validation for times that are too short, in the future or overlapping another session,
+and a separate delete action with confirmation. Read-only copies have no edit action.
 
 Settings uses the same header and section rhythm as Stats. Each section is a grouped
 `M3EList` with 16 dp outer and 4 dp inner corners and a 2 dp gap. The theme row opens a

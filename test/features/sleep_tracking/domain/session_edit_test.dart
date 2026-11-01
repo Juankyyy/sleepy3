@@ -90,6 +90,22 @@ void main() {
       ]);
     });
 
+    test('rejects a sleep shorter than the recordable minimum', () {
+      final tooShort = SessionEditDraft(
+        startedAt: DateTime(2026, 10, 20, 23),
+        endedAt: DateTime(2026, 10, 20, 23, 9, 59),
+      );
+      final exactlyMinimum = SessionEditDraft(
+        startedAt: DateTime(2026, 10, 20, 23),
+        endedAt: DateTime(2026, 10, 20, 23, 10),
+      );
+
+      expect(validateSessionEdit(draft: tooShort, now: now), [
+        SessionEditError.tooShort,
+      ]);
+      expect(validateSessionEdit(draft: exactlyMinimum, now: now), isEmpty);
+    });
+
     test('rejects times in the future', () {
       final futureStart = SessionEditDraft(
         startedAt: DateTime(2026, 10, 21, 11),

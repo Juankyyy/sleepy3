@@ -16,6 +16,8 @@ class FakeSleepSessionStore implements SleepSessionStore {
   int loads = 0;
   int openLoads = 0;
   int closedLoads = 0;
+  int discards = 0;
+  int purges = 0;
 
   /// When set, [loadClosedSessions] waits for it before returning.
   Completer<void>? closedLoadGate;
@@ -111,5 +113,36 @@ class FakeSleepSessionStore implements SleepSessionStore {
     snapshot = SleepSnapshot(
       closedSessions: [...snapshot.closedSessions, open.finish(endedAt)],
     );
+  }
+
+  @override
+  Future<void> discardOpenSession() async {
+    discards++;
+    snapshot = SleepSnapshot(closedSessions: snapshot.closedSessions);
+  }
+
+  @override
+  Future<int> purgeShortClosedSessions(Duration minimum) async {
+    purges++;
+    final kept = <SleepSession>[];
+    var purged = 0;
+
+    for (final session in snapshot.closedSessions) {
+      final unpublished =
+          session.endedAt != null &&
+          !session.isDownloaded &&
+          session.healthRecordId == null;
+      if (unpublished && session.duration < minimum) {
+        purged++;
+        continue;
+      }
+      kept.add(session);
+    }
+
+    snapshot = SleepSnapshot(
+      openSession: snapshot.openSession,
+      closedSessions: kept,
+    );
+    return purged;
   }
 }

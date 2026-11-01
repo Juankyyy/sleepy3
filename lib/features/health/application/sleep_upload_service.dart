@@ -10,8 +10,8 @@ enum SleepUploadStatus {
   /// Health Connect accepted the record and the local row is marked as synced.
   uploaded,
 
-  /// The session cannot be uploaded: zero duration, already synced or
-  /// downloaded from Health Connect.
+  /// The session cannot be uploaded: shorter than the recordable minimum,
+  /// already synced or downloaded from Health Connect.
   skipped,
 
   /// The write failed or Health Connect rejected it. The row stays pending.
@@ -174,7 +174,7 @@ class SleepUploadService {
     if (stored.healthRecordId == null && stored.healthClientRecordId == null) {
       return const SleepUploadResult(SleepUploadStatus.skipped);
     }
-    if (!endedAt.isAfter(startedAt)) {
+    if (endedAt.difference(startedAt) < minimumRecordableSleep) {
       return const SleepUploadResult(SleepUploadStatus.skipped);
     }
 
@@ -225,7 +225,9 @@ class SleepUploadService {
         return const SleepUploadResult(SleepUploadStatus.skipped);
       }
 
-      if (session.duration <= Duration.zero) {
+      // Health Connect rejects sleep records shorter than the minimum, so
+      // the row is marked skipped instead of remaining pending forever.
+      if (session.duration < minimumRecordableSleep) {
         if (stored != null) await _store.markSkipped(stored.id);
         return const SleepUploadResult(SleepUploadStatus.skipped);
       }

@@ -58,6 +58,7 @@ class SessionEditDraft {
 /// same rule with the same words.
 enum SessionEditError {
   endNotAfterStart('The wake time must be after the sleep time.'),
+  tooShort('A sleep session must be at least 10 minutes.'),
   startInTheFuture('The sleep time cannot be in the future.'),
   endInTheFuture('The wake time cannot be in the future.'),
   overlapsClosedSession('This session overlaps another sleep session.'),
@@ -71,10 +72,11 @@ enum SessionEditError {
 
 /// Every rule a closed-session draft must satisfy, in a stable order.
 ///
-/// The draft must end after it starts, neither time can be in the future, and
-/// it cannot overlap another closed session or the open one. Sessions that
-/// only touch at an endpoint do not overlap: waking at the same time another
-/// session starts is valid.
+/// The draft must end after it starts, last at least
+/// [minimumRecordableSleep], neither time can be in the future, and it cannot
+/// overlap another closed session or the open one. Sessions that only touch
+/// at an endpoint do not overlap: waking at the same time another session
+/// starts is valid.
 ///
 /// [otherClosedSessions] must not include the session being edited. Callers
 /// can match it by [SleepSession.localId] or [SleepSession.healthRecordId].
@@ -88,6 +90,9 @@ List<SessionEditError> validateSessionEdit({
 
   if (!draft.endedAt.isAfter(draft.startedAt)) {
     errors.add(SessionEditError.endNotAfterStart);
+  } else if (draft.duration < minimumRecordableSleep) {
+    // A reversed or empty interval already got a clearer error above.
+    errors.add(SessionEditError.tooShort);
   }
   if (draft.startedAt.isAfter(now)) {
     errors.add(SessionEditError.startInTheFuture);

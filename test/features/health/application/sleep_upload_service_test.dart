@@ -68,6 +68,39 @@ void main() {
       expect(await store.loadPendingCount(), 0);
     });
 
+    test(
+      'skips a sleep under the recordable minimum without writing',
+      () async {
+        final short = SleepSession(
+          startedAt: startedAt,
+          endedAt: startedAt.add(
+            minimumRecordableSleep - const Duration(milliseconds: 1),
+          ),
+        );
+        create(pending: [short]);
+
+        final result = await service.uploadSession(short);
+
+        expect(result.status, SleepUploadStatus.skipped);
+        expect(gateway.writes, isEmpty);
+        expect(store.rows.single.healthSyncSkipped, isTrue);
+        expect(await store.loadPendingCount(), 0);
+      },
+    );
+
+    test('uploads a sleep exactly at the recordable minimum', () async {
+      final exact = SleepSession(
+        startedAt: startedAt,
+        endedAt: startedAt.add(minimumRecordableSleep),
+      );
+      create(pending: [exact]);
+
+      final result = await service.uploadSession(exact);
+
+      expect(result.status, SleepUploadStatus.uploaded);
+      expect(gateway.writes, hasLength(1));
+    });
+
     test('a failed write leaves the row pending', () async {
       create(pending: [closed]);
       gateway.writeError = StateError('offline');
@@ -194,6 +227,31 @@ void main() {
       expect(store.rows.single.healthSyncedAt, now);
       expect(store.rows.single.healthRecordVersion, 3);
     });
+
+    test(
+      'skips a synchronized update with an under-minimum duration',
+      () async {
+        create();
+        final stored = store.addLocal(
+          closed,
+          synced: true,
+          healthRecordId: 'health-record-1',
+          healthClientRecordId: 'sleepy3-1',
+          healthRecordVersion: 2,
+        );
+        final shortEnd = startedAt.add(const Duration(minutes: 5));
+
+        final result = await service.updateSyncedSession(
+          stored,
+          startedAt,
+          shortEnd,
+        );
+
+        expect(result.status, SleepUploadStatus.skipped);
+        expect(gateway.writes, isEmpty);
+        expect(store.rows.single.healthRecordVersion, 2);
+      },
+    );
 
     test(
       'derives the stable id from the original start when missing',

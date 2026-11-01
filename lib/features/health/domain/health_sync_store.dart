@@ -39,7 +39,8 @@ abstract interface class HealthSyncStore {
   /// the row on the next retry.
   Future<void> markPendingUpdate(int rowId);
 
-  /// Marks a session as not eligible for upload, such as a zero duration.
+  /// Marks a session as not eligible for upload, such as a sleep shorter
+  /// than [minimumRecordableSleep].
   Future<void> markSkipped(int rowId);
 
   /// Finds the row that already holds [healthRecordId], if any.

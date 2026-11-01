@@ -147,6 +147,40 @@ class DriftSleepSessionStore implements SleepSessionStore {
     });
   }
 
+  @override
+  Future<void> discardOpenSession() async {
+    // A crash could leave duplicate open rows behind; remove them all.
+    // Nothing is recorded, so there is no row to close.
+    await (_db.delete(
+      _db.sleepSessions,
+    )..where((t) => t.endedAtMillis.isNull())).go();
+  }
+
+  @override
+  Future<int> purgeShortClosedSessions(Duration minimum) async {
+    // One pass over the tiny table keeps the rule in Dart and free of
+    // database-specific date arithmetic. Only unpublished local rows are
+    // removed: a stored Health Connect UUID means the record exists there,
+    // and downloaded copies belong to Health Connect regardless.
+    final rows = await _db.select(_db.sleepSessions).get();
+    final purgeableIds = <int>[];
+
+    for (final row in rows) {
+      final endedAt = row.endedAtMillis;
+      if (endedAt == null) continue;
+      if (row.origin != SleepSessionOrigin.local.storageValue) continue;
+      if (row.healthRecordId != null) continue;
+      if (endedAt - row.startedAtMillis < minimum.inMilliseconds) {
+        purgeableIds.add(row.id);
+      }
+    }
+
+    if (purgeableIds.isEmpty) return 0;
+    return await (_db.delete(
+      _db.sleepSessions,
+    )..where((t) => t.id.isIn(purgeableIds))).go();
+  }
+
   SleepSession _toDomain(SleepSessionRow row) {
     final endedAt = row.endedAtMillis;
     return SleepSession(

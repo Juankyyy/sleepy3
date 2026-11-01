@@ -194,9 +194,10 @@ void main() {
         await controller.historyLoad;
         await controller.sleep();
         now = now.add(const Duration(hours: 7, minutes: 45));
-        await controller.wake();
+        final outcome = await controller.wake();
 
         final state = container.read(sleepTrackingControllerProvider);
+        expect(outcome, SleepWakeOutcome.closed);
         expect(state.isSleeping, isFalse);
         expect(state.openSession, isNull);
         expect(
@@ -212,6 +213,36 @@ void main() {
       },
     );
 
+    test('a sleep exactly at the recordable minimum is recorded', () async {
+      create();
+      await controller.historyLoad;
+      await controller.sleep();
+      now = now.add(minimumRecordableSleep);
+      final outcome = await controller.wake();
+
+      final state = container.read(sleepTrackingControllerProvider);
+      expect(outcome, SleepWakeOutcome.closed);
+      expect(state.lastSession?.duration, minimumRecordableSleep);
+      expect(store.finishes.single, now);
+      expect(store.discards, 0);
+    });
+
+    test('a sleep under the recordable minimum is discarded', () async {
+      create();
+      await controller.historyLoad;
+      await controller.sleep();
+      now = now.add(const Duration(minutes: 5));
+      final outcome = await controller.wake();
+
+      final state = container.read(sleepTrackingControllerProvider);
+      expect(outcome, SleepWakeOutcome.discarded);
+      expect(state.isSleeping, isFalse);
+      expect(state.lastSession, isNull);
+      expect(state.closedSessions, isEmpty);
+      expect(store.finishes, isEmpty);
+      expect(store.discards, 1);
+    });
+
     test('wake without an open session is a no-op', () async {
       create();
       await controller.historyLoad;
@@ -223,31 +254,41 @@ void main() {
       expect(store.finishes, isEmpty);
     });
 
-    test('clock skew never produces a negative duration', () async {
-      create();
-      await controller.historyLoad;
-      await controller.sleep();
-      final startedAt = now;
-      now = now.subtract(const Duration(minutes: 5));
-      await controller.wake();
+    test(
+      'clock skew discards the session instead of a negative duration',
+      () async {
+        create();
+        await controller.historyLoad;
+        await controller.sleep();
+        final startedAt = now;
+        now = now.subtract(const Duration(minutes: 5));
+        await controller.wake();
 
-      final state = container.read(sleepTrackingControllerProvider);
-      expect(state.lastSession?.duration, Duration.zero);
-      expect(store.finishes.single, startedAt);
-    });
+        final state = container.read(sleepTrackingControllerProvider);
+        expect(state.isSleeping, isFalse);
+        expect(state.lastSession, isNull);
+        expect(state.closedSessions, isEmpty);
+        expect(store.finishes, isEmpty);
+        expect(store.discards, 1);
+        expect(store.starts.single.startedAt, startedAt);
+      },
+    );
 
-    test('a wake tap right after sleep waits for the start write', () async {
+    test('a wake tap right after sleep runs after the start write', () async {
       create();
       await controller.historyLoad;
       final sleeping = controller.sleep();
-      final waking = controller.wake();
+      SleepWakeOutcome? wakeOutcome;
+      final waking = controller.wake().then((outcome) => wakeOutcome = outcome);
       await Future.wait([sleeping, waking]);
 
       final state = container.read(sleepTrackingControllerProvider);
+      expect(wakeOutcome, SleepWakeOutcome.discarded);
       expect(state.isSleeping, isFalse);
+      expect(state.lastSession, isNull);
       expect(store.starts, hasLength(1));
-      expect(store.finishes, hasLength(1));
-      expect(state.lastSession, isNotNull);
+      expect(store.finishes, isEmpty);
+      expect(store.discards, 1);
     });
 
     test('restores an open session from the startup snapshot', () async {
@@ -515,25 +556,30 @@ void main() {
       },
     );
 
-    test('a zero duration session is skipped and never written', () async {
-      final startedAt = DateTime(2026, 10, 20, 22, 30);
-      final open = SleepSession(startedAt: startedAt);
-      final sync = FakeHealthSyncStore()..addLocal(open.finish(startedAt));
-      create(
-        initial: SleepSnapshot(openSession: open),
-        storeSnapshot: SleepSnapshot(openSession: open),
-        source: SleepDataSource.healthConnect,
-        healthSyncStore: sync,
-      );
-      await controller.historyLoad;
+    test(
+      'a short sleep in Google Health is discarded without a write',
+      () async {
+        final startedAt = DateTime(2026, 10, 20, 22, 30);
+        final open = SleepSession(startedAt: startedAt);
+        create(
+          initial: SleepSnapshot(openSession: open),
+          storeSnapshot: SleepSnapshot(openSession: open),
+          source: SleepDataSource.healthConnect,
+        );
+        await controller.historyLoad;
 
-      await controller.wake();
+        final outcome = await controller.wake();
 
-      expect(gateway.writes, isEmpty);
-      expect(sync.markedSkipped, [sync.rows.single.id]);
-      expect(sync.rows.single.healthSyncSkipped, isTrue);
-      expect(container.read(healthSyncControllerProvider).pendingCount, 0);
-    });
+        final state = container.read(sleepTrackingControllerProvider);
+        expect(outcome, SleepWakeOutcome.discarded);
+        expect(gateway.writes, isEmpty);
+        expect(store.finishes, isEmpty);
+        expect(store.discards, 1);
+        expect(state.isSleeping, isFalse);
+        expect(state.closedSessions, isEmpty);
+        expect(container.read(healthSyncControllerProvider).pendingCount, 0);
+      },
+    );
 
     test('a revoked permission keeps the session pending', () async {
       final startedAt = DateTime(2026, 10, 20, 22, 30);
