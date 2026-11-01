@@ -596,6 +596,9 @@ Reglas:
 - Icono del launcher adaptativo: la marca sobre el fondo claro `#EFF4F9`, con capa
   monocroma para los iconos temáticos de Android 13+. El fondo del icono no cambia con el
   tema, para que se reconozca igual en el cajón de apps y en la ficha de la tienda.
+  El primer plano dibuja la marca a 52 dp sobre el lienzo de 108 dp: como el launcher solo
+  muestra 72 dp, ocupa el 72 % del alto visible y deja 10 dp de cuerpo arriba y abajo. El
+  círculo seguro de 66 dp es el máximo, no el tamaño objetivo.
 - Fondo de lanzamiento y splash:
   - El fondo nativo usa el color de cuerpo del tema (claro `#EFF4F9`, oscuro `#121318`)
     en `LaunchTheme`, `NormalTheme` y, desde Android 12, en

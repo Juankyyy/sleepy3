@@ -404,8 +404,10 @@ Roboto Flex is distributed under the SIL Open Font License; the license text shi
 the app at `assets/fonts/OFL.txt`.
 
 The launcher icon is the Sleepy3 mark on the light brand body (`#EFF4F9`), with an
-adaptive foreground, a background color and a monochrome layer for themed icons. It
-stays light in both themes, so it looks the same in the app drawer. The app opens on the
+adaptive foreground, a background color and a monochrome layer for themed icons. The
+foreground draws the mark at 52 dp of the 108 dp canvas, so the launcher's 72 dp tile
+keeps a body-color margin above and below the mark instead of nearly touching the edge.
+It stays light in both themes, so it looks the same in the app drawer. The app opens on the
 same body color the native launch window already uses. On Android 12+ the system splash
 shows the same mark at 190 dp, drawn from `drawable*/launch_mark.png`; once the first
 Flutter frame is on screen the splash continues from that size, zooms out from 1.43× to

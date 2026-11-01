@@ -12,8 +12,9 @@
 // results together with any change to the source image.
 //
 // Geometry:
-// - Adaptive icon: 108 dp canvas, mark fitted to the 66 dp safe circle
-//   (66 / 108 of the canvas height).
+// - Adaptive icon: 108 dp canvas. Android shows 72 dp and masks the rest, so
+//   the mark is drawn at 52 dp (72% of the visible height) with 10 dp of body
+//   color above and below. The 66 dp safe circle is a maximum, not a target.
 // - Legacy icon: full-bleed light background with the mark at 62% of the tile.
 // - Android 12+ splash icon: 288 dp canvas with the mark inside the 192 dp
 //   circle (190 dp tall), plus a night variant in the lavender accent.
@@ -30,6 +31,12 @@ const _resPath = 'android/app/src/main/res';
 
 /// Sleepy3 light body, also the launcher icon background.
 final _iconBackground = img.ColorRgba8(0xEF, 0xF4, 0xF9, 0xFF);
+
+/// The adaptive icon canvas, and the mark height inside it. The launcher only
+/// shows 72 of the 108 dp, so 52 dp leaves a 10 dp body-color margin above and
+/// below. Filling the 66 dp safe circle would look zoomed in.
+const _adaptiveCanvasDp = 108.0;
+const _adaptiveMarkDp = 52.0;
 
 /// Android density buckets and their scale factor.
 const _densities = <String, double>{
@@ -104,14 +111,18 @@ void _writeLauncherIcons(img.Image mark) {
     _drawMark(legacy, mark, legacySize * 0.62);
     _writePng(File('${directory.path}/ic_launcher.png').path, legacy);
 
-    // Adaptive icon layers: 108 dp canvas, mark inside the 66 dp safe circle.
-    final adaptiveSize = (108 * scale).round();
+    // Adaptive icon layers: 108 dp canvas, mark inset from the visible edge.
+    final adaptiveSize = (_adaptiveCanvasDp * scale).round();
     final foreground = img.Image(
       width: adaptiveSize,
       height: adaptiveSize,
       numChannels: 4,
     );
-    _drawMark(foreground, mark, adaptiveSize * 66 / 108);
+    _drawMark(
+      foreground,
+      mark,
+      adaptiveSize * _adaptiveMarkDp / _adaptiveCanvasDp,
+    );
     _writePng(
       File('${directory.path}/ic_launcher_foreground.png').path,
       foreground,
