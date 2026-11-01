@@ -13,6 +13,7 @@ import '../features/settings/application/theme_mode_controller.dart';
 import '../features/settings/domain/app_theme_mode.dart';
 import '../features/sleep_tracking/application/sleep_tracking_controller.dart';
 import 'sleepy3_shell.dart';
+import 'splash_gate.dart';
 
 /// Runs the app with the Sleepy3 scheme for the selected theme mode.
 ///
@@ -21,7 +22,11 @@ import 'sleepy3_shell.dart';
 /// different exact backgrounds and accents, so the resolved scheme is handed to
 /// `M3EMaterialApp` as both the expressive data and the Material theme.
 class Sleepy3App extends ConsumerStatefulWidget {
-  const Sleepy3App({super.key});
+  const Sleepy3App({super.key, this.splashStartSignal});
+
+  /// Completes when the splash intro may start. Tests pass a completed future
+  /// because they do not rasterize frames; production uses the engine signal.
+  final Future<void>? splashStartSignal;
 
   @override
   ConsumerState<Sleepy3App> createState() => _Sleepy3AppState();
@@ -33,10 +38,6 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Connection permission checks must not delay the first frame.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      unawaited(_retryPendingUploads());
-    });
   }
 
   @override
@@ -120,7 +121,11 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
       locale: const Locale('en', 'US'),
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       supportedLocales: const [Locale('en', 'US')],
-      home: const Sleepy3Shell(),
+      home: SplashGate(
+        startSignal: widget.splashStartSignal,
+        onFinished: () => unawaited(_retryPendingUploads()),
+        child: const Sleepy3Shell(),
+      ),
     );
   }
 }

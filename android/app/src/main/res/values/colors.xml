@@ -2,4 +2,6 @@
 <resources>
     <!-- Sleepy3 light body color, shown before Flutter draws its first frame. -->
     <color name="launch_background">#EFF4F9</color>
+    <!-- Launcher icon background. It stays light in both themes. -->
+    <color name="ic_launcher_background">#EFF4F9</color>
 </resources>

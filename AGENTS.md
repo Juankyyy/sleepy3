@@ -15,9 +15,10 @@ optional data source.
   entries) stay in the Android layer behind small, documented bridges.
 - Current state: the home screen, sleep state machine, Drift persistence, Stats history with
   session editing/deleting, Settings, Health Connect (Local/Google Health, pending uploads,
-  copy actions and full history access) and the two-channel release workflow work. The
-  Glance widget is next. Sessions, preferences and Health Connect metadata live in
-  `sleepy3.sqlite` (schema v4); generated Drift code is committed.
+  copy actions and full history access), the branded launcher icon and splash, and the
+  two-channel release workflow work. The Glance widget is next. Sessions, preferences and
+  Health Connect metadata live in `sleepy3.sqlite` (schema v4); generated Drift code is
+  committed.
 
 ## Commands
 
@@ -31,6 +32,7 @@ flutter run
 
 dart format .
 dart run build_runner build
+dart run tool/generate_brand_assets.dart         # launcher icons and splash mark
 dart run tool/apply_release_notes.dart vX.Y.Z   # curated notes for a stable release
 ```
 
@@ -56,6 +58,16 @@ lib/
 - UI imports: use `package:material_ui/material_ui.dart` and
   `package:material_3_expressive/material_3_expressive.dart`; do not import
   `package:flutter/material.dart` in app code.
+- Brand assets live in `assets/brand/`. The launcher mipmaps, the adaptive icon XML, the
+  Android 12+ `drawable*/launch_mark.png` sprites and `Sleepy3-mark.png` are generated with
+  `dart run tool/generate_brand_assets.dart`; the splash itself is
+  `lib/app/splash_gate.dart`. Keep the native launch colors in `values/colors.xml` and
+  `values-night/colors.xml` equal to `Sleepy3Theme.lightBackground` and
+  `Sleepy3Theme.darkBackground`.
+- The native splash follows the app theme on Android 12+ through
+  `UiModeManager.setApplicationNightMode`. `AppNightModeBridge` (Kotlin) and
+  `AndroidAppNightMode` (Dart) keep it in sync at startup and whenever the theme changes;
+  do not replace it with a system-only check.
 - `material_ui` is pinned to 1.7.0 because 1.8.0's `RoundedPolygon` conflicts with
   `material_new_shapes` used by `material_3_expressive` 1.1.7. Do not bump it until
   the packages are compatible.

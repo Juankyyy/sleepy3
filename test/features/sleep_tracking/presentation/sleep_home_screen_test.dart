@@ -53,7 +53,7 @@ void main() {
                   healthSyncStore ?? FakeHealthSyncStore(),
                 ),
               ],
-              child: const Sleepy3App(),
+              child: Sleepy3App(splashStartSignal: Future<void>.value()),
             ),
           );
         },

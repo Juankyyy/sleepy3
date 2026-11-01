@@ -219,8 +219,9 @@ Reglas:
 - El destino activo usa icono relleno, etiqueta en negrita y la píldora de selección;
   los inactivos usan icono outline.
 - Un `IndexedStack` conserva el estado de cada pestaña al cambiar de destino, incluido
-  el rango elegido en `Stats` durante la sesión de la app. El rango no se persiste entre
-  arranques.
+  el rango elegido en `Stats` durante la sesión de la app. `Stats` y `Settings` se
+  construyen la primera vez que se seleccionan, para que el primer frame solo monte
+  `Home`; después conservan su estado. El rango no se persiste entre arranques.
 - Atrás desde `Stats` o `Settings` vuelve a `Home`; atrás desde `Home` sale de la app.
 
 ### 3.3 Stats e historial
@@ -590,6 +591,39 @@ Reglas:
 - No usar formularios, diálogos de confirmación ni pasos extra para registrar.
 - La app no debe depender de gestos ocultos.
 
+### Marca y arranque
+
+- Icono del launcher adaptativo: la marca sobre el fondo claro `#EFF4F9`, con capa
+  monocroma para los iconos temáticos de Android 13+. El fondo del icono no cambia con el
+  tema, para que se reconozca igual en el cajón de apps y en la ficha de la tienda.
+- Fondo de lanzamiento y splash:
+  - El fondo nativo usa el color de cuerpo del tema (claro `#EFF4F9`, oscuro `#121318`)
+    en `LaunchTheme`, `NormalTheme` y, desde Android 12, en
+    `windowSplashScreenBackground`.
+  - En Android 12+ `windowSplashScreenAnimatedIcon` apunta a `drawable*/launch_mark.png`:
+    lienzo de 288 dp con la marca a 190 dp dentro del círculo seguro de 192 dp. La
+    variante `drawable-night-*` usa `#C6CCF7`. Así el splash del sistema no reutiliza el
+    icono adaptativo (sin placa blanca ni reescalado del PNG legacy).
+  - `SplashGate` dibuja la misma marca. La intro espera a que el primer frame de Flutter
+    esté rasterizado (en debug el splash nativo puede seguir en pantalla mientras se
+    compila el primer frame; si arrancara antes, la animación terminaría detrás). Después
+    la marca entra a 190 dp y baja a su tamaño de reposo (144 dp de caja, 132.5 dp
+    visibles) en 550 ms; luego hay 200 ms de pausa y 250 ms de fundido. Total: 1000 ms.
+  - 1.43×, 1000 ms y la secuencia son decisiones de diseño, no tokens M3. Las curvas son
+    las de fallback web de M3 para los springs espacial y de efectos.
+  - Con «reducir movimiento» activo no se muestra.
+- El tema elegido se replica en el modo nocturno por aplicación de Android
+  (`UiModeManager.setApplicationNightMode`, API 31+) al arrancar y al cambiarlo en
+  Settings. Así el splash nativo del siguiente arranque en frío usa el mismo modo que la
+  app, aunque el sistema esté en el modo contrario. En Android 9–11 no existe ese modo
+  por aplicación y el splash nativo sigue al sistema.
+- La carga real (base de datos, tema, fuente y versión) ocurre antes de `runApp`; el
+  splash de Flutter es una intro de marca, no un bloqueo de carga. Si una lectura falla,
+  la app arranca con el valor por defecto.
+- Las fuentes de marca están en `assets/brand/`. `dart run tool/generate_brand_assets.dart`
+  regenera el icono del launcher, las marcas del splash nativo y `Sleepy3-mark.png`. El
+  banner `Sleepy3-logo.png` queda reservado para el README.
+
 ---
 
 ## 5. Stack técnico
@@ -631,6 +665,7 @@ lib/
 ├── app/
 │   ├── sleepy3_app.dart
 │   ├── sleepy3_shell.dart
+│   ├── splash_gate.dart
 │   └── navigation/
 │       └── sleepy3_destination.dart
 ├── core/
@@ -656,6 +691,9 @@ lib/
     │   ├── application/    # source, history, history-permission, sync, upload and copy
     │   └── presentation/   # copy dialogs, sync and history banners, source text
     └── widget/             # planificado
+assets/
+├── brand/                 # fuentes del logo, marca del splash e iconos generados
+└── fonts/                 # Roboto Flex variable y su licencia OFL
 ```
 
 ### Arranque
@@ -665,10 +703,15 @@ lib/
 3. Carga un `SleepSnapshot` con la sesión abierta y todas las sesiones cerradas,
    ordenadas de más antigua a más reciente.
 4. Carga el modo de tema y la fuente de datos de `preferences`, y la versión instalada con
-   `package_info_plus`.
+   `package_info_plus`. Después replica el modo de tema en el modo nocturno por aplicación
+   de Android (API 31+), para que el próximo arranque en frío resuelva el splash con el
+   mismo modo.
 5. Inyecta los stores, el snapshot, el tema inicial, la fuente y la versión en
    `ProviderScope`.
-6. Recién entonces muestra la app.
+6. Muestra el shell envuelto por `SplashGate`; la intro espera al primer frame
+   rasterizado, reproduce el zoom de marca y se retira sobre la app ya construida. El
+   fondo de lanzamiento nativo ya usaba el color de cuerpo del tema, así que el handoff
+   no muestra un frame negro.
 
 Si una lectura inicial falla, la app arranca con el valor por defecto (estado vacío,
 tema `System` o versión oculta) y registra el error; no debe quedar bloqueada en el
@@ -926,6 +969,7 @@ flutter build apk --debug
 flutter run
 dart format .
 dart run build_runner build
+dart run tool/generate_brand_assets.dart
 ```
 
 ### Cobertura actual
@@ -967,6 +1011,8 @@ dart run build_runner build
   leer esos metadatos.
 - Tema: paleta de marca fija (claro/oscuro), roles M3, contraste y tipografía Roboto
   Flex.
+- Splash: overlay de marca sobre el shell, se retira al terminar la animación y se omite
+  con reducir movimiento.
 - Build Android debug y release correctos.
 
 ### Cobertura pendiente
@@ -993,8 +1039,7 @@ dart run build_runner build
 
 - Scaffold Flutter Android.
 - Pantalla principal con dos botones y estado Sleep/Wake.
-- Tema M3 Expressive fijo: esquemas claro/oscuro desde la misma semilla y Roboto Flex
-  empaquetada.
+- Tema M3 Expressive fijo con la paleta de marca y Roboto Flex empaquetada.
 - Persistencia Drift y restauración de sesión abierta.
 - Cabecera con chip día/noche, reloj en vivo con segundos y línea de sesión.
 - Resumen de los últimos 3 días con datos reales, media y barras contra una meta de 8 h.
@@ -1009,6 +1054,8 @@ dart run build_runner build
   `Import`/`Sync`/`Add`, actualización del mismo registro tras una edición, borrado
   propagado y fallback de 30 días en Stats `All`.
 - Builds debug (`com.sleepy3.app.debug`) y release firmada que conviven en el dispositivo.
+- Icono de launcher adaptativo con capa monocroma y splash de marca con zoom out, en
+  claro y oscuro.
 - Releases automáticas de dos canales: pre-releases por push a `dev` y estables por push a
   `main`, con versionado, firma y notas generadas.
 - Tests de estado, persistencia y UI.

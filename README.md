@@ -56,6 +56,8 @@ restarting the phone.
   permission, with a clear 30-day fallback when it is declined.
 - Fixed Material 3 Expressive theme with matching light and dark schemes. It follows the
   system by default, and Settings can pin it to Light or Dark.
+- Branded launcher icon with an adaptive shape and a themed monochrome layer, plus a
+  short zoom-out splash in the matching light and dark body colors.
 - Bundled Roboto Flex typeface, accessible labels, visible focus and a layout that
   adapts to large text.
 - Signed GitHub releases: every push to `dev` publishes a pre-release, and `main`
@@ -245,7 +247,8 @@ a restart.
 lib/
 ├── main.dart
 ├── app/
-│   └── sleepy3_app.dart
+│   ├── sleepy3_app.dart
+│   └── splash_gate.dart  # zoom-out brand splash over the shell
 ├── core/
 │   ├── theme/         # Material 3 Expressive theme and tokens
 │   └── time/          # clock formatting, day/night rule and LocalDayBuilder
@@ -268,6 +271,7 @@ lib/
         ├── application/   # theme controller and providers
         └── presentation/  # settings screen, theme dialog and about list
 assets/
+├── brand/             # logo sources, splash mark and launcher icon sources
 └── fonts/             # Roboto Flex variable font and its OFL license
 android/
 └── app/src/main/kotlin/com/sleepy3/app/
@@ -296,6 +300,7 @@ flutter run          # run on a connected device
 
 r                    # hot reload while `flutter run` is active
 dart format .        # format
+dart run tool/generate_brand_assets.dart   # regenerate the launcher icon and splash mark
 ```
 
 On Windows, use the Flutter SDK's `bin\flutter.bat` or add `bin` to `PATH`.
@@ -397,6 +402,19 @@ Everything fits a 360 dp phone at 200% text.
 
 Roboto Flex is distributed under the SIL Open Font License; the license text ships with
 the app at `assets/fonts/OFL.txt`.
+
+The launcher icon is the Sleepy3 mark on the light brand body (`#EFF4F9`), with an
+adaptive foreground, a background color and a monochrome layer for themed icons. It
+stays light in both themes, so it looks the same in the app drawer. The app opens on the
+same body color the native launch window already uses. On Android 12+ the system splash
+shows the same mark at 190 dp, drawn from `drawable*/launch_mark.png`; once the first
+Flutter frame is on screen the splash continues from that size, zooms out from 1.43× to
+its resting size, holds and fades out over the shell. Light mode keeps the indigo mark;
+dark mode tints it with the lavender primary (`#C6CCF7`) on `#121318`. The chosen theme
+is also mirrored into Android's per-app night mode, so a pinned Dark theme gets a dark
+native splash on the next cold start. With reduce-motion enabled the splash is skipped.
+The source images live in `assets/brand/`; the launcher resources, the launch marks and
+the splash mark are generated with `dart run tool/generate_brand_assets.dart`.
 
 The local M3 spec lives in `.agent-skills/m3-expressive/`; read its `SKILL.md` before
 changing UI.
