@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/settings/application/theme_mode_controller.dart';
+import 'package:sleepy3/features/settings/domain/app_night_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/settings/domain/settings_store.dart';
 
@@ -24,8 +25,12 @@ void main() {
 
     test('updates immediately and persists the new mode', () async {
       final store = FakeSettingsStore();
+      final nightMode = _FakeAppNightMode();
       final container = ProviderContainer.test(
-        overrides: [settingsStoreProvider.overrideWithValue(store)],
+        overrides: [
+          settingsStoreProvider.overrideWithValue(store),
+          appNightModeProvider.overrideWithValue(nightMode),
+        ],
       );
       final controller = container.read(themeModeControllerProvider.notifier);
 
@@ -33,14 +38,17 @@ void main() {
 
       expect(container.read(themeModeControllerProvider), AppThemeMode.light);
       expect(store.saves, [AppThemeMode.light]);
+      expect(nightMode.modes, [AppThemeMode.light]);
     });
 
     test('selecting the current mode does not write again', () async {
       final store = FakeSettingsStore(mode: AppThemeMode.dark);
+      final nightMode = _FakeAppNightMode();
       final container = ProviderContainer.test(
         overrides: [
           settingsStoreProvider.overrideWithValue(store),
           initialThemeModeProvider.overrideWithValue(AppThemeMode.dark),
+          appNightModeProvider.overrideWithValue(nightMode),
         ],
       );
       final controller = container.read(themeModeControllerProvider.notifier);
@@ -48,12 +56,17 @@ void main() {
       await controller.setMode(AppThemeMode.dark);
 
       expect(store.saves, isEmpty);
+      expect(nightMode.modes, isEmpty);
     });
 
     test('keeps the visible mode when a write fails', () async {
       final store = FakeSettingsStore(failWrites: true);
+      final nightMode = _FakeAppNightMode();
       final container = ProviderContainer.test(
-        overrides: [settingsStoreProvider.overrideWithValue(store)],
+        overrides: [
+          settingsStoreProvider.overrideWithValue(store),
+          appNightModeProvider.overrideWithValue(nightMode),
+        ],
       );
       final controller = container.read(themeModeControllerProvider.notifier);
 
@@ -61,12 +74,17 @@ void main() {
 
       expect(container.read(themeModeControllerProvider), AppThemeMode.dark);
       expect(store.saves, isEmpty);
+      expect(nightMode.modes, [AppThemeMode.dark]);
     });
 
     test('serializes rapid changes and the last one wins', () async {
       final store = _ControlledSettingsStore();
+      final nightMode = _FakeAppNightMode();
       final container = ProviderContainer.test(
-        overrides: [settingsStoreProvider.overrideWithValue(store)],
+        overrides: [
+          settingsStoreProvider.overrideWithValue(store),
+          appNightModeProvider.overrideWithValue(nightMode),
+        ],
       );
       final controller = container.read(themeModeControllerProvider.notifier);
 
@@ -85,8 +103,18 @@ void main() {
 
       expect(container.read(themeModeControllerProvider), AppThemeMode.dark);
       expect(store.writes, [AppThemeMode.light, AppThemeMode.dark]);
+      expect(nightMode.modes, [AppThemeMode.light, AppThemeMode.dark]);
     });
   });
+}
+
+class _FakeAppNightMode implements AppNightMode {
+  final modes = <AppThemeMode>[];
+
+  @override
+  Future<void> setMode(AppThemeMode mode) async {
+    modes.add(mode);
+  }
 }
 
 class _ControlledSettingsStore implements SettingsStore {

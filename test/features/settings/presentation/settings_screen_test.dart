@@ -5,6 +5,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
 import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
+import 'package:sleepy3/features/health/application/health_sync_controller.dart';
 import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
 import 'package:sleepy3/features/health/application/sleep_data_source_controller.dart';
 import 'package:sleepy3/features/health/domain/health_connect_gateway.dart';
@@ -73,6 +74,12 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
+    // The app refreshes the connection on launch and resume, after the splash;
+    // this standalone screen gets that same refresh.
+    await ProviderScope.containerOf(tester.element(find.byType(SettingsScreen)))
+        .read(healthSyncControllerProvider.notifier)
+        .refresh();
     await tester.pumpAndSettle();
     return settingsStore;
   }

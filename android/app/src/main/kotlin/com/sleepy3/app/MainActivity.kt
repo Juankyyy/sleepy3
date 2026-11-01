@@ -21,6 +21,10 @@ class MainActivity : FlutterFragmentActivity() {
         super.configureFlutterEngine(flutterEngine)
         HealthConnectBridge(applicationContext, healthBridgeScope)
             .register(flutterEngine.dartExecutor.binaryMessenger)
+        AppNightModeBridge.register(
+            applicationContext,
+            flutterEngine.dartExecutor.binaryMessenger,
+        )
     }
 
     override fun onDestroy() {

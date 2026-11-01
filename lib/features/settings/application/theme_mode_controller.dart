@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,6 +21,10 @@ class ThemeModeController extends Notifier<AppThemeMode> {
   Future<void> setMode(AppThemeMode mode) async {
     if (mode == state) return;
     state = mode;
+
+    // Let Android resolve the next launch splash with the same night mode.
+    // The platform messages are queued in order, so the last choice wins.
+    unawaited(ref.read(appNightModeProvider).setMode(mode));
 
     final store = ref.read(settingsStoreProvider);
     final next = _writeQueue.then((_) => store.saveThemeMode(mode)).catchError((

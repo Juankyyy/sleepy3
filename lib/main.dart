@@ -11,6 +11,7 @@ import 'features/health/data/health_connect_gateway_impl.dart';
 import 'features/health/domain/sleep_data_source.dart';
 import 'features/settings/application/app_version_provider.dart';
 import 'features/settings/application/theme_mode_controller.dart';
+import 'features/settings/data/android_app_night_mode.dart';
 import 'features/settings/data/drift_settings_store.dart';
 import 'features/settings/domain/app_theme_mode.dart';
 import 'features/settings/domain/app_version.dart';
@@ -31,6 +32,7 @@ Future<void> main() async {
   final healthGateway = HealthConnectGatewayImpl();
   final openSession = await _loadOpenSession(store);
   final themeMode = await _loadThemeMode(settingsStore);
+  await const AndroidAppNightMode().setMode(themeMode);
   final dataSource = await _loadSleepDataSource(settingsStore);
   final appVersion = await _loadAppVersion();
 
