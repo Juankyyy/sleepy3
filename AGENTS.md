@@ -91,8 +91,9 @@ lib/
   Health, all pending sessions are retried. WorkManager is reserved for future background
   work.
 - Theme: `ThemeModeController` owns `System` / `Light` / `Dark`; `Sleepy3App`
-  resolves the brightness with the fixed Sleepy3 schemes. Keep
-  `M3EMaterialApp.autoTheming` disabled.
+  resolves the brightness with the fixed Sleepy3 schemes. The palette is fixed:
+  light body `#EFF4F9` with `#252B81` primary, dark body `#121318` with `#C6CCF7`
+  primary. Keep `M3EMaterialApp.autoTheming` disabled and do not add dynamic color.
 - App version: load `package_info_plus` before `runApp`; `appVersionProvider` is null
   when the platform cannot provide it and Settings hides the row.
 - Debug builds use `com.sleepy3.app.debug` (label `Sleepy3 Debug`, `-debug` version

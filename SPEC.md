@@ -412,9 +412,16 @@ Reglas:
 
 ## 4. UX y diseño visual
 
-- Material Design 3 Expressive con **tema fijo**. Sin color dinámico (Material You).
-- Esquema claro y oscuro generados por separado desde la misma semilla azul Sleepy3
-  (`#2B3A8F`). El oscuro no se deriva del `primary` del claro.
+- Material Design 3 Expressive con **tema fijo de marca**. Sin color dinámico
+  (Material You).
+- Paleta exacta:
+  - claro: `surface #EFF4F9`, `primary #252B81`, `onPrimary #FFFFFF`;
+  - oscuro: `surface #121318`, `primary #C6CCF7`, `onPrimary #272B60`.
+  Los roles `surfaceContainer*`, `surfaceDim/Bright`, `onSurface*`, `outline*` e
+  `inverseSurface*` siguen los pasos tonales de superficie de M3, desplazados para que
+  `surface` sea exactamente el fondo de marca. `primaryContainer`, `secondary`,
+  `tertiary` y `error` se generan desde el indigo del logo (`#252B81`). Los pares de
+  texto mantienen al menos 4.5:1 y `outline` al menos 3:1.
 - El modo sigue al sistema por defecto. Desde `Settings` se puede fijar `System`,
   `Light` o `Dark`; la elección se aplica al instante y se conserva entre arranques.
 - Tipografía **Roboto Flex variable** empaquetada como asset (`assets/fonts/`, OFL).
@@ -695,6 +702,8 @@ splash.
   serializa las escrituras y conserva la elección visible si una escritura falla.
 - `Sleepy3App` resuelve el brillo con el modo de tema y el brillo del sistema; mantiene
   `M3EMaterialApp.autoTheming` desactivado para usar los esquemas claro/oscuro propios.
+  `Sleepy3Theme` construye la paleta fija: anclas exactas de fondo y acento, y roles
+  neutrales derivados de los pasos tonales de superficie de M3.
 
 ### Datos
 
@@ -956,7 +965,8 @@ dart run build_runner build
   límite de 30 días y recarga al conceder el historial.
 - Enriquecimiento del historial de Google Health con la copia local y fallo tolerado al
   leer esos metadatos.
-- Tema: claro/oscuro desde la misma semilla, roles M3 y tipografía Roboto Flex.
+- Tema: paleta de marca fija (claro/oscuro), roles M3, contraste y tipografía Roboto
+  Flex.
 - Build Android debug y release correctos.
 
 ### Cobertura pendiente

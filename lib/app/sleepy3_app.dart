@@ -17,10 +17,9 @@ import 'sleepy3_shell.dart';
 /// Runs the app with the Sleepy3 scheme for the selected theme mode.
 ///
 /// Brightness is resolved here instead of through `M3EMaterialApp.autoTheming`
-/// because that path derives its dark template from the light primary. Sleepy3
-/// generates light and dark independently from the same seed, so the resolved
-/// scheme is handed to `M3EMaterialApp` as both the expressive data and the
-/// Material theme.
+/// because Sleepy3 has two fixed brand schemes. The light and dark palettes use
+/// different exact backgrounds and accents, so the resolved scheme is handed to
+/// `M3EMaterialApp` as both the expressive data and the Material theme.
 class Sleepy3App extends ConsumerStatefulWidget {
   const Sleepy3App({super.key});
 

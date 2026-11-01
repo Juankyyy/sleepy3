@@ -341,11 +341,13 @@ workflow fails instead of publishing a debug-signed APK. See `SPEC.md §1`.
 
 ## Design
 
-Sleepy3 uses a fixed Material 3 Expressive color scheme generated from one Sleepy3
-blue seed. Light and dark are generated independently from that seed and follow the
-system setting by default, or the choice saved in Settings (System / Light / Dark).
-Dynamic color (Material You) is intentionally off, so the app looks the same on every
-device.
+Sleepy3 uses a fixed Material 3 Expressive palette taken from its logo. Light mode
+uses a `#EFF4F9` body with `#252B81` primary; dark mode uses a `#121318` body with
+`#C6CCF7` primary. Secondary, tertiary, error and accent containers are generated
+from the logo indigo, while the neutral surface roles follow M3's surface tone steps
+adjusted to the exact body color. Dynamic color (Material You) is intentionally off,
+so the app looks the same on every device. The theme follows the system setting by
+default, or the choice saved in Settings (System / Light / Dark).
 
 Type is **Roboto Flex**, bundled in the APK and applied across the M3 type scale. The
 prototype's 850/950 weights are gone: display, headline, body and label roles use the

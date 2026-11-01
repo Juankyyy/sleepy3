@@ -101,7 +101,7 @@ void main() {
     expect(appBrightness(tester), Brightness.light);
   });
 
-  testWidgets('uses the seeded light and dark schemes', (tester) async {
+  testWidgets('uses the Sleepy3 light and dark schemes', (tester) async {
     await pumpApp(
       tester,
       mode: AppThemeMode.light,
@@ -111,7 +111,8 @@ void main() {
     var context = tester.element(find.byType(Sleepy3Shell));
     var theme = M3ETheme.of(context);
     expect(theme.brightness, Brightness.light);
-    expect(theme.colorScheme.primary, Sleepy3Theme.light().colorScheme.primary);
+    expect(theme.colorScheme.primary, Sleepy3Theme.brandIndigo);
+    expect(theme.colorScheme.surface, Sleepy3Theme.lightBackground);
     expect(
       theme.typography.baseline.bodyMedium.fontFamily,
       Sleepy3Theme.fontFamily,
@@ -126,11 +127,9 @@ void main() {
     context = tester.element(find.byType(Sleepy3Shell));
     theme = M3ETheme.of(context);
     expect(theme.brightness, Brightness.dark);
-    expect(theme.colorScheme.primary, Sleepy3Theme.dark().colorScheme.primary);
-    expect(
-      theme.colorScheme.primary,
-      isNot(Sleepy3Theme.light().colorScheme.primary),
-    );
+    expect(theme.colorScheme.primary, Sleepy3Theme.darkPrimary);
+    expect(theme.colorScheme.surface, Sleepy3Theme.darkBackground);
+    expect(theme.colorScheme.primary, isNot(Sleepy3Theme.brandIndigo));
   });
 
   testWidgets('changing the mode rebuilds the app and persists it', (
