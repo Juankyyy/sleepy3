@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/brand/Sleepy3-logo.png" alt="Sleepy3 — Sleep. Wake. Done." width="480">
+  <img src="assets/brand/Sleepy3-rounded.png" alt="Sleepy3 — Sleep. Wake. Done." width="700">
 </p>
 
 <p align="center">

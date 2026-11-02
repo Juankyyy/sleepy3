@@ -649,7 +649,7 @@ Reglas:
   la app arranca con el valor por defecto.
 - Las fuentes de marca están en `assets/brand/`. `dart run tool/generate_brand_assets.dart`
   regenera el icono del launcher, las marcas del splash nativo y `Sleepy3-mark.png`. El
-  banner `Sleepy3-logo.png` queda reservado para el README.
+  banner `Sleepy3-rounded.png` es la cabecera del README.
 
 ---
 
