@@ -101,6 +101,36 @@ void main() {
       expect(gateway.writes, hasLength(1));
     });
 
+    test('skips a sleep of 24 hours or more without writing', () async {
+      final long = SleepSession(
+        startedAt: startedAt,
+        endedAt: startedAt.add(maximumRecordableSleep),
+      );
+      create(pending: [long]);
+
+      final result = await service.uploadSession(long);
+
+      expect(result.status, SleepUploadStatus.skipped);
+      expect(gateway.writes, isEmpty);
+      expect(store.rows.single.healthSyncSkipped, isTrue);
+      expect(await store.loadPendingCount(), 0);
+    });
+
+    test('uploads a sleep just under 24 hours', () async {
+      final almostADay = SleepSession(
+        startedAt: startedAt,
+        endedAt: startedAt.add(
+          maximumRecordableSleep - const Duration(minutes: 1),
+        ),
+      );
+      create(pending: [almostADay]);
+
+      final result = await service.uploadSession(almostADay);
+
+      expect(result.status, SleepUploadStatus.uploaded);
+      expect(gateway.writes, hasLength(1));
+    });
+
     test('a failed write leaves the row pending', () async {
       create(pending: [closed]);
       gateway.writeError = StateError('offline');
@@ -252,6 +282,27 @@ void main() {
         expect(store.rows.single.healthRecordVersion, 2);
       },
     );
+
+    test('skips a synchronized update of 24 hours or more', () async {
+      create();
+      final stored = store.addLocal(
+        closed,
+        synced: true,
+        healthRecordId: 'health-record-1',
+        healthClientRecordId: 'sleepy3-1',
+        healthRecordVersion: 2,
+      );
+
+      final result = await service.updateSyncedSession(
+        stored,
+        startedAt,
+        startedAt.add(maximumRecordableSleep),
+      );
+
+      expect(result.status, SleepUploadStatus.skipped);
+      expect(gateway.writes, isEmpty);
+      expect(store.rows.single.healthRecordVersion, 2);
+    });
 
     test(
       'derives the stable id from the original start when missing',

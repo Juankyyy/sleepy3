@@ -105,8 +105,9 @@ open it.
 ## Usage
 
 1. Open Sleepy3 and tap **Sleep** when you go to bed.
-2. Tap **Wake** when you get up. If the session is under 10 minutes, Sleepy3 asks before
-   discarding it, because Health Connect does not accept such short records.
+2. Tap **Wake** when you get up. If the session is under 10 minutes or has been open for
+   24 hours or more, Sleepy3 asks before recording anything, because Health Connect does
+   not accept records outside that range.
 3. The header shows the day/night state and the clock shows the current time with
    seconds. The line under the date tells you what is happening.
 4. Use the bottom bar to open **Stats** and browse your history with the 7-day, 30-day
@@ -127,10 +128,12 @@ shows `AM`/`PM` when the system is set to 12-hour time and no suffix in 24-hour 
 
 Sleep is disabled while a session is open and Wake is disabled while you are awake, so a
 double tap cannot corrupt the timeline. The action happens the moment you tap, with one
-exception: because Health Connect does not accept sleep records shorter than 10 minutes,
-Sleepy3 does not record them either. Waking a session that is under 10 minutes opens a
-`Sleep too short` dialog where you can keep sleeping or discard the session; waking with
-10 minutes or more records normally.
+exception: Health Connect only accepts sleep records that last between 10 minutes and 24
+hours, so Sleepy3 does not record anything outside that range. Waking a session under 10
+minutes opens a `Sleep too short` dialog where you can keep sleeping or discard the
+session. Waking one that has been open for 24 hours or more opens `Sleep too long`, where
+you can discard it or move its start time to keep the night; once the start is fixed, the
+session closes normally.
 
 ## Settings
 
@@ -391,8 +394,9 @@ than 30 days only after the Health Connect history permission is granted; otherw
 outlined banner explains the limit and offers **Allow full history**. Editable rows add
 an edit icon and open an adaptive editor: full-screen on phones, a dialog on wider
 windows. It has `Fell asleep` and `Woke up` date and time rows, live duration, inline
-validation for times that are too short, in the future or overlapping another session,
-and a separate delete action with confirmation. Read-only copies have no edit action.
+validation for times that are too short or too long, in the future or overlapping another
+session, and a separate delete action with confirmation. Read-only copies have no edit
+action.
 
 Settings uses the same header and section rhythm as Stats. Each section is a grouped
 `M3EList` with 16 dp outer and 4 dp inner corners and a 2 dp gap. The theme row opens a

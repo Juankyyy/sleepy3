@@ -243,6 +243,135 @@ void main() {
       expect(store.discards, 1);
     });
 
+    test('a sleep of 24 hours or more is discarded', () async {
+      create();
+      await controller.historyLoad;
+      await controller.sleep();
+      now = now.add(maximumRecordableSleep);
+      final outcome = await controller.wake();
+
+      final state = container.read(sleepTrackingControllerProvider);
+      expect(outcome, SleepWakeOutcome.discarded);
+      expect(state.isSleeping, isFalse);
+      expect(state.lastSession, isNull);
+      expect(store.finishes, isEmpty);
+      expect(store.discards, 1);
+    });
+
+    test('a sleep just under 24 hours is recorded', () async {
+      create();
+      await controller.historyLoad;
+      await controller.sleep();
+      final almostADay = maximumRecordableSleep - const Duration(minutes: 1);
+      now = now.add(almostADay);
+      final outcome = await controller.wake();
+
+      final state = container.read(sleepTrackingControllerProvider);
+      expect(outcome, SleepWakeOutcome.closed);
+      expect(state.lastSession?.duration, almostADay);
+      expect(store.finishes, hasLength(1));
+      expect(store.discards, 0);
+    });
+
+    test('updateOpenSessionStart fixes a long sleep before waking', () async {
+      final open = SleepSession(startedAt: DateTime(2026, 10, 19, 22, 30));
+      create(
+        initial: SleepSnapshot(openSession: open),
+        storeSnapshot: SleepSnapshot(openSession: open),
+      );
+      await controller.historyLoad;
+
+      // The clock is 24 hours after the start, so Wake alone would discard it.
+      final newStart = DateTime(2026, 10, 20, 22);
+      final error = await controller.updateOpenSessionStart(newStart);
+
+      expect(error, isNull);
+      expect(store.retimedStarts, [newStart]);
+      expect(
+        container.read(sleepTrackingControllerProvider).openSession?.startedAt,
+        newStart,
+      );
+
+      final outcome = await controller.wake();
+
+      expect(outcome, SleepWakeOutcome.closed);
+      expect(store.finishes.single, now);
+      expect(store.discards, 0);
+      expect(
+        container.read(sleepTrackingControllerProvider).lastSession?.duration,
+        const Duration(minutes: 30),
+      );
+    });
+
+    test('updateOpenSessionStart rejects a start that is too recent', () async {
+      final open = SleepSession(startedAt: DateTime(2026, 10, 19, 22, 30));
+      create(
+        initial: SleepSnapshot(openSession: open),
+        storeSnapshot: SleepSnapshot(openSession: open),
+      );
+      await controller.historyLoad;
+
+      final error = await controller.updateOpenSessionStart(
+        now.subtract(const Duration(minutes: 5)),
+      );
+
+      expect(error, SessionEditError.tooShort);
+      expect(store.retimedStarts, isEmpty);
+      expect(
+        container.read(sleepTrackingControllerProvider).openSession?.startedAt,
+        open.startedAt,
+      );
+    });
+
+    test('updateOpenSessionStart rejects a future start', () async {
+      final open = SleepSession(startedAt: DateTime(2026, 10, 19, 22, 30));
+      create(
+        initial: SleepSnapshot(openSession: open),
+        storeSnapshot: SleepSnapshot(openSession: open),
+      );
+      await controller.historyLoad;
+
+      final error = await controller.updateOpenSessionStart(
+        now.add(const Duration(minutes: 5)),
+      );
+
+      expect(error, SessionEditError.startInTheFuture);
+      expect(store.retimedStarts, isEmpty);
+    });
+
+    test(
+      'updateOpenSessionStart rejects a start that overlaps a closed session',
+      () async {
+        final other = closed(
+          DateTime(2026, 10, 20, 20),
+          DateTime(2026, 10, 20, 21),
+        );
+        final open = SleepSession(startedAt: DateTime(2026, 10, 20, 21, 30));
+        create(
+          initial: SleepSnapshot(openSession: open),
+          storeSnapshot: SleepSnapshot(
+            openSession: open,
+            closedSessions: [other],
+          ),
+        );
+        await controller.historyLoad;
+
+        final error = await controller.updateOpenSessionStart(
+          DateTime(2026, 10, 20, 20, 30),
+        );
+
+        expect(error, SessionEditError.overlapsClosedSession);
+        expect(store.retimedStarts, isEmpty);
+        expect(
+          container
+              .read(sleepTrackingControllerProvider)
+              .openSession
+              ?.startedAt,
+          open.startedAt,
+        );
+      },
+    );
+
     test('wake without an open session is a no-op', () async {
       create();
       await controller.historyLoad;

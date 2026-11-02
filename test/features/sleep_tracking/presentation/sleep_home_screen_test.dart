@@ -169,6 +169,97 @@ void main() {
     expect(store.discards, 1);
   });
 
+  testWidgets('a Wake tap of 24 hours or more offers to fix the start', (
+    tester,
+  ) async {
+    var now = DateTime(2026, 10, 20, 22, 30);
+    final store = await pumpHome(tester, clock: () => now);
+
+    await tester.tap(find.text('Sleep'));
+    await tester.pumpAndSettle();
+
+    now = now.add(const Duration(hours: 25));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.text('Wake'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sleep too long'), findsOneWidget);
+    expect(store.finishes, isEmpty);
+
+    // Move the start to the next day, keeping the 10:30 PM time: the session
+    // then lasts one hour and closes normally.
+    await tester.tap(find.text('Edit start time'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('21').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sleep too long'), findsNothing);
+    expect(store.retimedStarts, [DateTime(2026, 10, 21, 22, 30)]);
+    expect(store.finishes.single, now);
+    expect(store.discards, 0);
+    expect(find.text('Last session: 1h 0m'), findsOneWidget);
+  });
+
+  testWidgets('a start that is still too long shows the rule', (tester) async {
+    var now = DateTime(2026, 10, 20, 22, 30);
+    final store = await pumpHome(tester, clock: () => now);
+
+    await tester.tap(find.text('Sleep'));
+    await tester.pumpAndSettle();
+
+    now = now.add(const Duration(hours: 25));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.text('Wake'));
+    await tester.pumpAndSettle();
+
+    // Keep the original date and time: the session is still 25 hours long.
+    await tester.tap(find.text('Edit start time'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Start time not saved'), findsOneWidget);
+    expect(
+      find.text('A sleep session cannot last 24 hours or longer.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sleeping since 10:30 PM'), findsOneWidget);
+    expect(store.retimedStarts, isEmpty);
+    expect(store.finishes, isEmpty);
+  });
+
+  testWidgets('a discarded long sleep leaves no record behind', (tester) async {
+    var now = DateTime(2026, 10, 20, 22, 30);
+    final store = await pumpHome(tester, clock: () => now);
+
+    await tester.tap(find.text('Sleep'));
+    await tester.pumpAndSettle();
+
+    now = now.add(const Duration(hours: 30));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.text('Wake'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sleep too long'), findsOneWidget);
+
+    await tester.tap(find.text('Discard session'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tap Sleep when you turn off the lights'), findsOneWidget);
+    expect(store.finishes, isEmpty);
+    expect(store.discards, 1);
+  });
+
   testWidgets('restores a sleeping session on launch', (tester) async {
     final now = DateTime(2026, 10, 20, 23, 10);
 

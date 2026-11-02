@@ -148,6 +148,30 @@ class DriftSleepSessionStore implements SleepSessionStore {
   }
 
   @override
+  Future<bool> updateOpenSessionStart(DateTime startedAt) async {
+    final openRow =
+        await (_db.select(_db.sleepSessions)
+              ..where((t) => t.endedAtMillis.isNull())
+              ..orderBy([
+                (t) => OrderingTerm.desc(t.startedAtMillis),
+                (t) => OrderingTerm.desc(t.id),
+              ])
+              ..limit(1))
+            .getSingleOrNull();
+    if (openRow == null) return false;
+
+    final updated =
+        await (_db.update(
+          _db.sleepSessions,
+        )..where((t) => t.id.equals(openRow.id))).write(
+          SleepSessionsCompanion(
+            startedAtMillis: Value(startedAt.millisecondsSinceEpoch),
+          ),
+        );
+    return updated > 0;
+  }
+
+  @override
   Future<void> discardOpenSession() async {
     // A crash could leave duplicate open rows behind; remove them all.
     // Nothing is recorded, so there is no row to close.
@@ -157,7 +181,10 @@ class DriftSleepSessionStore implements SleepSessionStore {
   }
 
   @override
-  Future<int> purgeShortClosedSessions(Duration minimum) async {
+  Future<int> purgeUnrecordableSessions(
+    Duration minimum,
+    Duration maximum,
+  ) async {
     // One pass over the tiny table keeps the rule in Dart and free of
     // database-specific date arithmetic. Only unpublished local rows are
     // removed: a stored Health Connect UUID means the record exists there,
@@ -170,7 +197,9 @@ class DriftSleepSessionStore implements SleepSessionStore {
       if (endedAt == null) continue;
       if (row.origin != SleepSessionOrigin.local.storageValue) continue;
       if (row.healthRecordId != null) continue;
-      if (endedAt - row.startedAtMillis < minimum.inMilliseconds) {
+      final duration = endedAt - row.startedAtMillis;
+      if (duration < minimum.inMilliseconds ||
+          duration >= maximum.inMilliseconds) {
         purgeableIds.add(row.id);
       }
     }

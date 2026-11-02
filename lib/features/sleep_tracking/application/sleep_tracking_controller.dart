@@ -8,6 +8,7 @@ import '../../health/application/health_sync_controller.dart';
 import '../../health/application/sleep_data_source_controller.dart';
 import '../../health/application/sleep_history_controller.dart';
 import '../../health/domain/sleep_data_source.dart';
+import '../domain/session_edit.dart';
 import '../domain/sleep_session.dart';
 import 'sleep_session_edit_service.dart';
 import 'sleep_tracking_providers.dart';
@@ -150,10 +151,12 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
     final now = ref.read(sleepClockProvider)();
     final finished = open.finish(now);
 
-    // A sleep shorter than the minimum is never recorded, in any data source
-    // mode. The sleep tracking screen asks for confirmation first; this also
-    // discards wake paths that never had a dialog, such as a widget tap.
-    if (finished.duration < minimumRecordableSleep) {
+    // A sleep outside the recordable range is never recorded, in any data
+    // source mode. The sleep tracking screen asks for confirmation first (and
+    // offers to fix the start of a long sleep); this also discards wake paths
+    // that never had a dialog, such as a widget tap.
+    if (finished.duration < minimumRecordableSleep ||
+        finished.duration >= maximumRecordableSleep) {
       state = state.copyWith(openSession: null);
 
       final store = ref.read(sleepSessionStoreProvider);
@@ -188,6 +191,42 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
 
     await reloadHistory();
     return SleepWakeOutcome.closed;
+  }
+
+  /// Moves the start of the open session without closing it.
+  ///
+  /// Used when Wake finds a sleep of [maximumRecordableSleep] or more: the
+  /// user can fix the start so the session fits the range Health Connect
+  /// accepts, and the next Wake records it normally. The new start is checked
+  /// with the same rules the editor uses, evaluated against the session Wake
+  /// would close right now.
+  ///
+  /// Returns the first validation error, or null when the start was saved.
+  Future<SessionEditError?> updateOpenSessionStart(DateTime startedAt) async {
+    final open = state.openSession;
+    if (open == null) return null;
+
+    final now = ref.read(sleepClockProvider)();
+    if (startedAt.isAfter(now)) return SessionEditError.startInTheFuture;
+
+    final errors = validateSessionEdit(
+      draft: SessionEditDraft(
+        startedAt: startedAt,
+        endedAt: now,
+        originalStartedAt: open.startedAt,
+      ),
+      now: now,
+      otherClosedSessions: state.closedSessions,
+      // The open session is the draft itself, so it is not passed as an open
+      // session to overlap against.
+    );
+    if (errors.isNotEmpty) return errors.first;
+
+    state = state.copyWith(openSession: open.retimeStart(startedAt));
+
+    final store = ref.read(sleepSessionStoreProvider);
+    await _enqueueWrite(() => store.updateOpenSessionStart(startedAt));
+    return null;
   }
 
   /// Saves new times for a finished session without reloading the history.

@@ -69,6 +69,13 @@ abstract interface class SleepSessionStore {
   /// grow overlapping sessions that would be uploaded to Health Connect.
   Future<void> finishOpenSession(DateTime endedAt);
 
+  /// Moves the start of the most recent open session to [startedAt].
+  ///
+  /// Used to fix a sleep that has been open for [maximumRecordableSleep] or
+  /// more before it is closed, so the recorded session fits the range Health
+  /// Connect accepts. Returns false when there is no open row.
+  Future<bool> updateOpenSessionStart(DateTime startedAt);
+
   /// Deletes the open session without recording it.
   ///
   /// Used by Wake when the sleep is shorter than [minimumRecordableSleep]:
@@ -77,11 +84,12 @@ abstract interface class SleepSessionStore {
   /// are deleted too.
   Future<void> discardOpenSession();
 
-  /// Deletes local closed sessions shorter than [minimum] that were never
-  /// uploaded to Health Connect.
+  /// Deletes local closed sessions outside the recordable range that were
+  /// never uploaded to Health Connect.
   ///
-  /// Called once at startup to clean rows written before the minimum was
-  /// enforced. Synced rows, rows queued to sync and downloaded copies are
-  /// never touched. Returns how many rows were deleted.
-  Future<int> purgeShortClosedSessions(Duration minimum);
+  /// A row is outside the range when it is shorter than [minimum] or lasts
+  /// [maximum] or longer. Called once at startup to clean rows written before
+  /// the limits were enforced. Synced rows, rows queued to sync and downloaded
+  /// copies are never touched. Returns how many rows were deleted.
+  Future<int> purgeUnrecordableSessions(Duration minimum, Duration maximum);
 }

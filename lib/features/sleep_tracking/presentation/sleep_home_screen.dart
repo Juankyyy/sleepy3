@@ -59,9 +59,8 @@ class SleepHomeScreen extends ConsumerWidget {
                             TrackButtonsRow(
                               isSleeping: state.isSleeping,
                               onSleep: () => unawaited(controller.sleep()),
-                              onWake: () => unawaited(
-                                _wake(context, controller, state, now),
-                              ),
+                              onWake: () =>
+                                  unawaited(_wake(context, ref, state, now)),
                             ),
                             // 16dp between the actions and the summary.
                             const SizedBox(height: 16),
@@ -86,23 +85,39 @@ class SleepHomeScreen extends ConsumerWidget {
     );
   }
 
-  /// Confirms an under-minimum sleep, then lets the controller state machine
-  /// run. The controller still rules: it re-checks the clock when the user
-  /// confirms, so a sleep that crossed the minimum while the dialog was open
-  /// records normally, and it discards without a dialog when Wake reaches it
-  /// through another path.
+  /// Confirms or fixes an out-of-range sleep, then lets the controller state
+  /// machine run. The controller still rules: it re-checks the clock when the
+  /// user confirms, so a sleep that crossed a limit while a dialog was open is
+  /// handled with the fresh times, and it discards without a dialog when Wake
+  /// reaches it through another path.
   Future<void> _wake(
     BuildContext context,
-    SleepTrackingController controller,
+    WidgetRef ref,
     SleepTrackingState state,
     DateTime now,
   ) async {
     final open = state.openSession;
     if (open == null) return;
 
-    if (now.difference(open.startedAt) < minimumRecordableSleep) {
+    final controller = ref.read(sleepTrackingControllerProvider.notifier);
+    final duration = now.difference(open.startedAt);
+
+    if (duration < minimumRecordableSleep) {
       final confirmed = await _confirmShortSleepDiscard(context);
       if (confirmed != true) return; // Keep sleeping: nothing was recorded.
+    } else if (duration >= maximumRecordableSleep) {
+      if (!context.mounted) return;
+      final action = await _resolveLongSleep(context);
+      switch (action) {
+        case null:
+          return; // Keep sleeping: nothing was recorded.
+        case _LongSleepAction.discard:
+          break;
+        case _LongSleepAction.editStart:
+          if (!context.mounted) return;
+          final fixed = await _fixOpenSessionStart(context, ref, open);
+          if (!fixed) return;
+      }
     }
 
     await controller.wake();
@@ -135,6 +150,101 @@ class SleepHomeScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// Asks what to do with a sleep of [maximumRecordableSleep] or more.
+  ///
+  /// Dismissing the dialog keeps the session open, so there is no separate
+  /// "keep sleeping" action: M3 dialogs take at most two.
+  Future<_LongSleepAction?> _resolveLongSleep(BuildContext context) {
+    final scheme = M3ETheme.of(context).colorScheme;
+    return M3EDialog.show<_LongSleepAction>(
+      context,
+      dialog: M3EDialog(
+        title: 'Sleep too long',
+        content: const Text(
+          'Sleeps longer than 24 hours are not recorded. Edit the start time '
+          'to keep this session, or discard it.',
+        ),
+        actions: [
+          M3EButton(
+            style: M3EButtonStyle.text,
+            onPressed: () => Navigator.pop(context, _LongSleepAction.discard),
+            decoration: M3EButtonDecoration(
+              foregroundColor: WidgetStatePropertyAll<Color?>(scheme.error),
+            ),
+            child: const Text('Discard session'),
+          ),
+          M3EButton(
+            style: M3EButtonStyle.text,
+            onPressed: () => Navigator.pop(context, _LongSleepAction.editStart),
+            child: const Text('Edit start time'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Lets the user pick a new start for the open session.
+  ///
+  /// Returns true only when the controller saved the new start, so the caller
+  /// can close the session right away. A rejected start shows its message and
+  /// leaves the session open.
+  Future<bool> _fixOpenSessionStart(
+    BuildContext context,
+    WidgetRef ref,
+    SleepSession open,
+  ) async {
+    final now = ref.read(sleepClockProvider)();
+    final date = await M3EDatePicker.show(
+      context,
+      initialDate: open.startedAt,
+      firstDate: DateTime(1970),
+      lastDate: _dateOnly(now),
+      currentDate: now,
+      helpText: 'Select sleep date',
+    );
+    if (date == null || !context.mounted) return false;
+
+    final time = await M3ETimePicker.show(
+      context,
+      initialTime: M3ETime(
+        hour: open.startedAt.hour,
+        minute: open.startedAt.minute,
+      ),
+      alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+      helpText: 'Select sleep time',
+    );
+    if (time == null || !context.mounted) return false;
+
+    final startedAt = DateTime(
+      date.year,
+      date.month,
+      date.day,
+      time.hour,
+      time.minute,
+    );
+    final error = await ref
+        .read(sleepTrackingControllerProvider.notifier)
+        .updateOpenSessionStart(startedAt);
+    if (error == null) return true;
+    if (!context.mounted) return false;
+
+    await M3EDialog.show<void>(
+      context,
+      dialog: M3EDialog(
+        title: 'Start time not saved',
+        content: Text(error.message),
+        actions: [
+          M3EButton(
+            style: M3EButtonStyle.text,
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+    return false;
   }
 
   String _sessionLine(
@@ -192,3 +302,9 @@ class _HistorySummary extends StatelessWidget {
     };
   }
 }
+
+/// The choice made in the `Sleep too long` dialog.
+enum _LongSleepAction { editStart, discard }
+
+DateTime _dateOnly(DateTime value) =>
+    DateTime(value.year, value.month, value.day);

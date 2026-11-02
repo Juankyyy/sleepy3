@@ -231,6 +231,9 @@ void main() {
     await tester.tap(find.text('Date').first);
     await tester.pumpAndSettle();
     await pickDay(tester, '19');
+    await tester.tap(find.text('Date').last);
+    await tester.pumpAndSettle();
+    await pickDay(tester, '20');
 
     expect(find.text('Mon, Oct 19, 2026'), findsOneWidget);
 
@@ -240,8 +243,8 @@ void main() {
     expect(find.text('Edit session'), findsNothing);
     expect(store.updates, hasLength(1));
     expect(store.updates.single.startedAt, DateTime(2026, 10, 19, 22, 32));
-    expect(store.updates.single.endedAt, DateTime(2026, 10, 21, 6, 45));
-    expect(find.text('32h 13m'), findsWidgets);
+    expect(store.updates.single.endedAt, DateTime(2026, 10, 20, 6, 45));
+    expect(find.text('8h 13m'), findsWidgets);
   });
 
   testWidgets('saves a changed sleep time', (tester) async {
@@ -379,6 +382,9 @@ void main() {
     await tester.tap(find.text('Date').first);
     await tester.pumpAndSettle();
     await pickDay(tester, '19');
+    await tester.tap(find.text('Date').last);
+    await tester.pumpAndSettle();
+    await pickDay(tester, '20');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
@@ -416,6 +422,9 @@ void main() {
     await tester.tap(find.text('Date').first);
     await tester.pumpAndSettle();
     await pickDay(tester, '19');
+    await tester.tap(find.text('Date').last);
+    await tester.pumpAndSettle();
+    await pickDay(tester, '20');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
@@ -475,6 +484,9 @@ void main() {
     await tester.tap(find.text('Date').first);
     await tester.pumpAndSettle();
     await pickDay(tester, '19');
+    await tester.tap(find.text('Date').last);
+    await tester.pumpAndSettle();
+    await pickDay(tester, '20');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
@@ -483,7 +495,8 @@ void main() {
     expect(gateway.writes.single.clientRecordId, 'sleepy3-1');
     expect(gateway.writes.single.clientRecordVersion, 2);
     expect(gateway.sessions.single.startedAt, DateTime(2026, 10, 19, 22, 32));
-    expect(find.text('32h 13m'), findsWidgets);
+    expect(gateway.sessions.single.endedAt, DateTime(2026, 10, 20, 6, 45));
+    expect(find.text('8h 13m'), findsWidgets);
   });
 
   testWidgets('deletes an editable session after confirmation', (tester) async {
@@ -534,6 +547,9 @@ void main() {
     await tester.tap(find.text('Date').first);
     await tester.pumpAndSettle();
     await pickDay(tester, '19');
+    await tester.tap(find.text('Date').last);
+    await tester.pumpAndSettle();
+    await pickDay(tester, '20');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
@@ -541,8 +557,8 @@ void main() {
     expect(gateway.updates, hasLength(1));
     expect(gateway.updates.single.healthRecordId, 'own-record');
     expect(gateway.updates.single.startedAt, DateTime(2026, 10, 19, 22));
-    expect(gateway.updates.single.endedAt, DateTime(2026, 10, 21, 6));
-    expect(find.text('32h 0m'), findsWidgets);
+    expect(gateway.updates.single.endedAt, DateTime(2026, 10, 20, 6));
+    expect(find.text('8h 0m'), findsWidgets);
   });
 
   testWidgets('leaves records from other apps read-only', (tester) async {

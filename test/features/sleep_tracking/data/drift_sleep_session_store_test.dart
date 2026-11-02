@@ -414,7 +414,7 @@ void main() {
     });
 
     test(
-      'purgeShortClosedSessions removes unpublished local short rows',
+      'purgeUnrecordableSessions removes unpublished short and long rows',
       () async {
         final startedAt = DateTime(2026, 10, 20, 23);
         await insertSession(
@@ -425,19 +425,24 @@ void main() {
           startedAt: startedAt.add(const Duration(days: 1)),
           endedAt: startedAt.add(const Duration(days: 1, minutes: 5)),
         );
-
-        final purged = await store.purgeShortClosedSessions(
-          minimumRecordableSleep,
+        await insertSession(
+          startedAt: startedAt.add(const Duration(days: 3)),
+          endedAt: startedAt.add(const Duration(days: 3, hours: 25)),
         );
 
-        expect(purged, 2);
+        final purged = await store.purgeUnrecordableSessions(
+          minimumRecordableSleep,
+          maximumRecordableSleep,
+        );
+
+        expect(purged, 3);
         final rows = await database.select(database.sleepSessions).get();
         expect(rows, isEmpty);
       },
     );
 
     test(
-      'purgeShortClosedSessions keeps the rows that belong to Health Connect',
+      'purgeUnrecordableSessions keeps the rows that belong to Health Connect',
       () async {
         final startedAt = DateTime(2026, 10, 20, 23);
         final syncedId = await insertSession(
@@ -451,36 +456,103 @@ void main() {
           healthRecordId: 'downloaded-1',
           origin: SleepSessionOrigin.healthConnect,
         );
+        final syncedLongId = await insertSession(
+          startedAt: startedAt.add(const Duration(days: 2)),
+          endedAt: startedAt.add(const Duration(days: 3, hours: 2)),
+          healthRecordId: 'health-record-2',
+        );
 
-        expect(await store.purgeShortClosedSessions(minimumRecordableSleep), 0);
+        expect(
+          await store.purgeUnrecordableSessions(
+            minimumRecordableSleep,
+            maximumRecordableSleep,
+          ),
+          0,
+        );
 
         final rows = await database.select(database.sleepSessions).get();
         expect(
           rows.map((row) => row.id),
-          unorderedEquals(<int>[syncedId, downloadedId]),
+          unorderedEquals(<int>[syncedId, downloadedId, syncedLongId]),
         );
       },
     );
 
     test(
-      'purgeShortClosedSessions keeps rows at the minimum and open rows',
+      'purgeUnrecordableSessions keeps in-range rows and open rows',
       () async {
         final startedAt = DateTime(2026, 10, 20, 23);
-        final exactId = await insertSession(
+        final exactMinimumId = await insertSession(
           startedAt: startedAt,
           endedAt: startedAt.add(minimumRecordableSleep),
         );
+        final justUnderMaximumId = await insertSession(
+          startedAt: startedAt.add(const Duration(days: 2)),
+          endedAt: startedAt.add(
+            const Duration(days: 2, hours: 23, minutes: 59, seconds: 59),
+          ),
+        );
+        final exactMaximumId = await insertSession(
+          startedAt: startedAt.add(const Duration(days: 4)),
+          endedAt: startedAt.add(const Duration(days: 5)),
+        );
 
-        expect(await store.purgeShortClosedSessions(minimumRecordableSleep), 0);
+        expect(
+          await store.purgeUnrecordableSessions(
+            minimumRecordableSleep,
+            maximumRecordableSleep,
+          ),
+          1,
+        );
 
         // An open session is never a purge candidate.
         await store.startSession(SleepSession(startedAt: startedAt));
-        expect(await store.purgeShortClosedSessions(minimumRecordableSleep), 0);
+        expect(
+          await store.purgeUnrecordableSessions(
+            minimumRecordableSleep,
+            maximumRecordableSleep,
+          ),
+          0,
+        );
 
         final rows = await database.select(database.sleepSessions).get();
-        expect(rows.map((row) => row.id), contains(exactId));
+        expect(rows.map((row) => row.id), contains(exactMinimumId));
+        expect(rows.map((row) => row.id), contains(justUnderMaximumId));
+        expect(rows.map((row) => row.id), isNot(contains(exactMaximumId)));
         expect(rows.where((row) => row.endedAtMillis == null), isNotEmpty);
       },
     );
+
+    test('updateOpenSessionStart moves only the open row', () async {
+      final startedAt = DateTime(2026, 10, 20, 23);
+      final closedId = await insertSession(
+        startedAt: startedAt,
+        endedAt: startedAt.add(const Duration(hours: 8)),
+      );
+      await store.startSession(
+        SleepSession(startedAt: DateTime(2026, 10, 21, 20)),
+      );
+
+      final newStart = DateTime(2026, 10, 21, 18, 15);
+      expect(await store.updateOpenSessionStart(newStart), isTrue);
+
+      final snapshot = await store.load();
+      expect(snapshot.openSession?.startedAt, newStart);
+      expect(snapshot.closedSessions.single.localId, closedId);
+      expect(
+        snapshot.closedSessions.single.startedAt,
+        DateTime(2026, 10, 20, 23),
+      );
+    });
+
+    test('updateOpenSessionStart is a no-op without an open row', () async {
+      expect(
+        await store.updateOpenSessionStart(DateTime(2026, 10, 21, 18)),
+        isFalse,
+      );
+
+      final snapshot = await store.load();
+      expect(snapshot.openSession, isNull);
+    });
   });
 }

@@ -106,6 +106,22 @@ void main() {
       expect(validateSessionEdit(draft: exactlyMinimum, now: now), isEmpty);
     });
 
+    test('rejects a sleep of 24 hours or longer', () {
+      final exactlyADay = SessionEditDraft(
+        startedAt: DateTime(2026, 10, 20, 10),
+        endedAt: DateTime(2026, 10, 21, 10),
+      );
+      final almostADay = SessionEditDraft(
+        startedAt: DateTime(2026, 10, 20, 10),
+        endedAt: DateTime(2026, 10, 21, 9, 59),
+      );
+
+      expect(validateSessionEdit(draft: exactlyADay, now: now), [
+        SessionEditError.tooLong,
+      ]);
+      expect(validateSessionEdit(draft: almostADay, now: now), isEmpty);
+    });
+
     test('rejects times in the future', () {
       final futureStart = SessionEditDraft(
         startedAt: DateTime(2026, 10, 21, 11),

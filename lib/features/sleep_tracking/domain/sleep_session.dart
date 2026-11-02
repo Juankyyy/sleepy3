@@ -5,6 +5,13 @@
 /// accidental Sleep / Wake tap or as legacy rows to clean up.
 const Duration minimumRecordableSleep = Duration(minutes: 10);
 
+/// The longest sleep a session can record.
+///
+/// Health Connect rejects sleep records of 24 hours or more, so Sleepy3
+/// never registers them, in any data source mode. A session that has been
+/// open for longer can be fixed by moving its start before it is closed.
+const Duration maximumRecordableSleep = Duration(hours: 24);
+
 /// One sleep session.
 ///
 /// A session starts when the user taps "Sleep" and ends when they tap
@@ -84,6 +91,23 @@ class SleepSession {
 
   /// A copy of this session with new times and the same identity metadata.
   SleepSession withTimes(DateTime startedAt, DateTime endedAt) {
+    return SleepSession(
+      startedAt: startedAt,
+      endedAt: endedAt,
+      localId: localId,
+      isDownloaded: isDownloaded,
+      healthRecordId: healthRecordId,
+      healthClientRecordId: healthClientRecordId,
+      sourceId: sourceId,
+    );
+  }
+
+  /// A copy of this session with a new start and the same identity metadata.
+  ///
+  /// Used to fix a session that has been open for longer than
+  /// [maximumRecordableSleep] before closing it. The session stays open when
+  /// it had no end.
+  SleepSession retimeStart(DateTime startedAt) {
     return SleepSession(
       startedAt: startedAt,
       endedAt: endedAt,

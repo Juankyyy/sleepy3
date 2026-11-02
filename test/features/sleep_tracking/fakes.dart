@@ -13,6 +13,7 @@ class FakeSleepSessionStore implements SleepSessionStore {
   final finishes = <DateTime>[];
   final updates = <SleepSession>[];
   final deletes = <int>[];
+  final retimedStarts = <DateTime>[];
   int loads = 0;
   int openLoads = 0;
   int closedLoads = 0;
@@ -122,7 +123,22 @@ class FakeSleepSessionStore implements SleepSessionStore {
   }
 
   @override
-  Future<int> purgeShortClosedSessions(Duration minimum) async {
+  Future<bool> updateOpenSessionStart(DateTime startedAt) async {
+    final open = snapshot.openSession;
+    if (open == null) return false;
+    retimedStarts.add(startedAt);
+    snapshot = SleepSnapshot(
+      openSession: open.retimeStart(startedAt),
+      closedSessions: snapshot.closedSessions,
+    );
+    return true;
+  }
+
+  @override
+  Future<int> purgeUnrecordableSessions(
+    Duration minimum,
+    Duration maximum,
+  ) async {
     purges++;
     final kept = <SleepSession>[];
     var purged = 0;
@@ -132,7 +148,9 @@ class FakeSleepSessionStore implements SleepSessionStore {
           session.endedAt != null &&
           !session.isDownloaded &&
           session.healthRecordId == null;
-      if (unpublished && session.duration < minimum) {
+      final duration = session.duration;
+      final unrecordable = duration < minimum || duration >= maximum;
+      if (unpublished && unrecordable) {
         purged++;
         continue;
       }

@@ -30,7 +30,7 @@ Future<void> main() async {
   final healthSyncStore = DriftHealthSyncStore(database);
   final settingsStore = DriftSettingsStore(database);
   final healthGateway = HealthConnectGatewayImpl();
-  await _purgeShortSessions(store);
+  await _purgeUnrecordableSessions(store);
   final openSession = await _loadOpenSession(store);
   final themeMode = await _loadThemeMode(settingsStore);
   await const AndroidAppNightMode().setMode(themeMode);
@@ -56,18 +56,25 @@ Future<void> main() async {
   );
 }
 
-/// Removes local closed sessions shorter than the recordable minimum that
-/// were never published to Health Connect. They are rows written by versions
-/// that did not enforce the minimum yet.
-Future<void> _purgeShortSessions(DriftSleepSessionStore store) async {
+/// Removes local closed sessions outside the recordable range that were never
+/// published to Health Connect. They are rows written by versions that did not
+/// enforce the limits yet.
+Future<void> _purgeUnrecordableSessions(DriftSleepSessionStore store) async {
   try {
-    final purged = await store.purgeShortClosedSessions(minimumRecordableSleep);
+    final purged = await store.purgeUnrecordableSessions(
+      minimumRecordableSleep,
+      maximumRecordableSleep,
+    );
     if (purged > 0) {
-      debugPrint('Sleepy3: purged $purged session(s) shorter than 10 minutes');
+      debugPrint(
+        'Sleepy3: purged $purged session(s) outside the recordable range',
+      );
     }
   } catch (error, stackTrace) {
     // Leftover rows only stay in the history; purge again next launch.
-    debugPrint('Sleepy3: could not purge short sessions: $error\n$stackTrace');
+    debugPrint(
+      'Sleepy3: could not purge unrecordable sessions: $error\n$stackTrace',
+    );
   }
 }
 
