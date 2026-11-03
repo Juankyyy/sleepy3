@@ -62,25 +62,31 @@ ci(release): publish the APK
 |---|---|---|
 | `workflow_dispatch` en `main` con `bump=minor` | `v0.X.0` (sube la minor) | Latest |
 | `workflow_dispatch` en `main` con `bump=patch` | `v0.X.Y` (sube el parche) | Latest |
+| `workflow_dispatch` en `main` con `bump=exact` y `version=X.Y.Z` | `vX.Y.Z` (la indicada) | Latest |
 
 - No hay releases automáticas: ni los pushes a `dev` ni los pushes a `main` publican nada.
   El workflow se lanza desde Actions → Release → Run workflow, o con
-  `gh workflow run release.yml --ref main -f bump=minor` (o `-f bump=patch`).
+  `gh workflow run release.yml --ref main -f bump=minor` (o `-f bump=patch`, o
+  `-f bump=exact -f version=0.1.6`).
 - El workflow solo se ejecuta desde `main`; si se lanza desde otra rama, falla.
-- Antes de lanzar, el agente confirma con el usuario el tag calculado y, en minors, el
-  `<Tema>` del título.
+- Antes de lanzar, el agente confirma con el usuario el tag calculado y, cuando se apliquen
+  notas curadas, el `<Tema>` del título.
 - La siguiente versión sale del tag semver más alto del repositorio. `minor` incrementa la
-  minor y pone el parche a cero; `patch` incrementa el parche.
-- Ejemplos: con `v0.1.0` como último tag, `minor` publica `v0.2.0` y `patch` publica
-  `v0.1.1`. Las pre-releases antiguas de `dev` quedan como histórico; no se crean nuevas.
+  minor y pone el parche a cero; `patch` incrementa el parche; `exact` publica la `version`
+  indicada, que debe ser mayor que el último tag.
+- Ejemplos: con `v0.1.0` como último tag, `minor` publica `v0.2.0`, `patch` publica
+  `v0.1.1` y `exact` con `version=0.1.6` publica `v0.1.6`. Las pre-releases antiguas de
+  `dev` quedan como histórico; no se crean nuevas.
 - El `versionCode` de Android es `major * 1.000.000 + minor * 1.000 + patch`
   (`v0.0.1` → 1, `v0.1.0` → 1000, `v0.2.0` → 2000). Es monótono entre versiones.
 - `pubspec.yaml` no lleva la versión de la release. El workflow pasa la versión y el code
   calculados a `flutter build apk`; los builds locales siguen usando el valor del
   `pubspec`.
-- Reintentar el workflow es idempotente: si ya existe un tag del mismo tipo (`minor` o
-  `patch`) apuntando al commit, se reutiliza y solo se refrescan los assets; no se duplican
-  releases ni se sobrescriben títulos o notas ya curados.
+- Reintentar el workflow es idempotente: si ya existe un tag del mismo tipo (`minor`,
+  `patch` o el `exact` indicado) apuntando al commit, se reutiliza y solo se refrescan los
+  assets; no se duplican releases ni se sobrescriben títulos o notas ya curados.
+- Con `exact`, un tag que ya existe en otro commit o una versión menor o igual al último
+  tag hacen fallar el workflow antes de construir.
 
 #### Notas y títulos
 

@@ -216,7 +216,7 @@ Keep the native launch colors in `values/colors.xml` and `values-night/colors.xm
 Releases are created manually from `main` with `.github/workflows/release.yml`; there is no version bump commit.
 
 - Pushes to `dev` or `main` publish nothing. The workflow only runs when the maintainer dispatches it from `main`.
-- Choose `minor` (`v0.X.0`) or `patch` (`v0.X.Y`). The tag is computed from the highest existing tag.
+- Choose `minor` (`v0.X.0`), `patch` (`v0.X.Y`) or `exact` (the version in `version`, e.g. `0.1.6`). `minor` and `patch` are computed from the highest existing tag; `exact` must be greater than it.
 - The workflow runs `flutter analyze` and `flutter test`, builds a signed release, creates the tag and attaches `sleepy3-vX.Y.Z.apk` with a `.sha256`.
 - Notes are generated from conventional commits since the previous tag. The curated body and `vX.Y.Z - The <Theme> Update` title are applied afterwards from `release-notes/vX.Y.Z.md` (ignored by Git):
 

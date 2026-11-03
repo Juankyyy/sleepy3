@@ -4,29 +4,37 @@ name: Release
 #
 # - Pushes to dev or main never publish anything.
 # - Run this workflow from main (Actions -> Release -> Run workflow) and choose
-#   `minor` (v0.X.0) or `patch` (v0.X.Y). It can also be dispatched with:
+#   `minor` (v0.X.0), `patch` (v0.X.Y) or `exact` (the version in `version`).
+#   It can also be dispatched with:
 #
 #     gh workflow run release.yml --ref main -f bump=minor
+#     gh workflow run release.yml --ref main -f bump=exact -f version=0.1.6
 #
-# - The version comes from the highest semver tag and the Android version code from
-#   that version. The tag is created by this workflow when the release is published;
-#   there is no version bump commit.
+# - The version comes from the highest semver tag (or from `version` with
+#   `bump=exact`) and the Android version code from that version. The tag is
+#   created by this workflow when the release is published; there is no version
+#   bump commit.
 #
-# - In minor releases the maintainer proposes the `<Theme>` title before the release
-#   is dispatched; curated notes are applied afterwards with
+# - When curated notes are used, the maintainer proposes the `<Theme>` title before
+#   the release is dispatched; the notes are applied afterwards with
 #   `dart run tool/apply_release_notes.dart vX.Y.Z`.
 
 on:
   workflow_dispatch:
     inputs:
       bump:
-        description: "Version bump: minor (v0.X.0) or patch (v0.X.Y)"
+        description: "Version bump: minor (v0.X.0), patch (v0.X.Y) or exact (version)"
         type: choice
         required: true
         default: minor
         options:
           - minor
           - patch
+          - exact
+      version:
+        description: "Exact version for bump=exact (e.g. 0.1.6)"
+        type: string
+        required: false
 
 permissions:
   contents: write
@@ -55,6 +63,7 @@ jobs:
         shell: bash
         env:
           BUMP: ${{ inputs.bump }}
+          VERSION: ${{ inputs.version }}
         run: bash .github/scripts/compute-release-version.sh
 
       - name: Set up JDK 17
