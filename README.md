@@ -27,7 +27,7 @@ Sleepy3 is not on Google Play yet. Download the latest stable build from [Releas
 2. Download the latest `sleepy3-vX.Y.Z.apk`.
 3. Open the file and allow installs from your browser or file manager when Android asks.
 
-Sleepy3 runs on **Android 9 or newer**. Version **0.1.0** is the first stable release; the home-screen widget is planned for a later update.
+Sleepy3 runs on **Android 9 or newer**. Version **0.1.6** is the latest stable release; the home-screen widget is planned for a later update.
 
 ## How to use it
 
@@ -35,7 +35,7 @@ Sleepy3 runs on **Android 9 or newer**. Version **0.1.0** is the first stable re
 2. Tap **Wake** when you get up. Sleepy3 saves the night and shows how long you slept.
 3. Open **Stats** to review or fix your history, and **Settings** for the theme and Health Connect.
 
-Use the floating glass pill bar at the bottom to move between **Home**, **Stats** and **Settings**; the selected destination shows its label, and the content stays visible behind the bar.
+Use the floating glass dock at the bottom to move between **Home**, **Stats** and **Settings**; the selected destination shows its label, and the content stays visible behind the dock.
 
 Settings is split into **Appearance** (System, Light or Dark), **Sleep data** (Local or Google Health, and Import), **Google Health** (connection status, Sync and Add) and **About** (privacy, version and open-source licenses).
 
@@ -56,7 +56,7 @@ Health Connect only accepts sleep sessions between 10 minutes and 24 hours. If a
 
 Stats groups nights by the day you woke up and offers 7-day, 30-day and all-history filters, with the average, total and number of nights.
 
-Tap any row to open it. Your own sessions open in the editor, where you can change the start or end time or delete them after confirming. Sessions created by another app open read-only, with locked fields and a card naming the app that created them. In Local mode, sessions downloaded from Health Connect are read-only too. In Google Health mode, your own records stay editable even without a local copy.
+Tap any row to open it. Your own sessions open in the editor, where you can change the start or end time or delete them after confirming. Sessions created by another app open read-only, with locked fields and a card that names the app when Android can resolve it (otherwise it says another app). In Local mode, sessions downloaded from Health Connect are read-only too. In Google Health mode, your own records stay editable even without a local copy.
 
 ## Local or Google Health?
 
@@ -106,6 +106,7 @@ Health Connect hides records older than 30 days unless you give Sleepy3 the hist
 - [x] Local tracking, Stats history and Settings.
 - [x] Health Connect sync, history access and session editing.
 - [x] First stable release (0.1.0).
+- [x] Floating dock, new type and read-only session details (0.1.6).
 - [ ] Home-screen widget with Sleep and Wake buttons.
 - [ ] Motion and accessibility polish.
 
@@ -221,7 +222,7 @@ Releases are created manually from `main` with `.github/workflows/release.yml`; 
 - Notes are generated from conventional commits since the previous tag. The curated body and `vX.Y.Z - The <Theme> Update` title are applied afterwards from `release-notes/vX.Y.Z.md` (ignored by Git):
 
 ```bash
-dart run tool/apply_release_notes.dart v0.2.0
+dart run tool/apply_release_notes.dart v0.1.6
 ```
 
 - Development builds are not published; use `flutter run` or a local APK to test `dev`.

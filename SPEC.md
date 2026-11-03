@@ -3,9 +3,10 @@
 **Proyecto:** Sleepy3
 **Plataforma:** Android
 **Stack principal:** Flutter + Material 3 Expressive
-**Estado:** v0.1.0, primera release estable (sin widget). Home, Stats (con edición y
-borrado de sesiones), Settings, la persistencia local y Health Connect (Local/Google
-Health) funcionan. El widget de pantalla de inicio es el siguiente bloque (0.2.0).
+**Estado:** v0.1.6, última release estable (sin widget). Home, Stats (con edición y
+borrado de sesiones y detalles de solo lectura para registros de otras apps), Settings, la
+persistencia local y Health Connect (Local/Google Health) funcionan. El widget de pantalla
+de inicio es el siguiente bloque (0.2.0).
 
 ---
 
@@ -1187,11 +1188,12 @@ dart run tool/generate_brand_assets.dart
 - Builds debug (`com.sleepy3.app.debug`) y release firmada que conviven en el dispositivo.
 - Icono de launcher adaptativo con capa monocroma y splash de marca con zoom out, en
   claro y oscuro.
-- Releases estables manuales bajo demanda (`minor` o `patch`), con versionado, firma y
-  notas; sin publicaciones automáticas desde `dev` o `main`.
+- Releases estables manuales bajo demanda (`minor`, `patch` o `exact`), con versionado,
+  firma y notas; sin publicaciones automáticas desde `dev` o `main`.
 - Prueba manual del APK release en el dispositivo del maintainer, con Health Connect y
   Google Health, incluida la edición y el borrado de sesiones.
-- Primera release estable 0.1.0, sin widget.
+- Primera release estable 0.1.0, sin widget. La 0.1.6 añade el dock glass, la tipografía
+  nueva y los detalles de solo lectura, también sin widget.
 - Tests de estado, persistencia y UI.
 
 ### Siguiente
