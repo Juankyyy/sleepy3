@@ -176,6 +176,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                   today: today,
                   use24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
                   source: source,
+                  compact: _range != SleepHistoryRange.sevenDays,
                   onEdit: (session) => unawaited(_openEditor(session)),
                 ),
               ),

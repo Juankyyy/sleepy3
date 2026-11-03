@@ -290,20 +290,28 @@ Reglas:
   ofrece `Allow full history`, que vuelve a pedir el permiso y recarga el historial. Los
   rangos `7 days` y `30 days` no piden nada. Al volver del segundo plano se relee el
   permiso por si el usuario lo cambió en Health Connect.
-- Debajo, una sola lista muestra una fila por sesión cerrada, de la más reciente a la
-  más antigua. Cada fila tiene tres líneas: el día de despertar como overline
+- Debajo, una tarjeta tonal por sesión cerrada, de la más reciente a la más antigua. En
+  `7 days` cada tarjeta tiene tres líneas: el día de despertar en una píldora
   (`Today`, `Yesterday`, `Tue, Oct 20` o con año si no es el año actual), la duración
-  como headline y `inicio – fin` como supporting text.
-- Cada fila empieza con un icono de procedencia: `smartphone` para una sesión local y
-  `cloud_outlined` para una que está en Google Health. El icono se muestra centrado
-  verticalmente en la tarjeta. En `Local`, una sesión pasa a Google Health en cuanto
-  tiene registro en Health Connect, ya sea porque Sleepy3 la subió o porque se descargó.
-  En `Google Health` todas las filas son Google Health, incluidas las escritas por
-  Sleepy3. El icono tiene tooltip `Local` o `Google Health`, y la etiqueta hablada de la
-  fila empieza por esa procedencia.
-- Las sesiones no se agrupan en una fila por día: si hubo varias el mismo día, cada una
-  conserva su propia fila. La media y el total sí agrupan por día de despertar, con la
-  misma regla que Home (3.1.2).
+  como headline y `inicio – fin` como supporting text. En `30 days` y `All` la tarjeta
+  es compacta de dos líneas: la píldora del día y la procedencia arriba, y duración y
+  rango en la segunda línea.
+- Todas las tarjetas usan `secondaryContainer`; la sesión más reciente del día más
+  reciente usa `primaryContainer`. El texto y los iconos usan el `on*` pareado. La
+  píldora del día usa el `on*` de la tarjeta al 10 % y el texto `on*` (decisión de
+  diseño: M3 no tiene un rol de container “on-color al 10 %”). Cada tarjeta
+  lleva un anillo con la duración frente al objetivo de 8 h de Home: 44 dp en `7 days`
+  y 36 dp en `30 days`/`All`, con un icono `bedtime`.
+- Cada tarjeta muestra la procedencia con `smartphone` para una sesión local y
+  `cloud_outlined` para una que está en Google Health, junto a la píldora del día. En
+  `Local`, una sesión pasa a Google Health en cuanto tiene registro en Health Connect,
+  ya sea porque Sleepy3 la subió o porque se descargó. En `Google Health` todas las
+  tarjetas son Google Health, incluidas las escritas por Sleepy3. El icono tiene tooltip
+  `Local` o `Google Health`, y la etiqueta hablada de la tarjeta empieza por esa
+  procedencia.
+- Las sesiones no se agrupan en una tarjeta por día: si hubo varias el mismo día, cada
+  una conserva su propia tarjeta. La media y el total sí agrupan por día de despertar,
+  con la misma regla que Home (3.1.2).
 - Las sesiones abiertas no entran en la media, el total ni la lista. Si hay una abierta,
   la cabecera lo explica con `Sleeping since {time} · it will appear when you wake.`
 - Sin ninguna sesión cerrada se muestra un empty state. El texto cambia si hay una sesión
@@ -568,16 +576,22 @@ Reglas:
     `Average sleep` en `labelMedium`, valor en `displaySmall` emphasized con cifras
     tabulares, apoyo en `bodyMedium` y `Show all` como botón de texto.
   - Encabezado de lista `History` en `titleMedium` emphasized.
-  - Lista `M3EList`/`M3EListItem` con radio exterior 16 dp, interior 4 dp y gap 2 dp. Cada
-    fila usa overline `labelMedium`, headline `titleMedium` y supporting text
-    `bodyMedium`; las filas crecen con el texto del sistema. El icono de procedencia
-    (`smartphone` para Local, `cloud_outlined` para Google Health) usa el tamaño y el
-    color del list item con 50 % de opacidad y se superpone centrado verticalmente en la
-    tarjeta, porque el slot leading de una fila de tres líneas se alinea arriba. Tiene un
-    tooltip con `Local` o `Google Health`, y la etiqueta hablada empieza por esa
-    procedencia. Todas las filas son botones con pista `Opens the session` y abren la
-    sesión; no hay icono de edición. Las de solo lectura abren `Session details` con la
-    card `Read-only session` y los campos bloqueados. El objetivo táctil es de al menos
+  - Historial con una `M3ECard` filled por sesión, radio 20 dp y padding 16 dp en
+    `7 days` o 12 dp en `30 days`/`All`; gap 8 dp o 6 dp. Relleno `secondaryContainer`
+    y `primaryContainer` para la sesión más reciente del día más reciente, con
+    `onSecondaryContainer`/`onPrimaryContainer`. En `7 days` la tarjeta tiene tres
+    líneas: píldora del día con el `on*` de la tarjeta al 10 % y texto `on*` (decisión
+    de diseño, no un rol M3), duración `headlineSmall` emphasized (24/32) con cifras
+    tabulares y rango `bodyMedium`. En `30 days`/`All` es de dos líneas: píldora
+    `labelSmall` con el mismo tinte, duración `titleLarge` emphasized (22/28) y rango
+    `bodySmall`, con el rango al final de la segunda línea.
+    El anillo mide 44 dp con trazo de 4 dp en `7 days` y 36 dp con trazo de 3 dp en
+    `30 days`/`All`, en `primary` sobre un track del 18–22 % del `on*`, con `bedtime`
+    de 18/15 dp. El icono de procedencia va de 18 dp en `7 days` y 16 dp en compacto,
+    junto al día y con tooltip; el chevron mide 20/18 dp. Todas las tarjetas son botones
+    con etiqueta hablada y pista `Opens the session`; crecen con el texto del sistema y
+    no usan alturas fijas. Las de solo lectura abren `Session details` con la card
+    `Read-only session` y los campos bloqueados. El objetivo táctil es de al menos
     48 dp.
   - Editor de sesión adaptativo: pantalla completa por debajo del breakpoint compacto y
     diálogo básico por encima. Usa `M3EDatePicker`/`M3ETimePicker`, secciones con
@@ -1111,9 +1125,9 @@ dart run tool/generate_brand_assets.dart
   del 100 % y semántica.
 - Stats: agrupación por día, ventanas 7/30/todas, varias sesiones por día, sesiones
   abiertas y futuras excluidas, cambio de fecha, DST, `Show all`, 12/24 h, semántica,
-  layout a 360 dp con texto al 200 % y `LocalDayBuilder` al pasar medianoche o volver
-  del segundo plano.
-- Stats editable: todas las filas son botones, sin icono de edición; las de solo lectura
+  layout a 360 dp con texto al 200 %, densidad compacta en 30/All y `LocalDayBuilder` al
+  pasar medianoche o volver del segundo plano.
+- Stats editable: todas las tarjetas son botones, sin icono de edición; las de solo lectura
   abren `Session details` con la card de la app y campos bloqueados, editor adaptativo,
   guardado sin cambios, cambio de fecha y hora, validación inline (incluidos los límites
   de duración), descarte, 24 h, 200 % de texto, borrado con confirmación, empty state tras

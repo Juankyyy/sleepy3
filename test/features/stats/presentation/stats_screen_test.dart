@@ -15,6 +15,7 @@ import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_contr
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
 import 'package:sleepy3/features/stats/presentation/stats_screen.dart';
+import 'package:sleepy3/features/stats/presentation/widgets/sleep_history_list.dart';
 import 'package:sleepy3/features/stats/presentation/widgets/stats_summary_card.dart';
 
 import '../../health/fakes.dart';
@@ -145,16 +146,165 @@ void main() {
     );
     expect(card.variant, M3ECardVariant.outlined);
 
-    final list = tester.widget<M3EList>(find.byType(M3EList));
-    expect(list.variant, M3ECardVariant.filled);
+    final cards = tester
+        .widgetList<M3ECard>(
+          find.descendant(
+            of: find.byType(SleepHistoryList),
+            matching: find.byType(M3ECard),
+          ),
+        )
+        .toList();
+    expect(cards, hasLength(3));
+    expect(cards.first.variant, M3ECardVariant.filled);
+    expect(cards.first.padding, const EdgeInsets.all(16));
+    final scheme = Sleepy3Theme.light().colorScheme;
+    expect(cards.first.color, scheme.primaryContainer);
+    expect(cards[1].color, scheme.secondaryContainer);
+    expect(cards[2].color, scheme.secondaryContainer);
 
-    expect(
-      find.byWidgetPredicate((widget) => widget is M3EListItem),
-      findsNWidgets(3),
+    final heroPill = tester.widget<Container>(
+      find
+          .ancestor(of: find.text('Today'), matching: find.byType(Container))
+          .first,
     );
+    expect(
+      (heroPill.decoration! as ShapeDecoration).color,
+      scheme.onPrimaryContainer.withValues(alpha: 0.10),
+    );
+    expect(
+      tester.widget<Text>(find.text('Today')).style?.color,
+      scheme.onPrimaryContainer,
+    );
+
+    final normalPill = tester.widget<Container>(
+      find
+          .ancestor(
+            of: find.text('Yesterday'),
+            matching: find.byType(Container),
+          )
+          .first,
+    );
+    expect(
+      (normalPill.decoration! as ShapeDecoration).color,
+      scheme.onSecondaryContainer.withValues(alpha: 0.10),
+    );
+    expect(
+      tester.widget<Text>(find.text('Yesterday')).style?.color,
+      scheme.onSecondaryContainer,
+    );
+
+    final rings = tester
+        .widgetList<M3EProgressIndicator>(
+          find.descendant(
+            of: find.byType(SleepHistoryList),
+            matching: find.byType(M3EProgressIndicator),
+          ),
+        )
+        .toList();
+    expect(rings, hasLength(3));
+    expect(rings.every((ring) => ring.size == 44), isTrue);
+    expect(rings.first.value, 1);
+
     // These fake sessions have no Drift row id, so Local mode treats them as
     // read-only copies.
     expect(find.byIcon(M3EIcons.edit_outlined), findsNothing);
+  });
+
+  testWidgets('uses the two-line compact cards for 30 days and All', (
+    tester,
+  ) async {
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: sessions),
+    );
+
+    await tester.tap(find.text('30 days'));
+    await tester.pumpAndSettle();
+
+    final cards = tester
+        .widgetList<M3ECard>(
+          find.descendant(
+            of: find.byType(SleepHistoryList),
+            matching: find.byType(M3ECard),
+          ),
+        )
+        .toList();
+    expect(cards, hasLength(4));
+    expect(cards.first.padding, const EdgeInsets.all(12));
+
+    final rings = tester
+        .widgetList<M3EProgressIndicator>(
+          find.descendant(
+            of: find.byType(SleepHistoryList),
+            matching: find.byType(M3EProgressIndicator),
+          ),
+        )
+        .toList();
+    expect(rings, hasLength(4));
+    expect(rings.every((ring) => ring.size == 36), isTrue);
+
+    final duration = tester.widget<Text>(find.text('8h 13m'));
+    expect(duration.style?.fontSize, 22);
+
+    await tester.tap(find.text('All'));
+    await tester.pumpAndSettle();
+
+    final allCards = tester
+        .widgetList<M3ECard>(
+          find.descendant(
+            of: find.byType(SleepHistoryList),
+            matching: find.byType(M3ECard),
+          ),
+        )
+        .toList();
+    expect(allCards, hasLength(4));
+    expect(allCards.first.padding, const EdgeInsets.all(12));
+  });
+
+  testWidgets('highlights the latest session of the newest day', (
+    tester,
+  ) async {
+    final night = closed(DateTime(2026, 10, 20, 23), DateTime(2026, 10, 21, 7));
+    final nap = closed(DateTime(2026, 10, 21, 13), DateTime(2026, 10, 21, 14));
+
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 18),
+      initial: SleepSnapshot(closedSessions: [night, nap]),
+    );
+
+    final cards = tester
+        .widgetList<M3ECard>(
+          find.descendant(
+            of: find.byType(SleepHistoryList),
+            matching: find.byType(M3ECard),
+          ),
+        )
+        .toList();
+    expect(cards, hasLength(2));
+    final scheme = Sleepy3Theme.light().colorScheme;
+    expect(cards.first.color, scheme.secondaryContainer);
+    expect(cards.last.color, scheme.primaryContainer);
+  });
+
+  testWidgets('fits the compact history at 200% text', (tester) async {
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: sessions),
+      textScale: 2,
+    );
+
+    await tester.tap(find.text('30 days'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Today'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('rows no longer show the edit action', (tester) async {
@@ -176,7 +326,10 @@ void main() {
 
     expect(find.byIcon(M3EIcons.edit_outlined), findsNothing);
     expect(
-      find.byWidgetPredicate((widget) => widget is M3EListItem),
+      find.descendant(
+        of: find.byType(SleepHistoryList),
+        matching: find.byType(M3ECard),
+      ),
       findsNWidgets(2),
     );
   });

@@ -173,11 +173,8 @@ void main() {
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
     await tester.pumpAndSettle();
 
-    final sourceCenter = tester.getCenter(find.byIcon(M3EIcons.smartphone));
-    final rowCenter = tester.getCenter(
-      find.byWidgetPredicate((widget) => widget is M3EListItem),
-    );
-    expect((sourceCenter.dy - rowCenter.dy).abs(), lessThanOrEqualTo(0.5));
+    expect(find.byIcon(M3EIcons.smartphone), findsOneWidget);
+    expect(find.text('10:32 PM – 6:45 AM'), findsOneWidget);
 
     await openLocalEditor(tester);
 
@@ -195,18 +192,11 @@ void main() {
     expect(find.text('Edit session'), findsOneWidget);
   });
 
-  testWidgets('the source icon is slightly muted', (tester) async {
+  testWidgets('the source icon uses the card content color', (tester) async {
     await pumpStats(tester, sessions: [localSession()]);
 
-    final opacity = tester.widget<Opacity>(
-      find
-          .ancestor(
-            of: find.byIcon(M3EIcons.smartphone),
-            matching: find.byType(Opacity),
-          )
-          .first,
-    );
-    expect(opacity.opacity, 0.5);
+    final icon = tester.widget<Icon>(find.byIcon(M3EIcons.smartphone));
+    expect(icon.color, Sleepy3Theme.light().colorScheme.onPrimaryContainer);
   });
 
   testWidgets('editable rows are buttons that open the editor', (tester) async {
