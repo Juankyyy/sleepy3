@@ -56,7 +56,7 @@ Health Connect only accepts sleep sessions between 10 minutes and 24 hours. If a
 
 Stats groups nights by the day you woke up and offers 7-day, 30-day and all-history filters, with the average, total and number of nights.
 
-Tap a row to edit its start or end time, or delete it after confirming. In Local mode, sessions downloaded from Health Connect and records from other apps are read-only. In Google Health mode, your own records stay editable even without a local copy.
+Tap any row to open it. Your own sessions open in the editor, where you can change the start or end time or delete them after confirming. Sessions created by another app open read-only, with locked fields and a card naming the app that created them. In Local mode, sessions downloaded from Health Connect are read-only too. In Google Health mode, your own records stay editable even without a local copy.
 
 ## Local or Google Health?
 

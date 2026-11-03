@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
+import 'package:sleepy3/features/health/application/app_info_provider.dart';
 import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
 import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
 import 'package:sleepy3/features/health/application/sleep_data_source_controller.dart';
@@ -40,6 +41,7 @@ void main() {
     SleepDataSource source = SleepDataSource.local,
     FakeHealthConnectGateway? gateway,
     FakeHealthSyncStore? healthSyncStore,
+    FakeAppInfoGateway? appInfo,
     bool use24HourFormat = false,
     Size size = const Size(360, 800),
     double textScale = 1,
@@ -80,6 +82,9 @@ void main() {
                 healthSyncStoreProvider.overrideWithValue(
                   healthSyncStore ?? FakeHealthSyncStore(),
                 ),
+                appInfoGatewayProvider.overrideWithValue(
+                  appInfo ?? FakeAppInfoGateway(),
+                ),
               ],
               child: M3EMaterialApp(
                 title: 'Sleepy3',
@@ -116,12 +121,7 @@ void main() {
     (tester) async {
       await pumpStats(tester, sessions: [localSession()]);
 
-      expect(find.byIcon(M3EIcons.edit_outlined), findsOneWidget);
-      final iconCenter = tester.getCenter(find.byIcon(M3EIcons.edit_outlined));
-      final rowCenter = tester.getCenter(
-        find.byWidgetPredicate((widget) => widget is M3EListItem),
-      );
-      expect((iconCenter.dy - rowCenter.dy).abs(), lessThanOrEqualTo(0.5));
+      expect(find.byIcon(M3EIcons.edit_outlined), findsNothing);
 
       await openLocalEditor(tester);
 
@@ -173,12 +173,10 @@ void main() {
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
     await tester.pumpAndSettle();
 
-    final iconCenter = tester.getCenter(find.byIcon(M3EIcons.edit_outlined));
     final sourceCenter = tester.getCenter(find.byIcon(M3EIcons.smartphone));
     final rowCenter = tester.getCenter(
       find.byWidgetPredicate((widget) => widget is M3EListItem),
     );
-    expect((iconCenter.dy - rowCenter.dy).abs(), lessThanOrEqualTo(0.5));
     expect((sourceCenter.dy - rowCenter.dy).abs(), lessThanOrEqualTo(0.5));
 
     await openLocalEditor(tester);
@@ -218,7 +216,7 @@ void main() {
 
     final node = tester.getSemantics(find.text('10:32 PM – 6:45 AM'));
     expect(node.label, 'Local, Today, 8 hours 13 minutes, 10:32 PM to 6:45 AM');
-    expect(node.hint, 'Opens the session editor');
+    expect(node.hint, 'Opens the session');
     expect(node.flagsCollection.isButton, isTrue);
 
     handle.dispose();
@@ -469,7 +467,7 @@ void main() {
       healthSyncStore: sync,
     );
 
-    expect(find.byIcon(M3EIcons.edit_outlined), findsOneWidget);
+    expect(find.byIcon(M3EIcons.edit_outlined), findsNothing);
     await tester.tap(find.text('10:32 PM – 6:45 AM'));
     await tester.pumpAndSettle();
 
@@ -536,7 +534,7 @@ void main() {
       gateway: gateway,
     );
 
-    expect(find.byIcon(M3EIcons.edit_outlined), findsOneWidget);
+    expect(find.byIcon(M3EIcons.edit_outlined), findsNothing);
     await tester.tap(find.text('10:00 PM – 6:00 AM'));
     await tester.pumpAndSettle();
 
@@ -561,14 +559,77 @@ void main() {
     expect(find.text('8h 0m'), findsWidgets);
   });
 
-  testWidgets('leaves records from other apps read-only', (tester) async {
+  testWidgets('opens another app record as read-only details', (tester) async {
     final gateway = FakeHealthConnectGateway(
       sessions: [
         HealthSleepSession(
           uuid: 'other-record',
           startedAt: DateTime(2026, 10, 20, 22),
           endedAt: DateTime(2026, 10, 21, 6),
-          sourceId: 'com.example.other',
+          sourceId: 'com.google.android.apps.healthdata',
+        ),
+      ],
+    );
+
+    await pumpStats(
+      tester,
+      source: SleepDataSource.healthConnect,
+      gateway: gateway,
+      appInfo: FakeAppInfoGateway({
+        'com.google.android.apps.healthdata': 'Google Health',
+      }),
+    );
+
+    expect(find.byIcon(M3EIcons.edit_outlined), findsNothing);
+    await tester.tap(find.text('10:00 PM – 6:00 AM'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Session details'), findsOneWidget);
+    expect(find.text('Read-only session'), findsOneWidget);
+    expect(find.textContaining('created in Google Health'), findsOneWidget);
+    expect(find.text('Save'), findsNothing);
+    expect(find.text('Delete session'), findsNothing);
+    expect(find.text('Close'), findsNothing);
+    expect(find.byIcon(M3EIcons.close), findsOneWidget);
+    expect(find.byIcon(M3EIcons.event_outlined), findsNothing);
+    expect(find.byIcon(M3EIcons.schedule_outlined), findsNothing);
+
+    final cardFinder = find.ancestor(
+      of: find.text('Read-only session'),
+      matching: find.byType(M3ECard),
+    );
+    final card = tester.widget<M3ECard>(cardFinder);
+    expect(card.variant, M3ECardVariant.filled);
+    expect(card.color, Sleepy3Theme.light().colorScheme.primaryContainer);
+
+    final lockCenter = tester.getCenter(find.byIcon(M3EIcons.lock_outlined));
+    final cardCenter = tester.getCenter(cardFinder);
+    expect((lockCenter.dy - cardCenter.dy).abs(), lessThanOrEqualTo(0.5));
+
+    await tester.tap(find.text('Date').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Select sleep date'), findsNothing);
+    expect(find.text('Tue, Oct 20, 2026'), findsOneWidget);
+
+    await tester.tap(find.byIcon(M3EIcons.close));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Session details'), findsNothing);
+    expect(gateway.writes, isEmpty);
+    expect(gateway.updates, isEmpty);
+    expect(gateway.deletes, isEmpty);
+  });
+
+  testWidgets('falls back to another app when the label is missing', (
+    tester,
+  ) async {
+    final gateway = FakeHealthConnectGateway(
+      sessions: [
+        HealthSleepSession(
+          uuid: 'other-record',
+          startedAt: DateTime(2026, 10, 20, 22),
+          endedAt: DateTime(2026, 10, 21, 6),
+          sourceId: 'com.example.unknown',
         ),
       ],
     );
@@ -579,10 +640,113 @@ void main() {
       gateway: gateway,
     );
 
-    expect(find.byIcon(M3EIcons.edit_outlined), findsNothing);
     await tester.tap(find.text('10:00 PM – 6:00 AM'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Edit session'), findsNothing);
+    expect(find.text('Session details'), findsOneWidget);
+    expect(find.textContaining('created in another app'), findsOneWidget);
+  });
+
+  testWidgets('opens a downloaded copy as read-only details', (tester) async {
+    final session = SleepSession(
+      startedAt: DateTime(2026, 10, 20, 22),
+      endedAt: DateTime(2026, 10, 21, 6),
+      localId: 3,
+      isDownloaded: true,
+      healthRecordId: 'downloaded-record',
+      sourceId: 'com.google.android.apps.healthdata',
+    );
+
+    await pumpStats(
+      tester,
+      sessions: [session],
+      appInfo: FakeAppInfoGateway({
+        'com.google.android.apps.healthdata': 'Google Health',
+      }),
+    );
+
+    await tester.tap(find.text('10:00 PM – 6:00 AM'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Session details'), findsOneWidget);
+    expect(find.textContaining('created in Google Health'), findsOneWidget);
+    expect(
+      find.textContaining("Downloaded copies can't be edited in Local"),
+      findsOneWidget,
+    );
+    expect(find.text('Save'), findsNothing);
+    expect(find.text('Delete session'), findsNothing);
+    expect(find.byIcon(M3EIcons.event_outlined), findsNothing);
+  });
+
+  testWidgets('read-only details fit at 200% text', (tester) async {
+    final gateway = FakeHealthConnectGateway(
+      sessions: [
+        HealthSleepSession(
+          uuid: 'other-record',
+          startedAt: DateTime(2026, 10, 20, 22),
+          endedAt: DateTime(2026, 10, 21, 6),
+          sourceId: 'com.google.android.apps.healthdata',
+        ),
+      ],
+    );
+
+    await pumpStats(
+      tester,
+      source: SleepDataSource.healthConnect,
+      gateway: gateway,
+      appInfo: FakeAppInfoGateway({
+        'com.google.android.apps.healthdata': 'Google Health',
+      }),
+      textScale: 2,
+    );
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('10:00 PM – 6:00 AM'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Session details'), findsOneWidget);
+    expect(find.text('Read-only session'), findsOneWidget);
+  });
+
+  testWidgets('read-only details use a single Close on medium windows', (
+    tester,
+  ) async {
+    final gateway = FakeHealthConnectGateway(
+      sessions: [
+        HealthSleepSession(
+          uuid: 'other-record',
+          startedAt: DateTime(2026, 10, 20, 22),
+          endedAt: DateTime(2026, 10, 21, 6),
+          sourceId: 'com.google.android.apps.healthdata',
+        ),
+      ],
+    );
+
+    await pumpStats(
+      tester,
+      source: SleepDataSource.healthConnect,
+      gateway: gateway,
+      appInfo: FakeAppInfoGateway({
+        'com.google.android.apps.healthdata': 'Google Health',
+      }),
+      size: const Size(800, 900),
+    );
+
+    await tester.tap(find.text('10:00 PM – 6:00 AM'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Session details'), findsOneWidget);
+    expect(find.text('Close'), findsOneWidget);
+    expect(find.text('Cancel'), findsNothing);
+    expect(find.text('Save'), findsNothing);
+    expect(find.text('Delete session'), findsNothing);
+
+    await tester.tap(find.text('Close'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Session details'), findsNothing);
   });
 }

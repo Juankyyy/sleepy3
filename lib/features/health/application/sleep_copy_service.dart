@@ -222,6 +222,7 @@ class SleepCopyService {
     DateTime syncedAt,
   ) async {
     final uuid = record.uuid.trim();
+    final sourceId = _normalizeSourceId(record.sourceId);
 
     if (uuid.isNotEmpty) {
       final byId = await _store.findByHealthRecordId(uuid);
@@ -230,6 +231,12 @@ class SleepCopyService {
         // Connect has a record with the same id.
         if (byId.origin == SleepSessionOrigin.local) {
           return _DownloadOutcome.skipped;
+        }
+        // Older downloads may not have stored the source app yet. Backfill it
+        // even when the times did not change. An empty platform value must not
+        // erase a source already known locally.
+        if (sourceId != null && byId.session.sourceId != sourceId) {
+          await _store.updateDownloadedSource(byId.id, sourceId);
         }
         if (_hasSameTimes(byId.session, record)) {
           return _DownloadOutcome.skipped;
@@ -255,11 +262,20 @@ class SleepCopyService {
     }
 
     await _store.insertDownloaded(
-      SleepSession(startedAt: record.startedAt, endedAt: record.endedAt),
+      SleepSession(
+        startedAt: record.startedAt,
+        endedAt: record.endedAt,
+        sourceId: sourceId,
+      ),
       uuid.isEmpty ? null : uuid,
       syncedAt,
     );
     return _DownloadOutcome.added;
+  }
+
+  String? _normalizeSourceId(String value) {
+    final trimmed = value.trim();
+    return trimmed.isEmpty ? null : trimmed;
   }
 
   /// Whether Health Connect will return records older than the fallback

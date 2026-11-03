@@ -6,7 +6,9 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../../core/time/clock_format.dart';
+import '../../../health/application/app_info_provider.dart';
 import '../../../health/domain/sleep_data_source.dart';
+import '../../../health/domain/sleepy3_health_source.dart';
 import '../../../sleep_tracking/application/sleep_session_edit_service.dart';
 import '../../../sleep_tracking/application/sleep_tracking_controller.dart';
 import '../../../sleep_tracking/domain/session_edit.dart';
@@ -15,13 +17,19 @@ import '../../../sleep_tracking/domain/sleep_session.dart';
 
 /// Opens the session editor for one closed session.
 ///
-/// The editor is a full-screen dialog on compact windows and a basic dialog on
-/// medium and expanded ones, matching the M3 adaptive dialog pattern.
+/// Editable sessions keep the adaptive editor with Save. Read-only sessions
+/// open a details view with locked fields, a read-only reason card and a single
+/// dismiss action; the full-screen variant only has its close affordance.
 Future<SleepSessionEditResult?> showSessionEditor(
   BuildContext context, {
   required SleepSession session,
   required SleepDataSource source,
+  required SessionEditAccess access,
 }) async {
+  if (access == SessionEditAccess.readOnly) {
+    return _showReadOnlySession(context, session: session, source: source);
+  }
+
   final dialogController = M3EDialogController();
   final editorKey = GlobalKey<SessionEditorState>();
 
@@ -33,6 +41,7 @@ Future<SleepSessionEditResult?> showSessionEditor(
         key: editorKey,
         session: session,
         source: source,
+        access: access,
         dialogController: dialogController,
       ),
       confirmLabel: 'Save',
@@ -47,6 +56,46 @@ Future<SleepSessionEditResult?> showSessionEditor(
   }
 }
 
+/// The read-only variant: details on compact windows, a basic dialog on wider
+/// ones, and no Save or Delete action.
+Future<SleepSessionEditResult?> _showReadOnlySession(
+  BuildContext context, {
+  required SleepSession session,
+  required SleepDataSource source,
+}) {
+  final content = SessionEditor(
+    session: session,
+    source: source,
+    access: SessionEditAccess.readOnly,
+  );
+  final theme = M3ETheme.of(context);
+  final isCompact =
+      MediaQuery.sizeOf(context).width < theme.dialogTheme.compactBreakpoint;
+
+  if (isCompact) {
+    return M3EDialog.showFullScreen<SleepSessionEditResult>(
+      context,
+      title: 'Session details',
+      body: SingleChildScrollView(child: content),
+    );
+  }
+
+  return M3EDialog.show<SleepSessionEditResult>(
+    context,
+    dialog: M3EDialog(
+      title: 'Session details',
+      content: content,
+      actions: [
+        M3EButton(
+          style: M3EButtonStyle.text,
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+      ],
+    ),
+  );
+}
+
 /// The form shown by [showSessionEditor].
 ///
 /// It owns the draft times, validates them against the current history and
@@ -57,11 +106,15 @@ class SessionEditor extends ConsumerStatefulWidget {
     super.key,
     required this.session,
     required this.source,
+    required this.access,
     this.dialogController,
   }) : assert(session.endedAt != null, 'The editor needs a closed session');
 
   final SleepSession session;
   final SleepDataSource source;
+
+  /// Whether the session can be changed in the selected source.
+  final SessionEditAccess access;
 
   /// Keeps the discard confirmation in sync with the draft.
   final M3EDialogController? dialogController;
@@ -77,13 +130,16 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
   bool _saving = false;
   bool _deleting = false;
 
+  bool get _canEdit => widget.access == SessionEditAccess.editAndDelete;
+
   bool get _isDirty =>
       _startedAt != widget.session.startedAt ||
       _endedAt != widget.session.endedAt;
 
   bool get _showsHealthNotice =>
-      widget.source == SleepDataSource.healthConnect ||
-      widget.session.healthRecordId != null;
+      _canEdit &&
+      (widget.source == SleepDataSource.healthConnect ||
+          widget.session.healthRecordId != null);
 
   @override
   void initState() {
@@ -94,7 +150,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
 
   /// Validates and saves the draft. Called by the adaptive dialog's Save action.
   Future<void> save() async {
-    if (_saving || _deleting) return;
+    if (!_canEdit || _saving || _deleting) return;
 
     final errors = _validate();
     if (errors.isNotEmpty) {
@@ -169,6 +225,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
   }
 
   Future<void> _pickStartDate() async {
+    if (!_canEdit) return;
     final picked = await M3EDatePicker.show(
       context,
       initialDate: _startedAt,
@@ -183,6 +240,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
   }
 
   Future<void> _pickEndDate() async {
+    if (!_canEdit) return;
     final picked = await M3EDatePicker.show(
       context,
       initialDate: _endedAt,
@@ -197,6 +255,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
   }
 
   Future<void> _pickStartTime() async {
+    if (!_canEdit) return;
     final picked = await M3ETimePicker.show(
       context,
       initialTime: M3ETime(hour: _startedAt.hour, minute: _startedAt.minute),
@@ -209,6 +268,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
   }
 
   Future<void> _pickEndTime() async {
+    if (!_canEdit) return;
     final picked = await M3ETimePicker.show(
       context,
       initialTime: M3ETime(hour: _endedAt.hour, minute: _endedAt.minute),
@@ -239,7 +299,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
   }
 
   Future<void> _confirmDelete() async {
-    if (_saving || _deleting) return;
+    if (!_canEdit || _saving || _deleting) return;
 
     final confirmed = await M3EDialog.show<bool>(
       context,
@@ -330,6 +390,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
     final scheme = theme.colorScheme;
     final use24HourFormat = MediaQuery.alwaysUse24HourFormatOf(context);
     final duration = _endedAt.difference(_startedAt);
+    final canEdit = _canEdit;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -339,9 +400,14 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
           endedAt: _endedAt,
           spokenDate: _spokenDate.format(_endedAt),
         ),
+        if (!canEdit) ...[
+          const SizedBox(height: 24),
+          _ReadOnlyCard(message: _readOnlyMessage()),
+        ],
         const SizedBox(height: 24),
         _SessionSection(
           title: 'Fell asleep',
+          enabled: canEdit,
           date: _formatEditorDate(_startedAt),
           time: formatSessionTime(_startedAt, use24HourFormat: use24HourFormat),
           onPickDate: _pickStartDate,
@@ -350,12 +416,13 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
         const SizedBox(height: 24),
         _SessionSection(
           title: 'Woke up',
+          enabled: canEdit,
           date: _formatEditorDate(_endedAt),
           time: formatSessionTime(_endedAt, use24HourFormat: use24HourFormat),
           onPickDate: _pickEndDate,
           onPickTime: _pickEndTime,
         ),
-        if (_showsHealthNotice) ...[
+        if (canEdit && _showsHealthNotice) ...[
           const SizedBox(height: 16),
           _HealthNotice(
             message: widget.source == SleepDataSource.healthConnect
@@ -365,7 +432,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
                       'copies.',
           ),
         ],
-        if (_errors.isNotEmpty) ...[
+        if (canEdit && _errors.isNotEmpty) ...[
           const SizedBox(height: 16),
           for (final error in _errors)
             Padding(
@@ -378,21 +445,58 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
               ),
             ),
         ],
-        const SizedBox(height: 24),
-        Align(
-          alignment: AlignmentDirectional.centerStart,
-          child: M3EButton(
-            style: M3EButtonStyle.text,
-            enabled: !_saving && !_deleting,
-            onPressed: _confirmDelete,
-            decoration: M3EButtonDecoration(
-              foregroundColor: WidgetStatePropertyAll<Color?>(scheme.error),
+        if (canEdit) ...[
+          const SizedBox(height: 24),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: M3EButton(
+              style: M3EButtonStyle.text,
+              enabled: !_saving && !_deleting,
+              onPressed: _confirmDelete,
+              decoration: M3EButtonDecoration(
+                foregroundColor: WidgetStatePropertyAll<Color?>(scheme.error),
+              ),
+              child: const Text('Delete session'),
             ),
-            child: const Text('Delete session'),
           ),
-        ),
+        ],
       ],
     );
+  }
+
+  /// Why the session is read-only, using the source app when Android can
+  /// resolve its label.
+  String _readOnlyMessage() {
+    final session = widget.session;
+    if (widget.source == SleepDataSource.healthConnect) {
+      if (isSleepy3HealthRecord(session.sourceId)) {
+        return "This session can't be edited from Sleepy3.";
+      }
+      return 'This session was created in ${_sourceAppLabel()}, so it '
+          "can't be edited from Sleepy3.";
+    }
+
+    if (widget.source == SleepDataSource.local && session.isDownloaded) {
+      if (isSleepy3HealthRecord(session.sourceId)) {
+        return 'This session was downloaded from Google Health. Switch to '
+            'Google Health to edit it.';
+      }
+      if (session.sourceId != null) {
+        return 'This session was created in ${_sourceAppLabel()}. Downloaded '
+            "copies can't be edited in Local.";
+      }
+      return "This session was downloaded from Google Health. Downloaded "
+          "copies can't be edited in Local.";
+    }
+
+    return "This session can't be edited from Sleepy3.";
+  }
+
+  String _sourceAppLabel() {
+    final sourceId = widget.session.sourceId;
+    if (sourceId == null) return 'another app';
+    final label = ref.watch(appLabelProvider(sourceId)).asData?.value;
+    return label ?? 'another app';
   }
 }
 
@@ -445,6 +549,7 @@ class _DurationSummary extends StatelessWidget {
 class _SessionSection extends StatelessWidget {
   const _SessionSection({
     required this.title,
+    required this.enabled,
     required this.date,
     required this.time,
     required this.onPickDate,
@@ -452,6 +557,10 @@ class _SessionSection extends StatelessWidget {
   });
 
   final String title;
+
+  /// Whether the rows open the date and time pickers.
+  final bool enabled;
+
   final String date;
   final String time;
   final VoidCallback onPickDate;
@@ -482,19 +591,91 @@ class _SessionSection extends StatelessWidget {
           innerRadius: 4,
           gap: 2,
           semanticsLabel: '$title date and time',
-          onTap: (index) => index == 0 ? onPickDate() : onPickTime(),
+          onTap: enabled
+              ? (index) => index == 0 ? onPickDate() : onPickTime()
+              : null,
           itemBuilder: (context, index) {
             final isDate = index == 0;
             return M3EListItem(
               headline: isDate ? 'Date' : 'Time',
               supportingText: isDate ? date : time,
-              trailing: Icon(
-                isDate ? M3EIcons.event_outlined : M3EIcons.schedule_outlined,
-              ),
+              trailing: enabled
+                  ? Icon(
+                      isDate
+                          ? M3EIcons.event_outlined
+                          : M3EIcons.schedule_outlined,
+                    )
+                  : null,
             );
           },
         ),
       ],
+    );
+  }
+}
+
+/// Why a session cannot be changed in Sleepy3.
+///
+/// The filled primary-container card makes the state stand out from the
+/// neutral field groups below. The lock sits in a primary circle and is
+/// centered against the whole explanation, so it stays balanced when the
+/// message wraps. The 40dp circle is a design decision; the card radius,
+/// padding and paired color roles come from M3.
+class _ReadOnlyCard extends StatelessWidget {
+  const _ReadOnlyCard({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = M3ETheme.of(context);
+    final scheme = theme.colorScheme;
+
+    return M3ECard(
+      variant: M3ECardVariant.filled,
+      color: scheme.primaryContainer,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: scheme.primary,
+            ),
+            child: Icon(
+              M3EIcons.lock_outlined,
+              size: 20,
+              color: scheme.onPrimary,
+            ),
+          ),
+          // 12dp separates the lock from the explanation, matching the health
+          // notice below the fields.
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Read-only session',
+                  style: theme.typography.emphasized.titleMedium.copyWith(
+                    color: scheme.onPrimaryContainer,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  message,
+                  style: theme.typography.baseline.bodyMedium.copyWith(
+                    color: scheme.onPrimaryContainer,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

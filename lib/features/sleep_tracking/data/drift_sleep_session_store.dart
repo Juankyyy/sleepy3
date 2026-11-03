@@ -221,6 +221,7 @@ class DriftSleepSessionStore implements SleepSessionStore {
       isDownloaded: row.origin == SleepSessionOrigin.healthConnect.storageValue,
       healthRecordId: row.healthRecordId,
       healthClientRecordId: row.healthClientRecordId,
+      sourceId: row.sourceId,
     );
   }
 }

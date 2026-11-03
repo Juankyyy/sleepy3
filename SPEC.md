@@ -304,23 +304,32 @@ Reglas:
 - La fecha y la ventana se recalculan a medianoche local y al volver del segundo plano
   con `LocalDayBuilder`, no con un reloj que reconstruye cada segundo. Los días se
   calculan con aritmética de calendario para no desplazar los grupos con DST.
-- Las filas editables muestran un icono `edit_outlined` al final, se abren con un toque en
-  toda la fila y el lector de pantalla las anuncia como botón con la pista
-  `Opens the session editor`. Las filas de solo lectura no tienen icono ni acción.
+- Todas las filas abren la sesión con un toque en toda la fila; no hay icono de edición.
+  El lector de pantalla anuncia la fila como botón con la pista `Opens the session`.
 - En `Local` se pueden editar y borrar las sesiones cuya fila Drift pertenece a Sleepy3.
-  Las filas descargadas de Health Connect (`origin='healthConnect'`) son copias de solo
-  lectura: una importación posterior podría reemplazarlas.
+  Las filas descargadas de Health Connect (`origin='healthConnect'`) abren una vista de
+  solo lectura: una importación posterior podría reemplazarlas.
 - En `Google Health` se pueden editar y borrar todos los registros escritos por Sleepy3
   (paquete release `com.sleepy3.app` o debug `com.sleepy3.app.debug`), tengan o no copia
   local. Si existe una copia local con `healthClientRecordId`, se reutiliza su id y
   versión; si no, la app lee `clientRecordId` y `clientRecordVersion` de Health Connect y
   escribe la versión siguiente, actualizando el mismo registro. Los registros de otras
-  apps no tienen acciones.
+  apps abren la vista de solo lectura.
+- La vista de solo lectura usa el título `Session details`. Los campos son filas estáticas:
+  no abren pickers, no llevan los iconos de calendario o reloj y no hay `Save` ni `Delete`.
+  Encima de `Fell asleep` muestra una card `Read-only session` que explica que la sesión se
+  creó en otra app y no se puede editar desde Sleepy3. La card usa el label Android del
+  paquete de origen (`Google Health`, `Samsung Health`, etc.) y cae a `another app` cuando
+  el paquete no está instalado o no se puede resolver. En `Local`, una copia descargada de
+  Sleepy3 invita a cambiarse a `Google Health` para editarla.
 - El editor de sesión es un diálogo adaptativo M3: pantalla completa en ventanas
   compactas y diálogo básico en medianas y grandes. Título `Edit session`, acción `Save`
   y cierre con `Cancel` o la X. Tiene secciones `Fell asleep` y `Woke up` con filas de
   fecha y hora que abren `M3EDatePicker` y `M3ETimePicker`, duración y día de despertar
   en vivo, y un aviso cuando la sesión también está en Google Health.
+- La vista de solo lectura reutiliza el contenido del editor: pantalla completa en
+  compacto con solo la X de cierre y diálogo básico en mediano y expandido con una única
+  acción `Close`. No muestra `Save` ni `Delete`.
 - Validación del borrador: el fin debe ser posterior al inicio, la sesión debe durar al
   menos 10 minutos (`SessionEditError.tooShort`) y menos de 24 horas
   (`SessionEditError.tooLong`), idéntica regla en las dos fuentes; unas horas no pueden
@@ -420,17 +429,20 @@ Reglas:
   pendiente más reciente, `Add` sube todas las pendientes de la más antigua a la más
   reciente e `Import` descarga todas las sesiones de Health Connect a la copia local.
 - La descarga deduplica por UUID y, si falta, por inicio y fin exactos. Inserta las nuevas
-  con `origin='healthConnect'`, actualiza las descargadas que cambiaron y nunca sobrescribe
-  ni borra filas `origin='local'`. Las descargadas no se vuelven a subir.
+  con `origin='healthConnect'`, guarda el paquete de origen en `source_id`, actualiza las
+  descargadas que cambiaron y nunca sobrescribe ni borra filas `origin='local'`. Las
+  descargadas no se vuelven a subir. Una importación posterior rellena `source_id` en las
+  filas descargadas antiguas que todavía no lo tengan.
 - Editar y borrar desde Stats respeta la fuente:
   - En `Local`, editar una sesión ya sincronizada actualiza el mismo registro de Health
     Connect usando el `clientRecordId` guardado y una versión mayor. Borrar una sesión con
     registro borra primero en Health Connect y después la fila local.
   - En `Google Health`, la escritura o el borrado van primero a Health Connect; la copia
     local y la lista visible solo cambian cuando la plataforma confirma.
-  - Los registros de otras apps y las copias descargadas en `Local` son de solo lectura.
-    Un registro propio de Health Connect sin copia local se actualiza en su sitio con los
-    metadatos de Health Connect, sin duplicarlo.
+  - Los registros de otras apps y las copias descargadas en `Local` abren una vista de
+    solo lectura; no se escriben ni se borran desde Sleepy3. Un registro propio de Health
+    Connect sin copia local se actualiza en su sitio con los metadatos de Health Connect,
+    sin duplicarlo.
 - Los reintentos de `Sleepy3App` dependen de la fuente. En `Local` solo reintenta
   actualizaciones de sesiones que ya tienen registro en Health Connect; nunca sube
   sesiones nuevas automáticamente. En `Google Health` reintenta todas las pendientes,
@@ -556,14 +568,22 @@ Reglas:
     color del list item con 50 % de opacidad y se superpone centrado verticalmente en la
     tarjeta, porque el slot leading de una fila de tres líneas se alinea arriba. Tiene un
     tooltip con `Local` o `Google Health`, y la etiqueta hablada empieza por esa
-    procedencia. Las filas editables añaden un icono `edit_outlined` al final, son botones
-    con pista y abren el editor; las de solo lectura no tienen icono ni acción. El
-    objetivo táctil es de al menos 48 dp.
+    procedencia. Todas las filas son botones con pista `Opens the session` y abren la
+    sesión; no hay icono de edición. Las de solo lectura abren `Session details` con la
+    card `Read-only session` y los campos bloqueados. El objetivo táctil es de al menos
+    48 dp.
   - Editor de sesión adaptativo: pantalla completa por debajo del breakpoint compacto y
     diálogo básico por encima. Usa `M3EDatePicker`/`M3ETimePicker`, secciones con
     encabezado `titleMedium` emphasized, duración en `headlineSmall` emphasized con cifras
     tabulares, errores inline en `bodySmall` con rol `error`, y una acción `Delete session`
     separada y de bajo énfasis. Respeta el formato de 24 h del sistema.
+  - La vista de solo lectura usa una `M3ECard` filled en `primaryContainer`, con radio
+    12 dp y padding 16 dp. El candado `lock_outlined` de 20 dp va en `onPrimary` dentro de
+    un círculo `primary` de 40 dp centrado verticalmente contra el texto; el titular
+    `Read-only session` usa `titleMedium` emphasized y el apoyo `bodyMedium`, ambos en
+    `onPrimaryContainer`. La card va encima de `Fell asleep`. Los campos no abren pickers
+    y no muestran los iconos de calendario o reloj. En compacto el diálogo solo tiene la
+    X; en mediano y expandido, una única acción de texto `Close`.
   - La lista y el resumen se reconstruyen desde el estado actualizado tras guardar o
     borrar; no se recarga el historial. El snackbar solo aparece para sincronización
     pendiente, permiso necesario o sesión borrada.
@@ -623,8 +643,13 @@ Reglas:
 | Descarga limitada al historial | `Only the last 30 days were downloaded.` |
 | Encabezado de la lista | `History` |
 | Procedencia de la sesión | `Local` / `Google Health` |
-| Pista de fila editable | `Opens the session editor` |
+| Pista de fila | `Opens the session` |
 | Título del editor | `Edit session` |
+| Título de solo lectura | `Session details` |
+| Card de solo lectura | `Read-only session`, `This session was created in {app}, so it can't be edited from Sleepy3.` |
+| Solo lectura sin app resuelta | `This session was created in another app, so it can't be edited from Sleepy3.` |
+| Copia descargada de Sleepy3 | `This session was downloaded from Google Health. Switch to Google Health to edit it.` |
+| Copia descargada de otra app | `This session was created in {app}. Downloaded copies can't be edited in Local.` |
 | Secciones del editor | `Fell asleep`, `Woke up` |
 | Filas de fecha y hora | `Date`, `Time` |
 | Acciones del editor | `Save`, `Cancel`, `Close`, `Delete session` |
@@ -828,8 +853,9 @@ splash.
 
 - `SleepSessionStore` es la interfaz de persistencia. `updateSession` y `deleteSession`
   solo modifican filas `origin='local'`; las descargadas se rechazan. Al cargar, cada
-  sesión local incluye `localId`, `isDownloaded`, `healthRecordId` y
-  `healthClientRecordId` para que el editor encuentre la fila sin comparar horas.
+  sesión local incluye `localId`, `isDownloaded`, `healthRecordId`,
+  `healthClientRecordId` y `sourceId` para que el editor encuentre la fila sin comparar
+  horas y pueda nombrar la app de origen.
 - `DriftSleepSessionStore` es la implementación. Una sola consulta ordenada carga la
   sesión abierta y todo el historial cerrado; `SleepSnapshot.lastSession` es un getter.
 - `SleepTrackingState` mantiene `closedSessions` completo de la fuente elegida. Home
@@ -849,10 +875,15 @@ splash.
 - `HealthConnectBridge` es un puente Android mínimo que lee `clientRecordId` y
   `clientRecordVersion` de un registro; el gateway reutiliza la escritura idempotente con
   la versión siguiente. No se usa para registros de otras apps ni de otro paquete.
+- `AppInfoBridge` es un puente Android mínimo que resuelve el label de un paquete con
+  `PackageManager`. `MethodChannelAppInfoGateway` lo cachea por paquete y devuelve null si
+  la app no está instalada o el canal no responde; la card de solo lectura cae entonces a
+  `another app`.
 - `HealthSyncStore` y `DriftHealthSyncStore` gestionan pendientes, UUID descargados,
   versiones estables y deduplicación sobre la misma base. `loadPendingUpdates` devuelve
   solo actualizaciones de registros ya existentes; `loadLocalSessionsWithHealthRecordId`
-  alimenta el enriquecimiento del historial de Google Health.
+  alimenta el enriquecimiento del historial de Google Health. `updateDownloadedSource`
+  rellena el paquete de origen de una copia descargada sin tocar sus horas.
 - `SettingsStore` es la interfaz de preferencias y `DriftSettingsStore` su implementación.
   Usa la tabla `preferences` de la misma base; no hay `shared_preferences`.
 - Los tests usan `FakeSleepSessionStore`, `FakeSettingsStore`, `FakeHealthConnectGateway`,
@@ -882,8 +913,9 @@ splash.
 | `health_synced_at_millis` | INTEGER | Última subida o descarga correcta |
 | `health_sync_skipped` | INTEGER | 0/1; sesión no elegible (por ejemplo, duración cero) |
 | `origin` | TEXT | `local` o `healthConnect`; por defecto `local` |
+| `source_id` | TEXT | Paquete de la app que escribió una copia descargada; null en filas locales |
 
-- `schemaVersion = 4`.
+- `schemaVersion = 5`.
 - Base: `sleepy3.sqlite` en el directorio de documentos de la app.
 - La migración v2 → v3 añade `health_record_id`, `health_synced_at_millis`,
   `health_sync_skipped` y `origin`, con defaults y el índice único de `health_record_id`;
@@ -892,6 +924,9 @@ splash.
   Rellena `health_client_record_id = 'sleepy3-<started_at_millis>'` en las filas
   `origin='local'` y pone `health_record_version = 1` en las filas que ya tienen
   `health_record_id`. Las descargadas conservan `health_client_record_id` nulo.
+- La migración v4 → v5 añade `source_id` para el paquete de origen de una copia
+  descargada. Las filas existentes quedan con `source_id` nulo y se rellenan en la
+  siguiente importación.
 - `health_client_record_id` es estable aunque cambien las horas: permite actualizar el
   mismo registro de Health Connect sin duplicarlo. `health_record_version` solo crece; un
   reintento usa la versión siguiente y `markUploadAttempt` la persiste antes de escribir.
@@ -1071,15 +1106,19 @@ dart run tool/generate_brand_assets.dart
   abiertas y futuras excluidas, cambio de fecha, DST, `Show all`, 12/24 h, semántica,
   layout a 360 dp con texto al 200 % y `LocalDayBuilder` al pasar medianoche o volver
   del segundo plano.
-- Stats editable: icono y semántica de botón solo en filas editables, filas de solo
-  lectura sin acción, editor adaptativo, guardado sin cambios, cambio de fecha y hora,
-  validación inline (incluidos los límites de duración), descarte, 24 h, 200 % de texto,
-  borrado con confirmación, empty state tras borrar la última sesión y actualización del
-  resumen sin recargar.
+- Stats editable: todas las filas son botones, sin icono de edición; las de solo lectura
+  abren `Session details` con la card de la app y campos bloqueados, editor adaptativo,
+  guardado sin cambios, cambio de fecha y hora, validación inline (incluidos los límites
+  de duración), descarte, 24 h, 200 % de texto, borrado con confirmación, empty state tras
+  borrar la última sesión y actualización del resumen sin recargar.
 - Edición y borrado: `updateSession`/`deleteSession` de Drift, rechazo de descargadas,
   permisos por fuente, actualización del mismo registro de Health Connect, lectura del
   token de escritura nativo, reintentos pendientes, resultados explícitos, filas propias
-  de Google Health con y sin copia local y registros de otras apps de solo lectura.
+  de Google Health con y sin copia local, registros de otras apps de solo lectura y
+  migración v5 con `source_id`.
+- Solo lectura: app label por `AppInfoBridge`, fallback a `another app`, campos sin
+  pickers ni iconos, sin `Save`/`Delete`, cierre con X o `Close` y copias descargadas
+  con y sin `source_id`.
 - Stats en Google Health: `All` pide historial, una concesión recarga el historial
   completo, una denegación mantiene los 30 días con el banner y `Allow full history`
   vuelve a pedir el permiso.
@@ -1128,8 +1167,10 @@ dart run tool/generate_brand_assets.dart
 - Cabecera con chip día/noche, reloj en vivo con segundos y línea de sesión.
 - Resumen de los últimos 3 días con datos reales, media y barras contra una meta de 8 h.
 - Pantalla `Stats` con filtros 7 días / 30 días / todo, resumen del rango y una fila por
-  sesión. Las filas editables abren un editor adaptativo para cambiar fecha y hora o
-  borrar la sesión; en `Google Health` solo se modifican los registros de Sleepy3.
+  sesión. Todas las filas abren la sesión: el editor adaptativo permite cambiar fecha y
+  hora o borrar; las sesiones de otras apps y las copias descargadas abren una vista de
+  solo lectura con la card de la app de origen. En `Google Health` solo se modifican los
+  registros de Sleepy3.
 - Pantalla `Settings` con tema `System`/`Light`/`Dark` persistido, fuente de datos
   `Local`/`Google Health`, estado de Google Health, acciones de copia y `About` con
   privacidad, versión y licencias.

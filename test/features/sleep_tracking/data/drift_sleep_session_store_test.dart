@@ -239,6 +239,7 @@ void main() {
       DateTime? healthSyncedAt,
       bool healthSyncSkipped = false,
       SleepSessionOrigin origin = SleepSessionOrigin.local,
+      String? sourceId,
     }) {
       return database
           .into(database.sleepSessions)
@@ -253,6 +254,7 @@ void main() {
               ),
               healthSyncSkipped: Value(healthSyncSkipped),
               origin: Value(origin.storageValue),
+              sourceId: Value(sourceId),
             ),
           );
     }
@@ -274,6 +276,7 @@ void main() {
       expect(session.isEditableLocal, isTrue);
       expect(session.healthRecordId, 'health-record-1');
       expect(session.healthClientRecordId, 'sleepy3-1');
+      expect(session.sourceId, isNull);
       expect(session.startedAt, startedAt);
       expect(session.endedAt, endedAt);
     });
@@ -286,6 +289,7 @@ void main() {
         healthRecordId: 'downloaded-1',
         healthSyncedAt: DateTime(2026, 10, 21, 8),
         origin: SleepSessionOrigin.healthConnect,
+        sourceId: 'com.example.other',
       );
 
       final session = (await store.loadClosedSessions()).single;
@@ -295,6 +299,7 @@ void main() {
       expect(session.isEditableLocal, isFalse);
       expect(session.healthRecordId, 'downloaded-1');
       expect(session.healthClientRecordId, isNull);
+      expect(session.sourceId, 'com.example.other');
     });
 
     test(

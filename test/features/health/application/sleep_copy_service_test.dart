@@ -24,8 +24,17 @@ void main() {
     SleepSession session(DateTime start, DateTime end) =>
         SleepSession(startedAt: start, endedAt: end);
 
-    HealthSleepSession record(String uuid, DateTime start, DateTime end) =>
-        HealthSleepSession(uuid: uuid, startedAt: start, endedAt: end);
+    HealthSleepSession record(
+      String uuid,
+      DateTime start,
+      DateTime end, {
+      String sourceId = '',
+    }) => HealthSleepSession(
+      uuid: uuid,
+      startedAt: start,
+      endedAt: end,
+      sourceId: sourceId,
+    );
 
     void create({List<HealthSleepSession> sessions = const []}) {
       now = DateTime(2026, 10, 21, 6, 20);
@@ -191,8 +200,13 @@ void main() {
     test('download adds every new Health Connect session', () async {
       create(
         sessions: [
-          record('a', olderStart, olderEnd),
-          record('b', newerStart, newerEnd),
+          record(
+            'a',
+            olderStart,
+            olderEnd,
+            sourceId: 'com.google.android.apps.healthdata',
+          ),
+          record('b', newerStart, newerEnd, sourceId: 'com.example.other'),
         ],
       );
 
@@ -210,6 +224,10 @@ void main() {
         isTrue,
       );
       expect(store.rows.every((row) => row.healthSyncedAt == now), isTrue);
+      expect(store.rows.map((row) => row.session.sourceId), [
+        'com.google.android.apps.healthdata',
+        'com.example.other',
+      ]);
       expect(await store.loadPendingCount(), 0);
     });
 
@@ -291,6 +309,29 @@ void main() {
       expect(result.skipped, 1);
       expect(result.updated, 0);
       expect(store.rows, hasLength(1));
+    });
+
+    test('download backfills the source app on an unchanged copy', () async {
+      create(
+        sessions: [
+          record('a', olderStart, olderEnd, sourceId: 'com.example.other'),
+        ],
+      );
+      store.rows.add(
+        StoredSleepSession(
+          id: 1,
+          session: session(olderStart, olderEnd),
+          healthRecordId: 'a',
+          healthSyncedAt: DateTime(2026, 10, 20),
+          origin: SleepSessionOrigin.healthConnect,
+        ),
+      );
+
+      final result = await service.downloadAllFromHealthConnect();
+
+      expect(result.total, 1);
+      expect(result.skipped, 1);
+      expect(store.rows.single.session.sourceId, 'com.example.other');
     });
 
     test('download never overwrites a local row by id', () async {

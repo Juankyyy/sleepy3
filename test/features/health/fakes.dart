@@ -1,3 +1,4 @@
+import 'package:sleepy3/features/health/domain/app_info_gateway.dart';
 import 'package:sleepy3/features/health/domain/health_connect_gateway.dart';
 import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
 import 'package:sleepy3/features/health/domain/health_sync_store.dart';
@@ -292,6 +293,24 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
   }
 }
 
+/// In-memory [AppInfoGateway] for session-editor tests.
+class FakeAppInfoGateway implements AppInfoGateway {
+  FakeAppInfoGateway([Map<String, String> labels = const {}])
+    : labels = {...labels};
+
+  /// Package name to Android label.
+  final Map<String, String> labels;
+
+  /// Every package looked up, in order.
+  final List<String> requests = [];
+
+  @override
+  Future<String?> appLabelForPackage(String packageName) async {
+    requests.add(packageName);
+    return labels[packageName];
+  }
+}
+
 /// In-memory [HealthSyncStore] for controller and widget tests.
 ///
 /// Times are compared in milliseconds, matching the Drift columns, so a test
@@ -558,7 +577,37 @@ class FakeHealthSyncStore implements HealthSyncStore {
     if (row.origin != SleepSessionOrigin.healthConnect) return false;
     rows[index] = StoredSleepSession(
       id: row.id,
-      session: SleepSession(startedAt: startedAt, endedAt: endedAt),
+      session: SleepSession(
+        startedAt: startedAt,
+        endedAt: endedAt,
+        sourceId: row.session.sourceId,
+      ),
+      healthRecordId: row.healthRecordId,
+      healthClientRecordId: row.healthClientRecordId,
+      healthRecordVersion: row.healthRecordVersion,
+      healthSyncedAt: row.healthSyncedAt,
+      healthSyncSkipped: row.healthSyncSkipped,
+      origin: row.origin,
+    );
+    return true;
+  }
+
+  @override
+  Future<bool> updateDownloadedSource(int rowId, String? sourceId) async {
+    final index = rows.indexWhere(
+      (row) =>
+          row.id == rowId && row.origin == SleepSessionOrigin.healthConnect,
+    );
+    if (index == -1) return false;
+    final row = rows[index];
+    final normalized = sourceId?.trim();
+    rows[index] = StoredSleepSession(
+      id: row.id,
+      session: SleepSession(
+        startedAt: row.session.startedAt,
+        endedAt: row.session.endedAt,
+        sourceId: normalized == null || normalized.isEmpty ? null : normalized,
+      ),
       healthRecordId: row.healthRecordId,
       healthClientRecordId: row.healthClientRecordId,
       healthRecordVersion: row.healthRecordVersion,

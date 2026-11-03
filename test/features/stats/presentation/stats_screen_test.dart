@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
+import 'package:sleepy3/features/health/application/app_info_provider.dart';
 import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
 import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
 import 'package:sleepy3/features/health/application/sleep_data_source_controller.dart';
@@ -41,6 +42,7 @@ void main() {
     SleepDataSource source = SleepDataSource.local,
     FakeHealthConnectGateway? gateway,
     FakeHealthSyncStore? healthSyncStore,
+    FakeAppInfoGateway? appInfo,
     bool settle = true,
   }) async {
     tester.view.physicalSize = size * 3;
@@ -72,6 +74,9 @@ void main() {
                 ),
                 healthSyncStoreProvider.overrideWithValue(
                   healthSyncStore ?? FakeHealthSyncStore(),
+                ),
+                appInfoGatewayProvider.overrideWithValue(
+                  appInfo ?? FakeAppInfoGateway(),
                 ),
               ],
               child: M3EMaterialApp(
@@ -152,9 +157,7 @@ void main() {
     expect(find.byIcon(M3EIcons.edit_outlined), findsNothing);
   });
 
-  testWidgets('marks only editable sessions with the edit action', (
-    tester,
-  ) async {
+  testWidgets('rows no longer show the edit action', (tester) async {
     final editable = SleepSession(
       startedAt: DateTime(2026, 10, 20, 22),
       endedAt: DateTime(2026, 10, 21, 6),
@@ -171,7 +174,11 @@ void main() {
       initial: SleepSnapshot(closedSessions: [editable, readOnly]),
     );
 
-    expect(find.byIcon(M3EIcons.edit_outlined), findsOneWidget);
+    expect(find.byIcon(M3EIcons.edit_outlined), findsNothing);
+    expect(
+      find.byWidgetPredicate((widget) => widget is M3EListItem),
+      findsNWidgets(2),
+    );
   });
 
   testWidgets('marks local, uploaded and downloaded sessions in Local mode', (

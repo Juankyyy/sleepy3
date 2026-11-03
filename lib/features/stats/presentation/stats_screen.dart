@@ -176,8 +176,6 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                   today: today,
                   use24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
                   source: source,
-                  isEditable: (session) =>
-                      _accessFor(session, source) != SessionEditAccess.readOnly,
                   onEdit: (session) => unawaited(_openEditor(session)),
                 ),
               ),
@@ -197,15 +195,18 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
   }
 
   /// Opens the editor and reports only outcomes the user must know about.
+  ///
+  /// Read-only sessions still open, but the editor locks its fields and
+  /// explains why; it never returns a result.
   Future<void> _openEditor(SleepSession session) async {
     final source = ref.read(sleepDataSourceProvider);
     final access = _accessFor(session, source);
-    if (access == SessionEditAccess.readOnly) return;
 
     final result = await showSessionEditor(
       context,
       session: session,
       source: source,
+      access: access,
     );
     if (!mounted || result == null) return;
 

@@ -81,6 +81,12 @@ abstract interface class HealthSyncStore {
     DateTime endedAt,
   );
 
+  /// Stores the package that wrote a downloaded record.
+  ///
+  /// Returns false without writing when [rowId] is not a downloaded row. A
+  /// null or blank value clears the stored source.
+  Future<bool> updateDownloadedSource(int rowId, String? sourceId);
+
   /// Deletes a downloaded row after its Health Connect record is gone.
   ///
   /// Returns false without writing when [rowId] is not a downloaded row, so a

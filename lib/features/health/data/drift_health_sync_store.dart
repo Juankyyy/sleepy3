@@ -191,8 +191,27 @@ class DriftHealthSyncStore implements HealthSyncStore {
             healthRecordVersion: Value(normalizedId == null ? 0 : 1),
             healthSyncedAtMillis: Value(syncedAt.millisecondsSinceEpoch),
             origin: Value(SleepSessionOrigin.healthConnect.storageValue),
+            sourceId: Value(_normalizeSourceId(session.sourceId)),
           ),
         );
+  }
+
+  @override
+  Future<bool> updateDownloadedSource(int rowId, String? sourceId) async {
+    final updated =
+        await (_db.update(_db.sleepSessions)..where(
+              (row) =>
+                  row.id.equals(rowId) &
+                  row.origin.equals(
+                    SleepSessionOrigin.healthConnect.storageValue,
+                  ),
+            ))
+            .write(
+              SleepSessionsCompanion(
+                sourceId: Value(_normalizeSourceId(sourceId)),
+              ),
+            );
+    return updated > 0;
   }
 
   @override
@@ -252,6 +271,7 @@ class DriftHealthSyncStore implements HealthSyncStore {
         endedAt: endedAt == null
             ? null
             : DateTime.fromMillisecondsSinceEpoch(endedAt),
+        sourceId: row.sourceId,
       ),
       healthRecordId: row.healthRecordId,
       healthClientRecordId: row.healthClientRecordId,
@@ -265,6 +285,11 @@ class DriftHealthSyncStore implements HealthSyncStore {
   }
 
   String? _normalizeRecordId(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
+  String? _normalizeSourceId(String? value) {
     final trimmed = value?.trim();
     return trimmed == null || trimmed.isEmpty ? null : trimmed;
   }

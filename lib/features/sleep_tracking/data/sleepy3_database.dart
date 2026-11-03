@@ -48,6 +48,12 @@ class SleepSessions extends Table {
 
   /// `local` for sessions started in Sleepy3, `healthConnect` for downloads.
   TextColumn get origin => text().withDefault(const Constant('local'))();
+
+  /// Package of the app that wrote a downloaded Health Connect record.
+  ///
+  /// Null for sessions started in Sleepy3. Stored so the session editor can
+  /// name the source app even when the local copy is shown in Local mode.
+  TextColumn get sourceId => text().nullable()();
 }
 
 /// App-wide key/value preferences. Keys are stable strings so future settings
@@ -69,7 +75,7 @@ class Sleepy3Database extends _$Sleepy3Database {
   Sleepy3Database.forTesting(super.e);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -105,6 +111,12 @@ class Sleepy3Database extends _$Sleepy3Database {
           'SET health_record_version = 1 '
           'WHERE health_record_id IS NOT NULL',
         );
+      }
+      // v5 stores the package that wrote a downloaded record, so the session
+      // editor can name the source app even in Local mode. Existing downloads
+      // keep null and fall back to a generic label until the next import.
+      if (from < 5) {
+        await m.addColumn(sleepSessions, sleepSessions.sourceId);
       }
     },
   );

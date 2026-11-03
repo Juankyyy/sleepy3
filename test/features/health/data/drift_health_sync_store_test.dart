@@ -61,6 +61,7 @@ void main() {
       expect(row.healthSyncedAtMillis, isNull);
       expect(row.healthSyncSkipped, isFalse);
       expect(row.origin, SleepSessionOrigin.local.storageValue);
+      expect(row.sourceId, isNull);
 
       final preferences = await database.select(database.preferences).get();
       expect(preferences.single.settingValue, 'dark');
@@ -208,12 +209,66 @@ void main() {
         final downloaded = rows[2];
         expect(downloaded.healthClientRecordId, isNull);
         expect(downloaded.healthRecordVersion, 1);
+        expect(downloaded.sourceId, isNull);
         expect(
           downloaded.origin,
           SleepSessionOrigin.healthConnect.storageValue,
         );
       },
     );
+
+    test('migrates a v4 database and adds the source app column', () async {
+      final startedAt = DateTime(2026, 10, 20, 22);
+      final endedAt = DateTime(2026, 10, 21, 6);
+      final database = Sleepy3Database.forTesting(
+        NativeDatabase.memory(
+          setup: (raw) {
+            raw.execute('''
+              CREATE TABLE sleep_sessions (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                started_at_millis INTEGER NOT NULL,
+                ended_at_millis INTEGER NULL,
+                health_record_id TEXT NULL,
+                health_client_record_id TEXT NULL,
+                health_record_version INTEGER NOT NULL DEFAULT 0,
+                health_synced_at_millis INTEGER NULL,
+                health_sync_skipped INTEGER NOT NULL DEFAULT 0,
+                origin TEXT NOT NULL DEFAULT 'local'
+              )
+            ''');
+            raw.execute('''
+              CREATE UNIQUE INDEX sleep_sessions_health_record_id
+              ON sleep_sessions (health_record_id)
+            ''');
+            raw.execute('''
+              CREATE TABLE preferences (
+                setting_key TEXT NOT NULL,
+                setting_value TEXT NOT NULL,
+                PRIMARY KEY (setting_key)
+              )
+            ''');
+            raw.execute(
+              'INSERT INTO sleep_sessions '
+              '(started_at_millis, ended_at_millis, health_record_id, '
+              'health_record_version, health_synced_at_millis, origin) '
+              "VALUES (?, ?, 'downloaded-1', 1, ?, 'healthConnect')",
+              [
+                startedAt.millisecondsSinceEpoch,
+                endedAt.millisecondsSinceEpoch,
+                DateTime(2026, 10, 21, 7).millisecondsSinceEpoch,
+              ],
+            );
+            raw.userVersion = 4;
+          },
+        ),
+      );
+      addTearDown(database.close);
+
+      final row = await database.select(database.sleepSessions).getSingle();
+      expect(row.sourceId, isNull);
+      expect(row.healthRecordId, 'downloaded-1');
+      expect(row.origin, SleepSessionOrigin.healthConnect.storageValue);
+    });
 
     test('new rows default to local and unsynced', () async {
       final database = Sleepy3Database.forTesting(NativeDatabase.memory());
@@ -239,6 +294,7 @@ void main() {
       expect(row.healthSyncedAtMillis, isNull);
       expect(row.healthSyncSkipped, isFalse);
       expect(row.origin, SleepSessionOrigin.local.storageValue);
+      expect(row.sourceId, isNull);
     });
 
     test('rejects two rows with the same health record id', () async {
@@ -315,6 +371,7 @@ void main() {
       DateTime? healthSyncedAt,
       bool healthSyncSkipped = false,
       SleepSessionOrigin origin = SleepSessionOrigin.local,
+      String? sourceId,
     }) {
       return database
           .into(database.sleepSessions)
@@ -330,6 +387,7 @@ void main() {
               ),
               healthSyncSkipped: Value(healthSyncSkipped),
               origin: Value(origin.storageValue),
+              sourceId: Value(sourceId),
             ),
           );
     }
@@ -604,7 +662,11 @@ void main() {
       final syncedAt = DateTime(2026, 10, 21, 8);
 
       final id = await store.insertDownloaded(
-        SleepSession(startedAt: startedAt, endedAt: endedAt),
+        SleepSession(
+          startedAt: startedAt,
+          endedAt: endedAt,
+          sourceId: 'com.example.other',
+        ),
         'health-record-1',
         syncedAt,
       );
@@ -613,6 +675,7 @@ void main() {
       expect(stored?.id, id);
       expect(stored?.session.startedAt, startedAt);
       expect(stored?.session.endedAt, endedAt);
+      expect(stored?.session.sourceId, 'com.example.other');
       expect(stored?.origin, SleepSessionOrigin.healthConnect);
       expect(stored?.healthSyncedAt, syncedAt);
       expect(stored?.healthSyncSkipped, isFalse);
@@ -687,6 +750,46 @@ void main() {
       expect(local?.id, localId);
       expect(local?.session.startedAt, startedAt.add(const Duration(days: 1)));
     });
+
+    test(
+      'updateDownloadedSource stores the app on downloaded rows only',
+      () async {
+        final startedAt = DateTime(2026, 10, 20, 22);
+        final downloadedId = await insertRow(
+          startedAt: startedAt,
+          endedAt: endOf(startedAt),
+          healthRecordId: 'health-record-1',
+          healthSyncedAt: DateTime(2026, 10, 21, 7),
+          origin: SleepSessionOrigin.healthConnect,
+        );
+        final localId = await insertRow(
+          startedAt: startedAt.add(const Duration(days: 1)),
+          endedAt: endOf(startedAt.add(const Duration(days: 1))),
+        );
+
+        expect(
+          await store.updateDownloadedSource(downloadedId, 'com.example.other'),
+          isTrue,
+        );
+        expect(
+          await store.updateDownloadedSource(localId, 'com.example.other'),
+          isFalse,
+        );
+
+        final downloaded = await store.findByHealthRecordId('health-record-1');
+        expect(downloaded?.session.sourceId, 'com.example.other');
+        final local = await store.findById(localId);
+        expect(local?.session.sourceId, isNull);
+
+        expect(await store.updateDownloadedSource(downloadedId, '   '), isTrue);
+        expect(
+          (await store.findByHealthRecordId('health-record-1'))
+              ?.session
+              .sourceId,
+          isNull,
+        );
+      },
+    );
 
     test('deleteDownloaded removes only downloaded rows', () async {
       final startedAt = DateTime(2026, 10, 20, 22);

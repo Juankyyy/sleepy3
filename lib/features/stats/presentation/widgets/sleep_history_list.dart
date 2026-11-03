@@ -12,9 +12,9 @@ import '../history_session_source.dart';
 ///
 /// Each row is one session, three lines tall: wake day overline, duration
 /// headline and time range supporting text. A leading icon marks where the
-/// session came from, and editable rows open the session editor with a
-/// trailing edit icon; read-only rows stay non-interactive. Rows grow with the
-/// system text scale because [M3EListItem] uses minimum heights.
+/// session came from. Every row opens the session; read-only sessions open a
+/// details view instead of the editor. Rows grow with the system text scale
+/// because [M3EListItem] uses minimum heights.
 class SleepHistoryList extends StatelessWidget {
   const SleepHistoryList({
     super.key,
@@ -23,7 +23,6 @@ class SleepHistoryList extends StatelessWidget {
     required this.use24HourFormat,
     required this.source,
     required this.onEdit,
-    required this.isEditable,
   });
 
   final SleepHistory history;
@@ -33,11 +32,9 @@ class SleepHistoryList extends StatelessWidget {
   /// The data source selected in Settings, used to label each row's origin.
   final SleepDataSource source;
 
-  /// Called for a row the current source can edit or delete.
+  /// Called for every tapped row. The session editor decides whether the
+  /// session is editable.
   final ValueChanged<SleepSession> onEdit;
-
-  /// Whether the selected source offers any action for this session.
-  final bool Function(SleepSession session) isEditable;
 
   @override
   Widget build(BuildContext context) {
@@ -48,21 +45,15 @@ class SleepHistoryList extends StatelessWidget {
       outerRadius: 16,
       innerRadius: 4,
       gap: 2,
-      // The list only enables rows whose item is enabled. Read-only rows are
-      // built as a disabled M3EListItem, so they get no tap and no ripple.
-      onTap: (index) {
-        final session = history.entries[index].session;
-        if (isEditable(session)) onEdit(session);
-      },
+      // Every row is a button. The session editor locks its fields when the
+      // selected source cannot change the session.
+      onTap: (index) => onEdit(history.entries[index].session),
       itemBuilder: (context, index) {
         final entry = history.entries[index];
         final end = entry.session.endedAt!;
-        final editable = isEditable(entry.session);
-        final sessionSource = historySessionSource(entry.session, source);
         final item = _SleepHistoryItem(
-          enabled: editable,
           spokenText: _spokenEntry(index),
-          source: sessionSource,
+          source: historySessionSource(entry.session, source),
           // The icon itself is overlaid and centered by _SleepHistoryItem.
           // The spacer keeps the same leading inset in the row's content.
           leading: const SizedBox(width: 20),
@@ -75,44 +66,12 @@ class SleepHistoryList extends StatelessWidget {
           ),
         );
 
-        if (!editable) {
-          // Keep the item as the direct list child so M3EList can disable the
-          // row surface. Read-only rows still speak the custom row label.
-          return item;
-        }
-
-        // The row is actionable, so the whole card is a button and the edit
-        // icon stays out of the semantics tree. A three-line M3EListItem
-        // top-aligns its trailing slot, so the icon is overlaid and centered
-        // against the full card height instead.
+        // The row is actionable, so the whole card is a button. The custom
+        // label carries the source and the trailing icon is gone.
         return Semantics(
           label: _spokenEntry(index),
-          hint: 'Opens the session editor',
-          child: ExcludeSemantics(
-            child: Stack(
-              children: [
-                // Leave room for the icon and its trailing inset without
-                // letting the supporting text run underneath it.
-                Padding(padding: const EdgeInsets.only(right: 32), child: item),
-                Positioned(
-                  top: 0,
-                  right: 16,
-                  bottom: 0,
-                  child: IgnorePointer(
-                    child: Center(
-                      child: Icon(
-                        M3EIcons.edit_outlined,
-                        size: 20,
-                        color: M3ETheme.of(context)
-                            .colorScheme
-                            .onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          hint: 'Opens the session',
+          child: ExcludeSemantics(child: item),
         );
       },
     );
@@ -137,10 +96,9 @@ class SleepHistoryList extends StatelessWidget {
 
 /// The leading icon that tells where a history row came from.
 ///
-/// It uses the same 20 dp size and `onSurfaceVariant` color as the list's
-/// trailing edit icon, at 50% opacity so the source stays secondary metadata.
-/// The tooltip explains the icon to sighted users; the row's spoken label
-/// carries the same information for screen readers.
+/// It uses 20 dp and the `onSurfaceVariant` color at 50% opacity so the source
+/// stays secondary metadata. The tooltip explains the icon to sighted users;
+/// the row's spoken label carries the same information for screen readers.
 class _SessionSourceIcon extends StatelessWidget {
   const _SessionSourceIcon(this.source);
 
@@ -170,8 +128,7 @@ class _SessionSourceIcon extends StatelessWidget {
 /// [M3EListItem] top-aligns its leading slot on a three-line row. The source
 /// icon must sit in the middle of the card, so the item keeps an empty leading
 /// spacer for the inset and overlays the icon centered against its full height.
-/// The subclass is still an [M3EListItem], which is what [M3EList] checks to
-/// decide whether a row is enabled.
+/// The subclass stays an [M3EListItem] so [M3EList] recognizes the row.
 class _SleepHistoryItem extends M3EListItem {
   const _SleepHistoryItem({
     required this.spokenText,
@@ -180,7 +137,6 @@ class _SleepHistoryItem extends M3EListItem {
     super.overline,
     super.supportingText,
     super.leading,
-    super.enabled,
   });
 
   final String spokenText;
