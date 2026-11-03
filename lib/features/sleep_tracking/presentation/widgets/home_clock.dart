@@ -1,6 +1,7 @@
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../../core/theme/sleepy3_theme.dart';
 import '../../../../core/time/clock_format.dart';
 
 /// The hero block of Home: the live clock, the date and the session line.
@@ -22,10 +23,9 @@ class HomeClock extends StatelessWidget {
         _ClockLine(
           now: now,
           use24HourFormat: use24HourFormat,
-          clockStyle: theme.typography.emphasized.displayLarge.copyWith(
-            color: scheme.onSurface,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
+          clockStyle: Sleepy3Theme.clock(
+            theme.typography.emphasized.displayLarge,
+          ).copyWith(color: scheme.onSurface),
           periodStyle: theme.typography.baseline.titleMedium.copyWith(
             color: scheme.onSurfaceVariant,
           ),

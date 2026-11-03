@@ -3,10 +3,17 @@
 Both families ship under the SIL Open Font License. The license texts are
 bundled as assets next to the fonts.
 
-## RobotoFlex-VariableFont.ttf
+## SpaceGrotesk-VariableFont.ttf
 
-The app's typeface for every M3 type role. Source: Google Fonts
-(<https://fonts.google.com/specimen/Roboto+Flex>). License: `OFL.txt`.
+The app's typeface for every M3 type role except the page titles. It is the
+full variable font with a single axis, `wght` 300–700; no instancing is needed.
+
+- Source: Google Fonts
+  (<https://fonts.google.com/specimen/Space+Grotesk>), SHA-256
+  `ACAD6DE1FC93436F5C0F1F4137751EF04F1AEA3063E7036535970FFCFBD79F72`.
+- License: `OFL-SpaceGrotesk.txt`.
+- The live clock uses `wght` 700, the font's maximum. M3's emphasized
+  `displayLarge` is 500, so the clock weight is a Sleepy3 design decision.
 
 ## GoogleSansFlex-Titles.ttf
 

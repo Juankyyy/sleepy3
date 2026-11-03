@@ -393,7 +393,9 @@ void main() {
 
     final clock = tester.widget<Text>(find.text('10:30:00'));
     expect(clock.style?.fontSize, 57);
-    expect(clock.style?.fontWeight, FontWeight.w500);
+    expect(clock.style?.fontWeight, FontWeight.w700);
+    expect(clock.style?.fontVariations?.single.axis, 'wght');
+    expect(clock.style?.fontVariations?.single.value, 700);
     expect(
       clock.style?.fontFeatures?.any(
         (feature) =>

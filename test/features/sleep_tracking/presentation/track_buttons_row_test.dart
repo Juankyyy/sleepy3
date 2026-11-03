@@ -12,8 +12,10 @@ void main() {
   setUpAll(() async {
     // Render with the bundled font so label-fit checks use production metrics
     // instead of the test font's square glyphs.
-    final loader = FontLoader('RobotoFlex');
-    loader.addFont(rootBundle.load('assets/fonts/RobotoFlex-VariableFont.ttf'));
+    final loader = FontLoader('SpaceGrotesk');
+    loader.addFont(
+      rootBundle.load('assets/fonts/SpaceGrotesk-VariableFont.ttf'),
+    );
     await loader.load();
   });
 

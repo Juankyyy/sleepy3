@@ -13,12 +13,13 @@ import 'package:material_ui/material_ui.dart';
 /// Type role mapping used by the screens:
 /// - page titles (Sleepy3, Stats, Settings): [brandTitle], the instanced
 ///   Google Sans Flex face;
-/// - brand: emphasized `headlineLarge`;
-/// - live clock: emphasized `displayLarge`, tabular figures;
+/// - live clock: [clock], Space Grotesk 700 with tabular figures;
 /// - date and supporting copy: `bodyMedium`;
 /// - session line: emphasized `bodyMedium`;
 /// - day/night chip: `labelMedium`;
 /// - summary card: `titleMedium` and `labelMedium`.
+///
+/// Every other role uses the bundled Space Grotesk variable font.
 abstract final class Sleepy3Theme {
   /// Sleepy3 indigo, taken from the logo.
   ///
@@ -35,8 +36,11 @@ abstract final class Sleepy3Theme {
   /// The dark `primary`, the lavender accent from the brand palette.
   static const darkPrimary = Color(0xFFC6CCF7);
 
-  /// Bundled Roboto Flex family, declared in `pubspec.yaml`.
-  static const fontFamily = 'RobotoFlex';
+  /// Bundled Space Grotesk family, declared in `pubspec.yaml`.
+  ///
+  /// It covers the whole M3 type scale. The font only exposes `wght`
+  /// (300–700); the theme maps each role's weight onto it.
+  static const fontFamily = 'SpaceGrotesk';
 
   /// Instanced Google Sans Flex family, declared in `pubspec.yaml`.
   ///
@@ -64,6 +68,18 @@ abstract final class Sleepy3Theme {
       fontVariations: [FontVariation('opsz', size.toDouble())],
     );
   }
+
+  /// The live clock: Space Grotesk at 700 with tabular figures.
+  ///
+  /// M3's emphasized `displayLarge` is Medium (500) and the scale tops out at
+  /// Bold (700); 700 here is a Sleepy3 design decision. The explicit
+  /// variation is required because the theme's resolved `wght` would otherwise
+  /// win over [TextStyle.fontWeight].
+  static TextStyle clock(TextStyle style) => style.copyWith(
+    fontWeight: FontWeight.w700,
+    fontVariations: const [FontVariation('wght', 700)],
+    fontFeatures: const [FontFeature.tabularFigures()],
+  );
 
   static final _light = _build(Brightness.light);
   static final _dark = _build(Brightness.dark);
@@ -111,8 +127,9 @@ abstract final class Sleepy3Theme {
     ).copyWith(
       fontFamily: fontFamily,
       variableFont: const M3EVariableFontConfig(
-        // Keep the M3 weights and tracking. The package's optional grade bump
-        // would push emphasized styles off the published scale.
+        // Space Grotesk has no optical-size or grade axes; the weights still
+        // follow the M3 roles.
+        enableOpsz: false,
         emphasizedGrad: 0,
       ),
       navigationBarTheme: const _Sleepy3NavigationBarTheme(),

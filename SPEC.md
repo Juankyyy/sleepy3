@@ -456,15 +456,17 @@ Reglas:
   texto mantienen al menos 4.5:1 y `outline` al menos 3:1.
 - El modo sigue al sistema por defecto. Desde `Settings` se puede fijar `System`,
   `Light` o `Dark`; la elección se aplica al instante y se conserva entre arranques.
-- Tipografía **Roboto Flex variable** empaquetada como asset (`assets/fonts/`, OFL) para
+- Tipografía **Space Grotesk variable** empaquetada como asset (`assets/fonts/`, OFL) para
   toda la escala. Se usan los tamaños, pesos y tracking de la escala M3; no se usan
-  pesos 850/950 en los tokens.
+  pesos 850/950 en los tokens. La fuente solo tiene el eje `wght` (300–700).
 - Los títulos de Home, Stats y Settings usan **Google Sans Flex instanciada**
   (`assets/fonts/GoogleSansFlex-Titles.ttf`, también OFL) con `wght` 900, `wdth` 112,5 y
   `ROND` 35 fijados en el asset y solo `opsz` vivo (28–32). Es una decisión de diseño
   fuera de M3 (la escala emphasized llega a Bold 700) y no altera los tokens de peso.
 - Mapeo tipográfico:
-  - reloj: `displayLarge` emphasized, con cifras tabulares;
+  - reloj: `displayLarge` emphasized en Space Grotesk **700** con cifras tabulares
+    (`Sleepy3Theme.clock`). El token emphasized es 500; el 700 es una decisión de diseño
+    dentro del máximo de la escala;
   - AM/PM: `titleMedium`;
   - marca: `headlineLarge` emphasized en Google Sans Flex instanciada;
   - títulos de Stats y Settings: `headlineMedium` emphasized en Google Sans Flex
@@ -673,7 +675,7 @@ Reglas:
 |---|---|
 | UI | Flutter 3.47.x / Dart 3.13.x |
 | Diseño | `material_ui` 1.7.0 + `material_3_expressive` 1.1.7 |
-| Tipografía | Roboto Flex variable (UI) y Google Sans Flex instanciada (títulos), assets OFL |
+| Tipografía | Space Grotesk variable (UI) y Google Sans Flex instanciada (títulos), assets OFL |
 | Fechas | `intl` 0.20 |
 | Estado | Riverpod |
 | Persistencia | Drift + SQLite (`drift_flutter`, `sqlite3`) |
@@ -734,7 +736,7 @@ lib/
     └── widget/             # 0.2.0
 assets/
 ├── brand/                 # fuentes del logo, marca del splash e iconos generados
-└── fonts/                 # Roboto Flex, Google Sans Flex para títulos y licencias OFL
+└── fonts/                 # Space Grotesk, Google Sans Flex para títulos y licencias OFL
 ```
 
 ### Arranque
@@ -1062,8 +1064,8 @@ dart run tool/generate_brand_assets.dart
   límite de 30 días y recarga al conceder el historial.
 - Enriquecimiento del historial de Google Health con la copia local y fallo tolerado al
   leer esos metadatos.
-- Tema: paleta de marca fija (claro/oscuro), roles M3, contraste, tipografía Roboto
-  Flex y los títulos en Google Sans Flex instanciada.
+- Tema: paleta de marca fija (claro/oscuro), roles M3, contraste, tipografía Space
+  Grotesk y los títulos en Google Sans Flex instanciada.
 - Splash: overlay de marca sobre el shell, se retira al terminar la animación y se omite
   con reducir movimiento.
 - Build Android debug y release correctos.
@@ -1090,7 +1092,7 @@ dart run tool/generate_brand_assets.dart
 
 - Scaffold Flutter Android.
 - Pantalla principal con dos botones y estado Sleep/Wake.
-- Tema M3 Expressive fijo con la paleta de marca, Roboto Flex empaquetada y los títulos
+- Tema M3 Expressive fijo con la paleta de marca, Space Grotesk empaquetada y los títulos
   en Google Sans Flex instanciada.
 - Persistencia Drift y restauración de sesión abierta.
 - Cabecera con chip día/noche, reloj en vivo con segundos y línea de sesión.

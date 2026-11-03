@@ -164,7 +164,7 @@ void main() {
       }
     });
 
-    test('uses the M3 type scale with bundled Roboto Flex', () {
+    test('uses the M3 type scale with bundled Space Grotesk', () {
       final theme = Sleepy3Theme.light();
       final baseline = theme.typography.baseline;
       final emphasized = theme.typography.emphasized;
@@ -200,9 +200,25 @@ void main() {
         ),
         isTrue,
       );
+      // Space Grotesk has no optical-size axis.
+      expect(variations.any((variation) => variation.axis == 'opsz'), isFalse);
+    });
+
+    test('the clock uses Space Grotesk at 700 with tabular figures', () {
+      final theme = Sleepy3Theme.light();
+      final clock = Sleepy3Theme.clock(
+        theme.typography.emphasized.displayLarge,
+      );
+
+      expect(clock.fontFamily, Sleepy3Theme.fontFamily);
+      expect(clock.fontWeight, FontWeight.w700);
+      expect(clock.fontVariations!.single.axis, 'wght');
+      expect(clock.fontVariations!.single.value, 700);
       expect(
-        variations.any(
-          (variation) => variation.axis == 'opsz' && variation.value == 57,
+        clock.fontFeatures!.any(
+          (feature) =>
+              feature.feature == FontFeature.tabularFigures().feature &&
+              feature.value == FontFeature.tabularFigures().value,
         ),
         isTrue,
       );
@@ -230,7 +246,7 @@ void main() {
       expect(medium.fontVariations!.single.axis, 'opsz');
       expect(medium.fontVariations!.single.value, 28);
 
-      // Everything else stays on Roboto Flex.
+      // Everything else stays on Space Grotesk.
       expect(
         theme.typography.emphasized.displayLarge.fontFamily,
         Sleepy3Theme.fontFamily,

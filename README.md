@@ -165,7 +165,7 @@ lib/
         └── presentation/  # settings screen, theme dialog and about list
 assets/
 ├── brand/             # logo sources, splash mark and launcher icon sources
-└── fonts/             # Roboto Flex, the instanced Google Sans Flex titles face, OFL licenses
+└── fonts/             # Space Grotesk, the instanced Google Sans Flex titles face, OFL licenses
 android/
 └── app/src/main/kotlin/com/sleepy3/app/
     └── MainActivity.kt    # native widget and platform bridges land here
@@ -180,7 +180,7 @@ The controller is a Riverpod `Notifier`: it updates in-memory state first so the
 | Layer | Technology |
 |---|---|
 | UI | Flutter 3.47 + Material 3 Expressive (`material_3_expressive` 1.1.7) |
-| Type | Roboto Flex for the M3 scale; instanced Google Sans Flex for the page titles (both OFL) |
+| Type | Space Grotesk for the M3 scale; instanced Google Sans Flex for the page titles (both OFL) |
 | State | Riverpod (`flutter_riverpod` 3.x) |
 | Persistence | Drift over SQLite (`drift`, `drift_flutter`) |
 | App info | `package_info_plus` |
@@ -201,7 +201,7 @@ The controller is a Riverpod `Notifier`: it updates in-memory state first so the
 
 Sleepy3 uses a fixed Material 3 Expressive palette taken from its logo: light body `#EFF4F9` with `#252B81` primary, and dark body `#121318` with `#C6CCF7` primary. Dynamic color (Material You) is intentionally off, so the app looks the same on every device.
 
-Type is **Roboto Flex** for the M3 scale, bundled in the APK. The home brand and the Stats/Settings page titles use **Google Sans Flex**, instanced at weight 900, width 112.5 and roundness 35, with only the optical-size axis left live. Both families are distributed under the SIL Open Font License (`assets/fonts/OFL.txt` and `assets/fonts/OFL-GoogleSansFlex.txt`); `assets/fonts/README.md` documents how to regenerate the instanced face. The launcher icon, the adaptive layers, the Android 12+ launch marks and the splash mark are generated from `assets/brand/` with:
+Type is **Space Grotesk** for the M3 scale, bundled in the APK; the live clock uses it at weight 700. The home brand and the Stats/Settings page titles use **Google Sans Flex**, instanced at weight 900, width 112.5 and roundness 35, with only the optical-size axis left live. Both families are distributed under the SIL Open Font License (`assets/fonts/OFL-SpaceGrotesk.txt` and `assets/fonts/OFL-GoogleSansFlex.txt`); `assets/fonts/README.md` documents both assets. The launcher icon, the adaptive layers, the Android 12+ launch marks and the splash mark are generated from `assets/brand/` with:
 
 ```bash
 dart run tool/generate_brand_assets.dart
