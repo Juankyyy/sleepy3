@@ -13,12 +13,13 @@ optional data source.
   under `android/app/src/main/kotlin/com/sleepy3/app/`.
 - Platform features that cannot run in Flutter (the widget, Health Connect manifest
   entries) stay in the Android layer behind small, documented bridges.
-- Current state: the home screen, sleep state machine, Drift persistence, Stats history with
-  session editing/deleting, Settings, Health Connect (Local/Google Health, pending uploads,
-  copy actions and full history access), the branded launcher icon and splash, and the
-  two-channel release workflow work. The Glance widget is next. Sessions, preferences and
-  Health Connect metadata live in `sleepy3.sqlite` (schema v4); generated Drift code is
-  committed.
+- Current state: v0.1.0 is the first stable release (without the home-screen widget). The
+  home screen, sleep state machine, Drift persistence, Stats history with session
+  editing/deleting, Settings, Health Connect (Local/Google Health, pending uploads, copy
+  actions and full history access), the branded launcher icon and splash, and the
+  two-channel release workflow work. The Glance widget is the next milestone (0.2.0).
+  Sessions, preferences and Health Connect metadata live in `sleepy3.sqlite` (schema v4);
+  generated Drift code is committed.
 
 ## Commands
 

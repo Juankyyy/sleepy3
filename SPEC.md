@@ -3,9 +3,9 @@
 **Proyecto:** Sleepy3
 **Plataforma:** Android
 **Stack principal:** Flutter + Material 3 Expressive
-**Estado:** migración a Flutter en curso; Home, Stats (con edición y borrado de sesiones),
-Settings, la persistencia local y Health Connect (Local/Google Health) ya funcionan. El
-widget de pantalla de inicio es lo siguiente.
+**Estado:** v0.1.0, primera release estable (sin widget). Home, Stats (con edición y
+borrado de sesiones), Settings, la persistencia local y Health Connect (Local/Google
+Health) funcionan. El widget de pantalla de inicio es el siguiente bloque (0.2.0).
 
 ---
 
@@ -374,7 +374,7 @@ Reglas:
 - El modo de tema y la fuente de datos se guardan en la tabla `preferences` de la misma
   base Drift; no se usa `shared_preferences`.
 
-### 3.5 Widget de pantalla de inicio (planificado)
+### 3.5 Widget de pantalla de inicio (0.2.0)
 
 - Dos acciones: **Sleep** y **Wake**.
 - El toque registra la hora sin abrir la app.
@@ -717,7 +717,7 @@ lib/
     │   ├── data/           # Health Connect gateway and Drift sync store
     │   ├── application/    # source, history, history-permission, sync, upload and copy
     │   └── presentation/   # copy dialogs, sync and history banners, source text
-    └── widget/             # planificado
+    └── widget/             # 0.2.0
 assets/
 ├── brand/                 # fuentes del logo, marca del splash e iconos generados
 └── fonts/                 # Roboto Flex variable y su licencia OFL
@@ -912,7 +912,7 @@ dart run build_runner build
 
 ---
 
-## 8. Widget de pantalla de inicio (planificado)
+## 8. Widget de pantalla de inicio (0.2.0)
 
 - Implementación nativa con Jetpack Glance y `RemoteViews`; no usa el engine de Flutter.
 - Dos acciones: Sleep/Wake.
@@ -1057,8 +1057,6 @@ dart run tool/generate_brand_assets.dart
 ### Cobertura pendiente
 
 - Widget nativo: taps, cola de pendientes y reconciliación.
-- Prueba manual del APK release en un dispositivo con Health Connect y Google Health,
-  incluida la edición y el borrado de sesiones.
 - Golden tests o capturas de referencia para claro/oscuro.
 
 ### Criterio de done por módulo
@@ -1097,13 +1095,15 @@ dart run tool/generate_brand_assets.dart
   claro y oscuro.
 - Releases automáticas de dos canales: pre-releases por push a `dev` y estables por push a
   `main`, con versionado, firma y notas generadas.
+- Prueba manual del APK release en el dispositivo del maintainer, con Health Connect y
+  Google Health, incluida la edición y el borrado de sesiones.
+- Primera release estable 0.1.0, sin widget.
 - Tests de estado, persistencia y UI.
 
 ### Siguiente
 
-1. Widget de pantalla de inicio con Glance y `home_widget`.
-2. Prueba manual en dispositivo del APK release y release estable (con autorización).
-3. Pulido de motion y accesibilidad.
+1. Widget de pantalla de inicio con Glance y `home_widget` (0.2.0).
+2. Pulido de motion y accesibilidad.
 
 ---
 

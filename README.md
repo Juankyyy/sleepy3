@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Juankyyy/sleepy3/releases"><img src="https://img.shields.io/github/v/release/Juankyyy/sleepy3?include_prereleases&amp;label=release&amp;color=252B81" alt="Latest release"></a>
+  <a href="https://github.com/Juankyyy/sleepy3/releases"><img src="https://img.shields.io/github/v/release/Juankyyy/sleepy3?label=release&amp;color=252B81" alt="Latest stable release"></a>
   &nbsp;
   <img src="https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&amp;logoColor=white" alt="Android 9 or newer">
   &nbsp;
@@ -21,13 +21,13 @@
 
 ## Download and install
 
-Sleepy3 is not on Google Play yet. Download the newest build from [Releases](https://github.com/Juankyyy/sleepy3/releases):
+Sleepy3 is not on Google Play yet. Download the latest stable build from [Releases](https://github.com/Juankyyy/sleepy3/releases). Development builds are published as pre-releases.
 
 1. Open Releases on your phone.
 2. Download the latest `sleepy3-vX.Y.Z.apk`.
 3. Open the file and allow installs from your browser or file manager when Android asks.
 
-Sleepy3 runs on **Android 9 or newer**. The app is in early development, so new builds are pre-releases and may still have rough edges.
+Sleepy3 runs on **Android 9 or newer**. Version **0.1.0** is the first stable release; the home-screen widget is planned for a later update.
 
 ## How to use it
 
@@ -103,6 +103,7 @@ Health Connect hides records older than 30 days unless you give Sleepy3 the hist
 
 - [x] Local tracking, Stats history and Settings.
 - [x] Health Connect sync, history access and session editing.
+- [x] First stable release (0.1.0).
 - [ ] Home-screen widget with Sleep and Wake buttons.
 - [ ] Motion and accessibility polish.
 
