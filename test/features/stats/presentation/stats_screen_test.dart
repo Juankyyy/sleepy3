@@ -100,6 +100,9 @@ void main() {
     await pumpStats(tester, clock: () => DateTime(2026, 10, 21, 10));
 
     expect(find.text('Stats'), findsOneWidget);
+    final title = tester.widget<Text>(find.text('Stats'));
+    expect(title.style?.fontFamily, Sleepy3Theme.brandFontFamily);
+    expect(title.style?.fontVariations!.single.value, 28);
     expect(find.text('No sleep history yet'), findsOneWidget);
     expect(
       find.text('Your nights will appear here after you wake up.'),

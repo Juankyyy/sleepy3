@@ -33,8 +33,14 @@ flutter:
   uses-material-design: true
   assets:
     - assets/fonts/OFL.txt
+    - assets/fonts/OFL-GoogleSansFlex.txt
     - assets/brand/Sleepy3-mark.png
   fonts:
     - family: RobotoFlex
       fonts:
         - asset: assets/fonts/RobotoFlex-VariableFont.ttf
+    # Instanced Google Sans Flex for the Sleepy3, Stats and Settings titles.
+    # See assets/fonts/README.md for the pinned axes.
+    - family: GoogleSansFlexTitles
+      fonts:
+        - asset: assets/fonts/GoogleSansFlex-Titles.ttf

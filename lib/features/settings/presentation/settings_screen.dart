@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../core/theme/sleepy3_theme.dart';
 import '../../health/application/sleep_data_source_controller.dart';
 import '../application/app_version_provider.dart';
 import '../application/theme_mode_controller.dart';
@@ -31,9 +32,9 @@ class SettingsScreen extends ConsumerWidget {
           header: true,
           child: Text(
             'Settings',
-            style: theme.typography.emphasized.headlineMedium.copyWith(
-              color: scheme.onSurface,
-            ),
+            style: Sleepy3Theme.brandTitle(
+              theme.typography.emphasized.headlineMedium,
+            ).copyWith(color: scheme.onSurface),
           ),
         ),
         const SizedBox(height: 4),

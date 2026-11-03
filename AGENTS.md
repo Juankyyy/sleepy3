@@ -59,6 +59,11 @@ lib/
 - UI imports: use `package:material_ui/material_ui.dart` and
   `package:material_3_expressive/material_3_expressive.dart`; do not import
   `package:flutter/material.dart` in app code.
+- Type: Roboto Flex covers the M3 scale. The home brand and the Stats/Settings page
+  titles use `GoogleSansFlexTitles`, an instanced Google Sans Flex with `wght` 900,
+  `wdth` 112.5 and `ROND` 35 baked in and only `opsz` live (28–32). Apply it through
+  `Sleepy3Theme.brandTitle`; the axes are a design decision outside M3 (emphasized
+  styles top out at 700). Regenerate with `assets/fonts/README.md`.
 - Brand assets live in `assets/brand/`. The launcher mipmaps, the adaptive icon XML, the
   Android 12+ `drawable*/launch_mark.png` sprites and `Sleepy3-mark.png` are generated with
   `dart run tool/generate_brand_assets.dart`; the splash itself is

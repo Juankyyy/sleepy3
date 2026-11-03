@@ -207,6 +207,39 @@ void main() {
         isTrue,
       );
     });
+
+    test('brand titles use the instanced Google Sans Flex face', () {
+      final theme = Sleepy3Theme.light();
+      final large = Sleepy3Theme.brandTitle(
+        theme.typography.emphasized.headlineLarge,
+      );
+      final medium = Sleepy3Theme.brandTitle(
+        theme.typography.emphasized.headlineMedium,
+      );
+
+      expect(large.fontFamily, Sleepy3Theme.brandFontFamily);
+      expect(medium.fontFamily, Sleepy3Theme.brandFontFamily);
+
+      // The instanced asset bakes the 900 weight in, so the role keeps its M3
+      // tokens and only the optical size varies.
+      expect(large.fontWeight, FontWeight.w500);
+      expect(large.fontSize, 32);
+      expect(medium.fontSize, 28);
+      expect(large.fontVariations!.single.axis, 'opsz');
+      expect(large.fontVariations!.single.value, 32);
+      expect(medium.fontVariations!.single.axis, 'opsz');
+      expect(medium.fontVariations!.single.value, 28);
+
+      // Everything else stays on Roboto Flex.
+      expect(
+        theme.typography.emphasized.displayLarge.fontFamily,
+        Sleepy3Theme.fontFamily,
+      );
+      expect(
+        theme.typography.baseline.bodyMedium.fontFamily,
+        Sleepy3Theme.fontFamily,
+      );
+    });
   });
 }
 

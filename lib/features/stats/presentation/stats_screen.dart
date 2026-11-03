@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../core/theme/sleepy3_theme.dart';
 import '../../../core/time/clock_format.dart';
 import '../../../core/time/local_day_builder.dart';
 import '../../../core/widgets/empty_state.dart';
@@ -278,9 +279,9 @@ class _StatsHeader extends StatelessWidget {
           header: true,
           child: Text(
             'Stats',
-            style: theme.typography.emphasized.headlineMedium.copyWith(
-              color: scheme.onSurface,
-            ),
+            style: Sleepy3Theme.brandTitle(
+              theme.typography.emphasized.headlineMedium,
+            ).copyWith(color: scheme.onSurface),
           ),
         ),
         const SizedBox(height: 4),

@@ -1,6 +1,7 @@
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../../core/theme/sleepy3_theme.dart';
 import '../../../../core/time/day_phase.dart';
 
 /// The centered brand and the day/night status at the top of Home.
@@ -22,9 +23,9 @@ class HomeHeader extends StatelessWidget {
           child: Text(
             'Sleepy3',
             textAlign: TextAlign.center,
-            style: theme.typography.emphasized.headlineLarge.copyWith(
-              color: scheme.onSurface,
-            ),
+            style: Sleepy3Theme.brandTitle(
+              theme.typography.emphasized.headlineLarge,
+            ).copyWith(color: scheme.onSurface),
           ),
         ),
         const SizedBox(height: 8),

@@ -11,6 +11,8 @@ import 'package:material_ui/material_ui.dart';
 /// Dynamic color is intentionally off.
 ///
 /// Type role mapping used by the screens:
+/// - page titles (Sleepy3, Stats, Settings): [brandTitle], the instanced
+///   Google Sans Flex face;
 /// - brand: emphasized `headlineLarge`;
 /// - live clock: emphasized `displayLarge`, tabular figures;
 /// - date and supporting copy: `bodyMedium`;
@@ -35,6 +37,33 @@ abstract final class Sleepy3Theme {
 
   /// Bundled Roboto Flex family, declared in `pubspec.yaml`.
   static const fontFamily = 'RobotoFlex';
+
+  /// Instanced Google Sans Flex family, declared in `pubspec.yaml`.
+  ///
+  /// The asset bakes `wght` 900, `wdth` 112.5, `ROND` 35 and `slnt` 0 in, and
+  /// keeps only `opsz` live (28–32). Those axes are a Sleepy3 design decision
+  /// outside the M3 typescale, which tops out at Bold (700). See
+  /// `assets/fonts/README.md` to regenerate it.
+  static const brandFontFamily = 'GoogleSansFlexTitles';
+
+  /// The `opsz` range available in [brandFontFamily].
+  static const _brandOpszMin = 28.0;
+  static const _brandOpszMax = 32.0;
+
+  /// Returns [style] in the instanced brand face at its matching optical size.
+  ///
+  /// The role keeps its M3 weight and tracking; the 900 weight lives in the
+  /// font asset, not in a token.
+  static TextStyle brandTitle(TextStyle style) {
+    final size = (style.fontSize ?? _brandOpszMax).clamp(
+      _brandOpszMin,
+      _brandOpszMax,
+    );
+    return style.copyWith(
+      fontFamily: brandFontFamily,
+      fontVariations: [FontVariation('opsz', size.toDouble())],
+    );
+  }
 
   static final _light = _build(Brightness.light);
   static final _dark = _build(Brightness.dark);

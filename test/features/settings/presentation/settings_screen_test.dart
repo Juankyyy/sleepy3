@@ -141,6 +141,9 @@ void main() {
     );
 
     expect(find.text('Settings'), findsOneWidget);
+    final title = tester.widget<Text>(find.text('Settings'));
+    expect(title.style?.fontFamily, Sleepy3Theme.brandFontFamily);
+    expect(title.style?.fontVariations!.single.value, 28);
     expect(find.text('Theme, sleep data and app info.'), findsOneWidget);
     expect(find.text('Appearance'), findsOneWidget);
     expect(find.text('Theme'), findsOneWidget);

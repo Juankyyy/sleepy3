@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/app/sleepy3_app.dart';
+import 'package:sleepy3/core/theme/sleepy3_theme.dart';
 import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
 import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
 import 'package:sleepy3/features/health/application/sleep_data_source_controller.dart';
@@ -77,6 +78,10 @@ void main() {
     expect(find.text('Tuesday, October 20'), findsOneWidget);
     expect(find.text('Tap Sleep when you turn off the lights'), findsOneWidget);
     expect(find.text('Last 3 days · — avg'), findsOneWidget);
+
+    final brand = tester.widget<Text>(find.text('Sleepy3'));
+    expect(brand.style?.fontFamily, Sleepy3Theme.brandFontFamily);
+    expect(brand.style?.fontVariations!.single.value, 32);
 
     var buttons = tester.widgetList<M3EButton>(find.byType(M3EButton)).toList();
     expect(buttons, hasLength(2));
