@@ -4,9 +4,10 @@ import 'package:material_ui/material_ui.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/sleep_tracking/presentation/sleep_home_screen.dart';
 import '../features/stats/presentation/stats_screen.dart';
+import 'navigation/pill_navigation_bar.dart';
 import 'navigation/sleepy3_destination.dart';
 
-/// App shell with the three top-level destinations and the M3 navigation bar.
+/// App shell with the three top-level destinations and the pill navigation bar.
 ///
 /// The destinations build lazily: Home is built for the first frame and Stats
 /// or Settings join the [IndexedStack] the first time they are selected. Once
@@ -47,6 +48,9 @@ class _Sleepy3ShellState extends State<Sleepy3Shell> {
       },
       child: Scaffold(
         backgroundColor: scheme.surface,
+        // The glass bar floats over the content. The screens add the bottom
+        // MediaQuery padding so their last item can scroll above it.
+        extendBody: true,
         body: SafeArea(
           // The navigation bar owns the bottom system inset.
           bottom: false,
@@ -65,15 +69,24 @@ class _Sleepy3ShellState extends State<Sleepy3Shell> {
             ],
           ),
         ),
-        bottomNavigationBar: M3ENavigationBar(
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: _selectDestination,
-          size: M3ENavBarSize.small,
-          destinations: [
-            for (final destination in Sleepy3Destination.values)
-              destination.toNavigationBarDestination(),
-          ],
-          semanticLabel: 'Main navigation',
+        bottomNavigationBar: Builder(
+          builder: (context) {
+            final insets = M3ESafeArea.paddingOf(context);
+            return Padding(
+              padding: EdgeInsets.only(
+                left: insets.left,
+                top: PillNavigationBar.topGap,
+                right: insets.right,
+                bottom: insets.bottom + PillNavigationBar.bottomGap,
+              ),
+              child: PillNavigationBar(
+                selectedIndex: _selectedIndex,
+                onDestinationSelected: _selectDestination,
+                destinations: Sleepy3Destination.values,
+                semanticLabel: 'Main navigation',
+              ),
+            );
+          },
         ),
       ),
     );

@@ -45,6 +45,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
     final margin = MediaQuery.sizeOf(context).width >= 600 ? 24.0 : 16.0;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     if (state.historyStatus == SleepHistoryStatus.initial ||
         state.historyStatus == SleepHistoryStatus.loading) {
@@ -81,16 +82,19 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
             ),
           ),
           Expanded(
-            child: Sleepy3EmptyState(
-              icon: M3EIcons.insights_rounded,
-              headline: source == SleepDataSource.healthConnect
-                  ? 'No sleep history in Google Health'
-                  : 'No sleep history yet',
-              supportingText: source == SleepDataSource.healthConnect
-                  ? 'Sleep sessions in Health Connect will appear here.'
-                  : state.isSleeping
-                  ? 'Your first night will appear here when you wake up.'
-                  : 'Your nights will appear here after you wake up.',
+            child: Padding(
+              padding: EdgeInsets.only(bottom: bottomInset),
+              child: Sleepy3EmptyState(
+                icon: M3EIcons.analytics_rounded,
+                headline: source == SleepDataSource.healthConnect
+                    ? 'No sleep history in Google Health'
+                    : 'No sleep history yet',
+                supportingText: source == SleepDataSource.healthConnect
+                    ? 'Sleep sessions in Health Connect will appear here.'
+                    : state.isSleeping
+                    ? 'Your first night will appear here when you wake up.'
+                    : 'Your nights will appear here after you wake up.',
+              ),
             ),
           ),
         ],
@@ -177,7 +181,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                   onEdit: (session) => unawaited(_openEditor(session)),
                 ),
               ),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            SliverToBoxAdapter(child: SizedBox(height: 24 + bottomInset)),
           ],
         );
       },
@@ -321,7 +325,12 @@ class _StatusLayout extends StatelessWidget {
         ),
         Expanded(
           child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(margin, 24, margin, 24),
+            padding: EdgeInsets.fromLTRB(
+              margin,
+              24,
+              margin,
+              24 + MediaQuery.paddingOf(context).bottom,
+            ),
             child: Center(child: child),
           ),
         ),

@@ -240,13 +240,27 @@ Reglas:
 
 ### 3.2 Navegación
 
-- Barra de navegación M3 flexible (`M3ENavigationBar`, 64 dp) con tres destinos de
-  igual importancia: `Home`, `Stats` y `Settings`.
+- Barra de navegación flotante, content-sized y centrada (`PillNavigationBar`, 64 dp;
+  crece en vertical si una etiqueta escalada necesita otra línea) con tres destinos de
+  igual importancia: `Home`, `Stats` y `Settings`. El ancho se ajusta al label activo y
+  se limita al ancho de la pantalla menos 32 dp (24 dp por debajo de 360 dp).
 - `Home` es el destino inicial. `Stats` muestra el resumen por rango y el historial;
   `Settings` contiene apariencia, la fuente de datos, el estado de Google Health y la
   información de la app.
-- El destino activo usa icono relleno, etiqueta en negrita y la píldora de selección;
-  los inactivos usan icono outline.
+- El destino activo usa una píldora `secondaryContainer` de 48 dp con icono relleno y
+  etiqueta; los inactivos muestran solo el icono outline en `onSurfaceVariant`, con un
+  objetivo táctil de 48 dp. La etiqueta de los tres destinos sigue disponible para
+  lectores de pantalla.
+- El ancho de la píldora y la etiqueta se animan con los springs de M3; el icono cambia
+  de outline a relleno y la etiqueta se revela al expandirse la píldora.
+- El contenedor es glass: `ClipRRect` + `BackdropFilter` (blur 16), `surfaceContainer`
+  al 82 % y un borde `outlineVariant` al 55 %, sin sombra.
+- El `Scaffold` usa `extendBody: true`: el contenido pasa por detrás de la barra y se ve
+  a través del glass. Home, Stats y Settings añaden el padding inferior de `MediaQuery`
+  al final de su scroll para que el último elemento pueda subir por encima.
+- M3 exige etiqueta en todos los destinos, un contenedor a todo el ancho y una superficie
+  opaca. La barra content-sized, glass y con etiquetas solo en el activo es una decisión
+  de diseño de Sleepy3, no una regla de M3; la etiqueta se mantiene en semántica.
 - Un `IndexedStack` conserva el estado de cada pestaña al cambiar de destino, incluido
   el rango elegido en `Stats` durante la sesión de la app. `Stats` y `Settings` se
   construyen la primera vez que se seleccionan, para que el primer frame solo monte
@@ -483,10 +497,20 @@ Reglas:
     necesita `bodyMedium`).
 - La ilustración de luna/sol del prototipo no forma parte de la UI.
 - Navegación:
-  - Barra M3 flexible de 64 dp, a todo el ancho, con `surfaceContainer` y sin borde
-    ni sombra.
-  - Tres destinos: `Home`, `Stats` y `Settings`. El activo usa la píldora de selección
-    y un icono relleno; los inactivos, icono outline.
+  - Barra flotante, content-sized y centrada (`PillNavigationBar`), 64 dp, con margen
+    mínimo de 16 dp (12 dp por debajo de 360 dp) y 12 dp sobre el inset inferior del
+    sistema. El ancho máximo es la pantalla menos 32 dp (24 dp por debajo de 360 dp).
+  - Contenedor glass: `ClipRRect` + `BackdropFilter` (blur 16), `surfaceContainer` al
+    82 % y borde `outlineVariant` al 55 %, sin sombra. La píldora activa es opaca.
+  - Tres destinos: `Home`, `Stats` y `Settings`. El activo usa una píldora
+    `secondaryContainer` de 48 dp con icono relleno y etiqueta; los inactivos, solo
+    icono outline en `onSurfaceVariant`.
+  - `Stats` usa `analytics_outlined` / `analytics`; el estado vacío de Stats usa
+    `analytics_rounded`.
+  - La etiqueta inactiva se oculta visualmente pero se conserva en semántica.
+  - `Scaffold.extendBody` deja el contenido detrás de la barra. Home, Stats (incluidos
+    vacío, carga y error) y Settings suman el padding inferior de `MediaQuery` a su
+    scroll para que el último elemento pueda subir por encima.
   - `Stats` y `Settings` tienen contenido (ver abajo).
 - Pantalla principal:
   - Cabecera centrada: `Sleepy3` en `headlineLarge` emphasized y un chip de estado

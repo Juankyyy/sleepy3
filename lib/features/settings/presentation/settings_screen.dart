@@ -21,12 +21,13 @@ class SettingsScreen extends ConsumerWidget {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
     final margin = MediaQuery.sizeOf(context).width >= 600 ? 24.0 : 16.0;
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
     final themeMode = ref.watch(themeModeControllerProvider);
     final dataSource = ref.watch(sleepDataSourceProvider);
     final appVersion = ref.watch(appVersionProvider);
 
     return ListView(
-      padding: EdgeInsets.fromLTRB(margin, 16, margin, 24),
+      padding: EdgeInsets.fromLTRB(margin, 16, margin, 24 + bottomInset),
       children: [
         Semantics(
           header: true,

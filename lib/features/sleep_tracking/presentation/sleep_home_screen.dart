@@ -26,6 +26,7 @@ class SleepHomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(sleepTrackingControllerProvider);
     final controller = ref.read(sleepTrackingControllerProvider.notifier);
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Padding(
       // M3 compact layout margin.
@@ -41,6 +42,7 @@ class SleepHomeScreen extends ConsumerWidget {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     return SingleChildScrollView(
+                      padding: EdgeInsets.only(bottom: bottomInset),
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
                           minHeight: constraints.maxHeight,

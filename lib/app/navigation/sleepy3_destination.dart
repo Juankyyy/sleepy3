@@ -4,7 +4,7 @@ import 'package:material_ui/material_ui.dart';
 /// Top-level destinations of Sleepy3.
 ///
 /// Labels are short (one word), and each destination swaps its outlined icon
-/// for the filled one when selected, as the M3 navigation bar requires.
+/// for the filled one when selected by the pill navigation bar.
 enum Sleepy3Destination {
   home(
     label: 'Home',
@@ -13,8 +13,8 @@ enum Sleepy3Destination {
   ),
   stats(
     label: 'Stats',
-    icon: M3EIcons.bar_chart_outlined,
-    selectedIcon: M3EIcons.bar_chart,
+    icon: M3EIcons.analytics_outlined,
+    selectedIcon: M3EIcons.analytics,
   ),
   settings(
     label: 'Settings',
@@ -31,13 +31,4 @@ enum Sleepy3Destination {
   final String label;
   final IconData icon;
   final IconData selectedIcon;
-
-  /// Builds the destination model consumed by [M3ENavigationBar].
-  M3ENavigationBarDestination toNavigationBarDestination() {
-    return M3ENavigationBarDestination(
-      label: label,
-      icon: Icon(icon),
-      selectedIcon: Icon(selectedIcon),
-    );
-  }
 }

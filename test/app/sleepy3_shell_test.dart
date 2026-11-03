@@ -1,8 +1,8 @@
-import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:sleepy3/app/navigation/pill_navigation_bar.dart';
 import 'package:sleepy3/app/navigation/sleepy3_destination.dart';
 import 'package:sleepy3/app/sleepy3_app.dart';
 import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
@@ -44,15 +44,19 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  M3ENavigationBar navigationBar(WidgetTester tester) {
-    return tester.widget<M3ENavigationBar>(find.byType(M3ENavigationBar));
+  PillNavigationBar navigationBar(WidgetTester tester) {
+    return tester.widget<PillNavigationBar>(find.byType(PillNavigationBar));
   }
 
   Finder inNavigationBar(Finder matching) {
     return find.descendant(
-      of: find.byType(M3ENavigationBar),
+      of: find.byType(PillNavigationBar),
       matching: matching,
     );
+  }
+
+  ValueKey<String> navKey(Sleepy3Destination destination) {
+    return ValueKey('nav-${destination.name}');
   }
 
   testWidgets('starts on Home with three labelled destinations', (
@@ -67,20 +71,41 @@ void main() {
       'Settings',
     ]);
     expect(bar.selectedIndex, 0);
-    expect(bar.size, M3ENavBarSize.small);
     expect(find.text('Sleepy3'), findsOneWidget);
 
     // The active destination uses the filled icon, the others the outlined one.
     expect(inNavigationBar(find.byIcon(M3EIcons.home)), findsOneWidget);
     expect(inNavigationBar(find.byIcon(M3EIcons.home_outlined)), findsNothing);
     expect(
-      inNavigationBar(find.byIcon(M3EIcons.bar_chart_outlined)),
+      inNavigationBar(find.byIcon(M3EIcons.analytics_outlined)),
       findsOneWidget,
     );
     expect(
       inNavigationBar(find.byIcon(M3EIcons.settings_outlined)),
       findsOneWidget,
     );
+
+    // Hidden labels stay available to assistive technology.
+    for (final destination in Sleepy3Destination.values) {
+      final semantics = tester.widget<Semantics>(
+        find.byKey(navKey(destination)),
+      );
+      expect(semantics.properties.label, destination.label);
+      expect(
+        semantics.properties.selected,
+        destination == Sleepy3Destination.home,
+      );
+    }
+  });
+
+  testWidgets('centers a content-sized glass bar', (tester) async {
+    await pumpApp(tester);
+
+    final surface = tester.getRect(find.byKey(PillNavigationBar.surfaceKey));
+    expect(surface.width, lessThan(360 - 2 * PillNavigationBar.outerMargin));
+    expect(surface.center.dx, closeTo(180, 0.01));
+    expect(surface.height, closeTo(PillNavigationBar.minHeight, 0.01));
+    expect(inNavigationBar(find.byType(BackdropFilter)), findsOneWidget);
   });
 
   testWidgets('switches destinations and reports the active one', (
@@ -88,19 +113,19 @@ void main() {
   ) async {
     await pumpApp(tester);
 
-    await tester.tap(find.text('Stats'));
+    await tester.tap(find.byKey(navKey(Sleepy3Destination.stats)));
     await tester.pumpAndSettle();
 
     expect(navigationBar(tester).selectedIndex, 1);
     expect(find.text('No sleep history yet'), findsOneWidget);
-    expect(inNavigationBar(find.byIcon(M3EIcons.bar_chart)), findsOneWidget);
+    expect(inNavigationBar(find.byIcon(M3EIcons.analytics)), findsOneWidget);
     expect(
       inNavigationBar(find.byIcon(M3EIcons.home_outlined)),
       findsOneWidget,
     );
     expect(inNavigationBar(find.byIcon(M3EIcons.home)), findsNothing);
 
-    await tester.tap(find.text('Settings'));
+    await tester.tap(find.byKey(navKey(Sleepy3Destination.settings)));
     await tester.pumpAndSettle();
 
     expect(navigationBar(tester).selectedIndex, 2);
@@ -108,11 +133,11 @@ void main() {
     expect(find.text('Theme'), findsOneWidget);
     expect(inNavigationBar(find.byIcon(M3EIcons.settings)), findsOneWidget);
     expect(
-      inNavigationBar(find.byIcon(M3EIcons.bar_chart_outlined)),
+      inNavigationBar(find.byIcon(M3EIcons.analytics_outlined)),
       findsOneWidget,
     );
 
-    await tester.tap(find.text('Home'));
+    await tester.tap(find.byKey(navKey(Sleepy3Destination.home)));
     await tester.pumpAndSettle();
 
     expect(navigationBar(tester).selectedIndex, 0);
@@ -124,7 +149,7 @@ void main() {
   ) async {
     await pumpApp(tester);
 
-    await tester.tap(find.text('Stats'));
+    await tester.tap(find.byKey(navKey(Sleepy3Destination.stats)));
     await tester.pumpAndSettle();
     expect(navigationBar(tester).selectedIndex, 1);
 
@@ -144,33 +169,55 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Sleeping since'), findsOneWidget);
 
-    await tester.tap(find.text('Stats'));
+    await tester.tap(find.byKey(navKey(Sleepy3Destination.stats)));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Home'));
+    await tester.tap(find.byKey(navKey(Sleepy3Destination.home)));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Sleeping since'), findsOneWidget);
   });
 
-  testWidgets('labels stay visible at 360dp and 200% text', (tester) async {
+  testWidgets('the selected label stays inside the bar at 200% text', (
+    tester,
+  ) async {
     await pumpApp(tester, textScale: 2);
 
     for (final destination in Sleepy3Destination.values) {
-      final paragraph = tester.renderObject<RenderParagraph>(
+      await tester.tap(find.byKey(navKey(destination)));
+      await tester.pumpAndSettle();
+
+      final itemRect = tester.getRect(find.byKey(navKey(destination)));
+      final labelRect = tester.getRect(
         inNavigationBar(find.text(destination.label)),
       );
       expect(
-        paragraph.didExceedMaxLines,
-        isFalse,
-        reason: '${destination.label} is truncated at 200% text',
+        labelRect.left,
+        greaterThanOrEqualTo(itemRect.left),
+        reason: '${destination.label} starts outside its pill',
+      );
+      expect(
+        labelRect.right,
+        lessThanOrEqualTo(itemRect.right - 10),
+        reason: '${destination.label} is clipped at 200% text',
+      );
+      expect(
+        labelRect.top,
+        greaterThanOrEqualTo(itemRect.top),
+        reason: '${destination.label} overflows its pill vertically',
+      );
+      expect(
+        labelRect.bottom,
+        lessThanOrEqualTo(itemRect.bottom),
+        reason: '${destination.label} overflows its pill vertically',
       );
     }
 
-    // The flexible bar grows vertically instead of clipping the labels.
+    // The flexible bar can grow vertically; at 2x this label still fits in 48dp.
     expect(
-      tester.getSize(find.byType(M3ENavigationBar)).height,
-      greaterThan(64),
+      tester.getSize(find.byKey(PillNavigationBar.surfaceKey)).height,
+      greaterThanOrEqualTo(PillNavigationBar.minHeight),
     );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('reserves the status bar and the system bottom inset', (
@@ -194,12 +241,39 @@ void main() {
 
     await pumpApp(tester);
 
-    final navRect = tester.getRect(find.byType(M3ENavigationBar));
-    expect(navRect.bottom, 800);
-    expect(navRect.height, closeTo(64 + bottomInset, 0.01));
+    final surfaceRect = tester.getRect(
+      find.byKey(PillNavigationBar.surfaceKey),
+    );
+    expect(
+      surfaceRect.bottom,
+      closeTo(800 - bottomInset - PillNavigationBar.bottomGap, 0.01),
+    );
+    expect(surfaceRect.height, closeTo(PillNavigationBar.minHeight, 0.01));
 
     final contentRect = tester.getRect(find.byType(IndexedStack));
     expect(contentRect.top, topInset);
-    expect(contentRect.bottom, 800 - navRect.height);
+    expect(contentRect.bottom, 800);
+
+    final bodyBottomInset = MediaQuery.paddingOf(
+      tester.element(find.byType(IndexedStack)),
+    ).bottom;
+    expect(
+      bodyBottomInset,
+      closeTo(
+        PillNavigationBar.topGap +
+            PillNavigationBar.minHeight +
+            PillNavigationBar.bottomGap +
+            bottomInset,
+        0.01,
+      ),
+    );
+
+    await tester.tap(find.byKey(navKey(Sleepy3Destination.settings)));
+    await tester.pumpAndSettle();
+    final settingsList = tester.widget<ListView>(find.byType(ListView));
+    expect(
+      (settingsList.padding! as EdgeInsets).bottom,
+      closeTo(24 + bodyBottomInset, 0.01),
+    );
   });
 }

@@ -35,6 +35,8 @@ Sleepy3 runs on **Android 9 or newer**. Version **0.1.0** is the first stable re
 2. Tap **Wake** when you get up. Sleepy3 saves the night and shows how long you slept.
 3. Open **Stats** to review or fix your history, and **Settings** for the theme and Health Connect.
 
+Use the floating glass pill bar at the bottom to move between **Home**, **Stats** and **Settings**; the selected destination shows its label, and the content stays visible behind the bar.
+
 Settings is split into **Appearance** (System, Light or Dark), **Sleep data** (Local or Google Health, and Import), **Google Health** (connection status, Sync and Add) and **About** (privacy, version and open-source licenses).
 
 The header always tells you what is happening:
