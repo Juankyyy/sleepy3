@@ -17,7 +17,7 @@ optional data source.
   home screen, sleep state machine, Drift persistence, Stats history with session
   editing/deleting, Settings, Health Connect (Local/Google Health, pending uploads, copy
   actions and full history access), the branded launcher icon and splash, and the
-  two-channel release workflow work. The Glance widget is the next milestone (0.2.0).
+  manual release workflow work. The Glance widget is the next milestone (0.2.0).
   Sessions, preferences and Health Connect metadata live in `sleepy3.sqlite` (schema v4);
   generated Drift code is committed.
 
@@ -144,22 +144,26 @@ rather than presenting it as spec.
 
 Detalle completo en `SPEC.md §1`.
 
-1. Todo el trabajo nuevo en la rama `dev`; cada push a `dev` publica una pre-release
-   automática (`v0.X.Y`). `main` permanece estable y **solo se toca con autorización
+1. Todo el trabajo nuevo en la rama `dev`. Hacer push a `dev` **no publica nada**: las
+   releases son manuales. `main` permanece estable y **solo se toca con autorización
    explícita del usuario**.
 2. **Paso a paso**: espera a que el usuario pida módulos o cambios concretos; no generes la
    app entera de golpe. Al terminar, indica qué debe probar el usuario.
 3. **Aviso previo**: no se hacen commits ni pushes sin avisar antes. Propón el mensaje y
-   espera el OK. «Haz los commits» autoriza commit **y push a `dev`** a la vez: el trabajo
-   nunca se queda solo en local.
-4. **`main` y releases estables, solo a petición**: el merge o push a `main` se hace
-   únicamente cuando el usuario lo pide, tras verificar el bloque/funcionalidad en su
-   máquina. El agente nunca toca `main` por iniciativa propia, ni siquiera con «Haz los
-   commits». Ese push publica automáticamente la minor estable (`v0.X.0`).
+   espera el OK. «Haz los commits» autoriza commit **y push a `dev`** a la vez, sin lanzar
+   ninguna release: el trabajo nunca se queda solo en local.
+4. **`main` y releases, solo a petición**: el merge o push a `main` se hace únicamente
+   cuando el usuario lo pide, tras verificar el bloque/funcionalidad en su máquina. El
+   agente nunca toca `main` por iniciativa propia, ni siquiera con «Haz los commits». Ese
+   push **no publica nada**. La release se lanza después, solo cuando el usuario lo pide y
+   elige la versión: `minor` (`v0.X.0`) o `patch` (`v0.X.Y`). Antes de ejecutar, el agente
+   confirma el tag calculado; en minors, también propone el `<Tema>` y espera el OK (y en
+   patches con notas curadas).
 5. **Versiones y notas**: no se toca `pubspec.yaml`; el CI calcula versión y versionCode
-   desde el tag más alto y crea el tag al publicar. Las notas de `dev` son automáticas. Tras
-   una release estable, escribir `release-notes/vX.Y.0.md` con el título en la primera
-   línea y ejecutar `dart run tool/apply_release_notes.dart vX.Y.0`. La firma usa los
-   secrets del repo; si faltan, el workflow falla.
+   desde el tag más alto y crea el tag al publicar. Las releases se lanzan a mano desde
+   `main` con `.github/workflows/release.yml` (`bump=minor` o `bump=patch`). Tras publicar,
+   escribir `release-notes/vX.Y.Z.md` con el título en la primera línea y ejecutar
+   `dart run tool/apply_release_notes.dart vX.Y.Z`. La firma usa los secrets del repo; si
+   faltan, el workflow falla.
 6. **Documentación como parte del cambio**: actualiza SPEC.md si cambia el comportamiento o
    la arquitectura, y README.md si el cambio es visible para el usuario.

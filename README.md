@@ -21,7 +21,7 @@
 
 ## Download and install
 
-Sleepy3 is not on Google Play yet. Download the latest stable build from [Releases](https://github.com/Juankyyy/sleepy3/releases). Development builds are published as pre-releases.
+Sleepy3 is not on Google Play yet. Download the latest stable build from [Releases](https://github.com/Juankyyy/sleepy3/releases). Releases are published manually; development builds are not distributed.
 
 1. Open Releases on your phone.
 2. Download the latest `sleepy3-vX.Y.Z.apk`.
@@ -211,16 +211,18 @@ Keep the native launch colors in `values/colors.xml` and `values-night/colors.xm
 
 ### Releasing
 
-Releases are created by `.github/workflows/release.yml`; there is no version bump commit.
+Releases are created manually from `main` with `.github/workflows/release.yml`; there is no version bump commit.
 
-- **`dev`** publishes a pre-release on every push (`v0.0.1`, `v0.0.2`, and after the first stable `v0.1.1`, `v0.1.2`…).
-- **`main`** publishes the stable minor on every push (`v0.1.0`, `v0.2.0`…). `main` only changes with the maintainer's authorization.
+- Pushes to `dev` or `main` publish nothing. The workflow only runs when the maintainer dispatches it from `main`.
+- Choose `minor` (`v0.X.0`) or `patch` (`v0.X.Y`). The tag is computed from the highest existing tag.
 - The workflow runs `flutter analyze` and `flutter test`, builds a signed release, creates the tag and attaches `sleepy3-vX.Y.Z.apk` with a `.sha256`.
-- Development notes are generated from conventional commits. The curated body and `vX.Y.0 - The <Theme> Update` title are applied afterwards from `release-notes/vX.Y.0.md` (ignored by Git):
+- Notes are generated from conventional commits since the previous tag. The curated body and `vX.Y.Z - The <Theme> Update` title are applied afterwards from `release-notes/vX.Y.Z.md` (ignored by Git):
 
 ```bash
-dart run tool/apply_release_notes.dart v0.1.0
+dart run tool/apply_release_notes.dart v0.2.0
 ```
+
+- Development builds are not published; use `flutter run` or a local APK to test `dev`.
 
 Maintainers configure four repository secrets (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`). Without them the workflow fails instead of publishing a debug-signed APK. See `SPEC.md §1`.
 

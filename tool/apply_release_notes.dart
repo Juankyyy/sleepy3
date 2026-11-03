@@ -1,12 +1,12 @@
 // Applies the curated notes to a published GitHub release.
 //
 // Usage:
-//   dart run tool/apply_release_notes.dart v0.1.0
+//   dart run tool/apply_release_notes.dart v0.2.0
 //
 // The notes live in release-notes/<tag>.md (ignored by Git) and carry the release
 // title on their first line:
 //
-//   <!-- title: v0.1.0 - The Quiet Night Update -->
+//   <!-- title: v0.2.0 - The <Theme> Update -->
 //
 // This script reads that title and runs:
 //
@@ -20,7 +20,7 @@ Future<void> main(List<String> arguments) async {
   if (arguments.length != 1) {
     stderr.writeln(
       'Usage: dart run tool/apply_release_notes.dart <tag>\n'
-      'Example: dart run tool/apply_release_notes.dart v0.1.0',
+      'Example: dart run tool/apply_release_notes.dart v0.2.0',
     );
     exitCode = 64;
     return;

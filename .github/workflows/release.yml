@@ -1,25 +1,37 @@
 name: Release
 
-# Two channels, both driven by the branch that receives the push:
+# Manual stable releases from main:
 #
-# - dev:  every push publishes a pre-release v0.X.Y (patch + 1).
-# - main: every push publishes the stable minor v0.X.0 with generated notes. The
-#         curated release-notes/vX.Y.0.md is applied afterwards with
-#         `dart run tool/apply_release_notes.dart vX.Y.0`.
+# - Pushes to dev or main never publish anything.
+# - Run this workflow from main (Actions -> Release -> Run workflow) and choose
+#   `minor` (v0.X.0) or `patch` (v0.X.Y). It can also be dispatched with:
 #
-# The version comes from the highest semver tag and the Android version code from that
-# version. The tag is created by this workflow when the release is published; there is
-# no version bump commit.
+#     gh workflow run release.yml --ref main -f bump=minor
+#
+# - The version comes from the highest semver tag and the Android version code from
+#   that version. The tag is created by this workflow when the release is published;
+#   there is no version bump commit.
+#
+# - In minor releases the maintainer proposes the `<Theme>` title before the release
+#   is dispatched; curated notes are applied afterwards with
+#   `dart run tool/apply_release_notes.dart vX.Y.Z`.
 
 on:
-  push:
-    branches: [dev, main]
   workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump: minor (v0.X.0) or patch (v0.X.Y)"
+        type: choice
+        required: true
+        default: minor
+        options:
+          - minor
+          - patch
 
 permissions:
   contents: write
 
-# Serialize releases: two pushes must not compute the same next version.
+# Serialize releases: two dispatches must not compute the same next version.
 concurrency:
   group: release
   cancel-in-progress: false
@@ -37,6 +49,13 @@ jobs:
 
       - name: Fetch tags
         run: git fetch --tags --force
+
+      - name: Compute version
+        id: version
+        shell: bash
+        env:
+          BUMP: ${{ inputs.bump }}
+        run: bash .github/scripts/compute-release-version.sh
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -60,96 +79,6 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
           restore-keys: |
             gradle-${{ runner.os }}-
-
-      - name: Compute version
-        id: version
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          channel="${GITHUB_REF_NAME}"
-          case "$channel" in
-            dev | main) ;;
-            *)
-              echo "::error::Releases only run from dev or main (got '$channel')."
-              exit 1
-              ;;
-          esac
-
-          semver='^v[0-9]+\.[0-9]+\.[0-9]+$'
-
-          # Re-running a workflow must reuse the tag it created, not bump again.
-          # dev tags always have a non-zero patch; main tags always end in .0.
-          tag=""
-          while IFS= read -r candidate; do
-            [[ -n "$candidate" ]] || continue
-            candidate_patch="${candidate##*.}"
-            if [[ "$channel" == "main" && "$candidate_patch" -eq 0 ]]; then
-              tag="$candidate"
-            elif [[ "$channel" == "dev" && "$candidate_patch" -gt 0 ]]; then
-              tag="$candidate"
-            fi
-          done < <(git tag --points-at "$GITHUB_SHA" | grep -E "$semver" | sort -V)
-
-          if [[ -n "$tag" ]]; then
-            echo "Reusing $tag: it already points at $GITHUB_SHA."
-          else
-            latest="$(git tag --list 'v*' | grep -E "$semver" | sort -V | tail -n 1 || true)"
-            if [[ -n "$latest" ]]; then
-              IFS=. read -r major minor patch <<<"${latest#v}"
-            else
-              major=0
-              minor=0
-              patch=0
-            fi
-
-            if [[ "$channel" == "dev" ]]; then
-              patch=$((patch + 1))
-            else
-              minor=$((minor + 1))
-              patch=0
-            fi
-            tag="v${major}.${minor}.${patch}"
-          fi
-
-          version="${tag#v}"
-          IFS=. read -r major minor patch <<<"$version"
-          if ((minor > 999 || patch > 999)); then
-            echo "::error::Minor and patch must be <= 999 for the version code formula."
-            exit 1
-          fi
-          code=$((10#$major * 1000000 + 10#$minor * 1000 + 10#$patch))
-
-          # Stable notes cover the whole minor; development notes cover everything
-          # since the previous release on either channel. When a tag is reused, stop at
-          # it so the range excludes the release being re-published.
-          previous=""
-          if [[ "$channel" == "main" ]]; then
-            while IFS= read -r candidate; do
-              [[ "$candidate" == "$tag" ]] && break
-              previous="$candidate"
-            done < <(git tag --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.0$' | sort -V)
-          else
-            while IFS= read -r candidate; do
-              [[ "$candidate" == "$tag" ]] && break
-              previous="$candidate"
-            done < <(git tag --list 'v*' | grep -E "$semver" | sort -V)
-          fi
-
-          prerelease=false
-          if [[ "$channel" == "dev" ]]; then
-            prerelease=true
-          fi
-
-          {
-            echo "tag=$tag"
-            echo "version=$version"
-            echo "code=$code"
-            echo "previous=$previous"
-            echo "prerelease=$prerelease"
-          } >>"$GITHUB_OUTPUT"
-
-          echo "Releasing $tag from $channel (versionCode $code, previous tag '${previous:-none}')."
 
       - name: Check signing secrets
         env:
@@ -239,7 +168,6 @@ jobs:
           TAG: ${{ steps.version.outputs.tag }}
           APK: ${{ steps.assets.outputs.apk }}
           CHECKSUM: ${{ steps.assets.outputs.checksum }}
-          PRERELEASE: ${{ steps.version.outputs.prerelease }}
           TARGET: ${{ github.sha }}
         run: |
           set -euo pipefail
@@ -252,14 +180,10 @@ jobs:
             exit 0
           fi
 
-          args=(release create "$TAG" "$APK" "$CHECKSUM"
-            --target "$TARGET"
-            --title "$TAG"
-            --notes-file release-notes.md)
-          if [[ "$PRERELEASE" == "true" ]]; then
-            args+=(--prerelease)
-          fi
-          gh "${args[@]}"
+          gh release create "$TAG" "$APK" "$CHECKSUM" \
+            --target "$TARGET" \
+            --title "$TAG" \
+            --notes-file release-notes.md
 
       - name: Remove signing material
         if: always()

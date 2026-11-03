@@ -13,12 +13,13 @@ Health) funcionan. El widget de pantalla de inicio es el siguiente bloque (0.2.0
 
 ### Ramas
 
-- Todo el trabajo nuevo se hace en la rama **`dev`**. Cada push a `dev` publica
-  automáticamente una **pre-release** de desarrollo.
+- Todo el trabajo nuevo se hace en la rama **`dev`**. Los pushes a `dev` no publican
+  releases: las builds de prueba se hacen en local (`flutter run` o un APK local).
 - `main` permanece estable y se actualiza **solo con autorización explícita del usuario**,
   después de verificar el bloque o la funcionalidad en su máquina. El agente nunca hace
-  merge ni push a `main` por iniciativa propia. Cada push autorizado a `main` publica
-  automáticamente la **release estable** de la minor.
+  merge ni push a `main` por iniciativa propia.
+- Un push o merge a `main` **no publica nada**. La release se lanza a mano, solo cuando el
+  usuario lo pide, desde `main` y eligiendo el tipo de versión.
 - El trabajo no se queda solo en local: cuando el usuario dice «Haz los commits», se
   commitea **y se sube a `dev`**.
 - Los tags los crea el CI; no se crean a mano.
@@ -29,7 +30,7 @@ Health) funcionan. El widget de pantalla de inicio es el siguiente bloque (0.2.0
   o cambio concreto. Al terminar, indicar qué debe probar el usuario.
 - **Aviso previo:** el agente no commitea ni hace push por iniciativa propia. Propone el
   mensaje, espera el OK y recién entonces ejecuta. «Haz los commits» autoriza commit y push
-  a `dev` (y con ello una pre-release), nunca tocar `main`.
+  a `dev` (sin publicar ninguna release), nunca tocar `main`.
 - **Documentación como parte del cambio:** actualizar `SPEC.md` si cambia el comportamiento
   o la arquitectura, y `README.md` si el cambio es visible para el usuario.
 
@@ -55,55 +56,61 @@ ci(release): publish the APK
 
 ### Releases
 
-#### Canales y versiones
+#### Disparador y versiones
 
-| Canal | Disparador | Versión | Título inicial | GitHub |
-|---|---|---|---|---|
-| `dev` | push | `v0.X.Y` (sube el parche) | `v0.X.Y` | Pre-release |
-| `main` | push | `v0.X.0` (sube la minor) | `v0.X.0` | Latest |
+| Disparador | Versión | GitHub |
+|---|---|---|
+| `workflow_dispatch` en `main` con `bump=minor` | `v0.X.0` (sube la minor) | Latest |
+| `workflow_dispatch` en `main` con `bump=patch` | `v0.X.Y` (sube el parche) | Latest |
 
-- La siguiente versión sale del tag semver más alto del repositorio. En `dev` se
-  incrementa el parche; en `main`, la minor, y el parche vuelve a cero.
-- Primera release de desarrollo: `v0.0.1`. Primera release estable: `v0.1.0`. Después de
-  `v0.1.0`, `dev` publica `v0.1.1`, `v0.1.2`…; el siguiente push a `main` publica `v0.2.0`.
+- No hay releases automáticas: ni los pushes a `dev` ni los pushes a `main` publican nada.
+  El workflow se lanza desde Actions → Release → Run workflow, o con
+  `gh workflow run release.yml --ref main -f bump=minor` (o `-f bump=patch`).
+- El workflow solo se ejecuta desde `main`; si se lanza desde otra rama, falla.
+- Antes de lanzar, el agente confirma con el usuario el tag calculado y, en minors, el
+  `<Tema>` del título.
+- La siguiente versión sale del tag semver más alto del repositorio. `minor` incrementa la
+  minor y pone el parche a cero; `patch` incrementa el parche.
+- Ejemplos: con `v0.1.0` como último tag, `minor` publica `v0.2.0` y `patch` publica
+  `v0.1.1`. Las pre-releases antiguas de `dev` quedan como histórico; no se crean nuevas.
 - El `versionCode` de Android es `major * 1.000.000 + minor * 1.000 + patch`
-  (`v0.0.1` → 1, `v0.1.0` → 1000, `v0.2.0` → 2000). Es monótono entre canales.
+  (`v0.0.1` → 1, `v0.1.0` → 1000, `v0.2.0` → 2000). Es monótono entre versiones.
 - `pubspec.yaml` no lleva la versión de la release. El workflow pasa la versión y el code
   calculados a `flutter build apk`; los builds locales siguen usando el valor del
   `pubspec`.
-- Reintentar el workflow es idempotente: si un tag del mismo canal ya apunta al commit, se
-  reutiliza y solo se refrescan los assets; no se duplican releases ni se sobrescriben
-  títulos o notas ya curados.
+- Reintentar el workflow es idempotente: si ya existe un tag del mismo tipo (`minor` o
+  `patch`) apuntando al commit, se reutiliza y solo se refrescan los assets; no se duplican
+  releases ni se sobrescriben títulos o notas ya curados.
 
 #### Notas y títulos
 
-- Las releases de `dev` llevan notas generadas desde los commits convencionales, agrupadas
-  en `## ✨ Features`, `## 🐛 Fixes`, `## ⚡ Performance` y `## 🔧 Maintenance`. Solo se
-  emiten las secciones con commits, más un enlace de changelog completo. El título es el
-  tag, sin tema.
-- Las releases de `main` se publican con esas mismas notas generadas desde el `vX.Y.0`
-  anterior (cubren toda la minor) y un título `vX.Y.0`. Después se reemplazan por las notas
-  curadas y el título con tema.
+- Las releases se publican primero con notas generadas desde los commits convencionales
+  entre el tag anterior y HEAD, agrupadas en `## ✨ Features`, `## 🐛 Fixes`,
+  `## ⚡ Performance` y `## 🔧 Maintenance`. Solo se emiten las secciones con commits, más
+  un enlace de changelog completo. El título inicial es el tag, sin tema.
+- Después se reemplazan por las notas curadas y el título con tema.
 - Formato del título curado: `vX.Y.Z - The <Tema> Update`, donde `<Tema>` resume en inglés
-  lo más importante (Title Case; siempre termina en `Update`).
+  lo más importante (Title Case; siempre termina en `Update`). En minors, el agente
+  propone el tema y espera el OK del usuario antes de lanzar la release. En patches, si se
+  aplican notas curadas, también se propone el título antes.
 - Las notas curadas no viven en el repo: `release-notes/` está en `.gitignore`. La primera
-  línea de `release-notes/vX.Y.0.md` lleva el título:
+  línea de `release-notes/vX.Y.Z.md` lleva el título:
 
 ```html
-<!-- title: v0.1.0 - The Quiet Night Update -->
+<!-- title: vX.Y.Z - The <Tema> Update -->
 ```
 
-- Después de publicar `main`, aplicar notas y título con:
+- Después de publicar, aplicar notas y título con:
 
 ```bash
-dart run tool/apply_release_notes.dart v0.1.0
+dart run tool/apply_release_notes.dart v0.2.0
 ```
 
   El script lee el título de la primera línea y ejecuta `gh release edit`; no toca el APK.
 - Estilo de las notas curadas: inglés, emojis en los títulos de sección, contexto breve, una
   sección destacada y `## ✨ What's new` con el resto. Instalación, datos, requisitos y
   actualización viven en el `README.md`, no en las notas.
-- El cuerpo publicado en GitHub debe coincidir con `release-notes/vX.Y.0.md`.
+- El cuerpo publicado en GitHub debe coincidir con `release-notes/vX.Y.Z.md`.
 
 #### APK y firma
 
@@ -118,11 +125,11 @@ dart run tool/apply_release_notes.dart v0.1.0
 
 #### Si el workflow falla
 
-- Reintentar desde Actions o con `workflow_dispatch`. El APK también queda como artifact
-  del run.
+- Reintentar desde Actions o con `workflow_dispatch` usando el mismo `bump`. El APK también
+  queda como artifact del run.
 - La versión se recalcula de forma idempotente; no se publican releases duplicadas.
-- Si un push a `main` falla, no se crea el tag ni la release: se corrige y se vuelve a
-  lanzar.
+- Si el run falla antes de publicar, no se crea el tag ni la release: se corrige y se
+  vuelve a lanzar.
 
 ---
 
@@ -1093,8 +1100,8 @@ dart run tool/generate_brand_assets.dart
 - Builds debug (`com.sleepy3.app.debug`) y release firmada que conviven en el dispositivo.
 - Icono de launcher adaptativo con capa monocroma y splash de marca con zoom out, en
   claro y oscuro.
-- Releases automáticas de dos canales: pre-releases por push a `dev` y estables por push a
-  `main`, con versionado, firma y notas generadas.
+- Releases estables manuales bajo demanda (`minor` o `patch`), con versionado, firma y
+  notas; sin publicaciones automáticas desde `dev` o `main`.
 - Prueba manual del APK release en el dispositivo del maintainer, con Health Connect y
   Google Health, incluida la edición y el borrado de sesiones.
 - Primera release estable 0.1.0, sin widget.
