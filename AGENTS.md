@@ -125,12 +125,31 @@ lib/
 
 ## Material Design 3 / M3 Expressive
 
-The M3 spec lives at `.agent-skills/m3-expressive/`.
+The M3 spec lives at `.agent-skills/m3-expressive/`. It is not auto-loaded: open it on
+every task that touches UI, even a one-line change.
 
-Before writing or reviewing any Material Design UI (components, dp values, corner radii,
-motion springs, type styles, color roles, adaptive layouts), read
-`.agent-skills/m3-expressive/SKILL.md` and follow its "Where to look" table into the
-specific reference file.
+Before writing, reviewing or proposing any Material Design UI (components, dp values,
+corner radii, motion springs, type styles, color roles, adaptive layouts, transitions),
+do all three:
+
+1. Read `.agent-skills/m3-expressive/SKILL.md` and follow its "Where to look" table into
+   the specific reference file.
+2. Read `references/visuals.md` and search `visuals/INDEX.tsv` **by caption, not by
+   filename** for the component, pattern or layout at hand; open the resulting images
+   (plain PNG/JPG files) before deciding composition, size or state styling.
+3. Leave the trail: in the reply, name the reference files read and the image
+   paths/captions used. A UI change without that trail is not finished.
+
+Minimum images to open, by kind of work:
+
+| Work | Images |
+|---|---|
+| using or restyling a component | anatomy + state grid in `visuals/components_<name>/` |
+| any sizing/spacing decision | measurement spec in `components_*` or `styles_*` |
+| new screen or layout change | `visuals/foundations_layout_canonical-examples/` or `foundations_layout_layout-overview/` |
+| type scale or emphasis | `visuals/styles_typography/` |
+| color role or contrast | `visuals/styles_color_roles/`, `styles_color_system/` |
+| reviewing an existing design | do/don't pairs (`grep -i "don't" visuals/INDEX.tsv`) |
 
 Never state a number, token name, or component name from memory. Look it up:
 - exact values (type scale, radii, springs, elevation) -> `references/tokens.md`

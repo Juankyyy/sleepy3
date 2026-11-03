@@ -444,6 +444,12 @@ Reglas:
 
 ## 4. UX y diseño visual
 
+- Este apartado se apoya en la skill `.agent-skills/m3-expressive/`: se lee
+  `SKILL.md` antes de proponer o tocar UI y se consultan las referencias visuales
+  (`visuals/INDEX.tsv` por caption más las imágenes de anatomía, medidas, estados,
+  placement y do/don't). Cada decisión visual cita el archivo de referencia y las
+  imágenes usadas. Las imágenes son apoyo de composición: las medidas autoritativas
+  son `references/tokens.md` y `references/component-tokens.md`.
 - Material Design 3 Expressive con **tema fijo de marca**. Sin color dinámico
   (Material You).
 - Paleta exacta:
