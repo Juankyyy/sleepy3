@@ -3,10 +3,10 @@
 **Proyecto:** Sleepy3
 **Plataforma:** Android
 **Stack principal:** Flutter + Material 3 Expressive
-**Estado:** v0.1.6, última release estable (sin widget). Home, Stats (con edición y
-borrado de sesiones y detalles de solo lectura para registros de otras apps), Settings, la
-persistencia local y Health Connect (Local/Google Health) funcionan. El widget de pantalla
-de inicio es el siguiente bloque (0.2.0).
+**Estado:** v0.1.7, última release estable (sin widget). Home, Stats (historial tonal con
+marcas de objetivo, edición y borrado de sesiones y detalles de solo lectura para registros
+de otras apps), Settings, la persistencia local y Health Connect (Local/Google Health)
+funcionan. El widget de pantalla de inicio es el siguiente bloque (0.2.0).
 
 ---
 
@@ -110,7 +110,7 @@ ci(release): publish the APK
 - Después de publicar, aplicar notas y título con:
 
 ```bash
-dart run tool/apply_release_notes.dart v0.2.0
+dart run tool/apply_release_notes.dart v0.1.7
 ```
 
   El script lee el título de la primera línea y ejecuta `gh release edit`; no toca el APK.
@@ -594,8 +594,9 @@ Reglas:
     `Average sleep` en `labelMedium`, valor en `displaySmall` emphasized con cifras
     tabulares, apoyo en `bodyMedium` y `Show all` como botón de texto.
   - Encabezado de lista `History` en `titleMedium` emphasized.
-  - Historial con una `M3ECard` filled por sesión, radio 20 dp y padding 16 dp en
-    `7 days` o 12 dp en `30 days`/`All`; gap 8 dp o 6 dp. La tarjeta destacada usa
+  - Historial con una `M3ECard` filled por sesión, radio 20 dp (decisión de diseño: M3 usa
+    `CornerMedium`, 12 dp) y padding 16 dp en `7 days` o 12 dp en `30 days`/`All`; gap 8 dp
+    o 6 dp. La tarjeta destacada usa
     `primaryContainer` / `onPrimaryContainer`; las dos siguientes mezclan ese acento con
     `surfaceContainerHighest` al 2/3 y 1/3, y desde la cuarta todas usan
     `surfaceContainerHighest` / `onSurface`. El degradado empieza en la sesión destacada
@@ -617,7 +618,8 @@ Reglas:
     El objetivo táctil es de al menos 48 dp.
   - Panel de sesión adaptativo: pantalla completa por debajo del breakpoint compacto y
     diálogo básico por encima. Usa `M3EDatePicker`/`M3ETimePicker`. El hero es una
-    `M3ECard` filled en `primaryContainer` con radio 20 dp y padding 16 dp: marca de
+    `M3ECard` filled en `primaryContainer` con radio 20 dp (decisión de diseño) y padding
+    16 dp: marca de
     objetivo de 56 dp, duración `headlineMedium` emphasized con cifras tabulares, línea
     del objetivo en `bodyMedium`, día de despertar en `bodySmall` y todo en
     `onPrimaryContainer`. Las secciones usan encabezado `titleMedium` emphasized;
@@ -1237,7 +1239,8 @@ dart run tool/generate_brand_assets.dart
 - Prueba manual del APK release en el dispositivo del maintainer, con Health Connect y
   Google Health, incluida la edición y el borrado de sesiones.
 - Primera release estable 0.1.0, sin widget. La 0.1.6 añade el dock glass, la tipografía
-  nueva y los detalles de solo lectura, también sin widget.
+  nueva y los detalles de solo lectura; la 0.1.7 añade el historial tonal, las marcas de
+  objetivo y el panel de sesión. Ninguna incluye el widget.
 - Tests de estado, persistencia y UI.
 
 ### Siguiente
