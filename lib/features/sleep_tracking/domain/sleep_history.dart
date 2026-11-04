@@ -28,7 +28,7 @@ class SleepHistoryDay {
   /// Local midnight of the day the sessions ended.
   final DateTime date;
 
-  /// Sessions in chronological order.
+  /// Sessions newest first.
   final List<SleepSession> sessions;
 
   /// Sum of the sessions, with negative durations clamped to zero.
@@ -57,8 +57,8 @@ class SleepHistory {
   /// Days with data, newest first.
   final List<SleepHistoryDay> days;
 
-  /// Every session in display order: newest day first, chronological within a
-  /// day.
+  /// Every session in display order: newest day first, newest session first
+  /// within a day.
   final List<SleepHistoryEntry> entries;
 
   /// Sum of every session in the range.
@@ -116,7 +116,7 @@ SleepHistory buildSleepHistory({
 
   for (final date in dayDates) {
     final daySessions = sessionsByDay[date]!
-      ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
+      ..sort((a, b) => b.startedAt.compareTo(a.startedAt));
 
     var dayMicros = 0;
     for (final session in daySessions) {

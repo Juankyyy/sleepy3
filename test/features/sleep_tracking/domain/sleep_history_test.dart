@@ -23,7 +23,7 @@ void main() {
     expect(history.total, Duration.zero);
   });
 
-  test('groups by wake day, newest day first and sessions chronologically', () {
+  test('groups by wake day and sorts every list newest first', () {
     final history = buildSleepHistory(
       now: now,
       sessions: [
@@ -40,12 +40,38 @@ void main() {
     ]);
     expect(
       history.days.first.sessions.map((session) => session.startedAt).toList(),
-      [DateTime(2026, 10, 20, 23), DateTime(2026, 10, 21, 4)],
+      [DateTime(2026, 10, 21, 4), DateTime(2026, 10, 20, 23)],
     );
     expect(history.entries.map((entry) => entry.session.startedAt).toList(), [
-      DateTime(2026, 10, 20, 23),
       DateTime(2026, 10, 21, 4),
+      DateTime(2026, 10, 20, 23),
       DateTime(2026, 10, 19, 23),
+    ]);
+  });
+
+  test('orders sessions within the same wake day by most recent first', () {
+    final night = closed(
+      DateTime(2026, 10, 21, 2),
+      DateTime(2026, 10, 21, 9, 45),
+    );
+    final evening = closed(
+      DateTime(2026, 10, 21, 21, 31),
+      DateTime(2026, 10, 21, 21, 44),
+    );
+
+    final history = buildSleepHistory(
+      now: DateTime(2026, 10, 21, 22),
+      sessions: [night, evening],
+      range: SleepHistoryRange.sevenDays,
+    );
+
+    expect(history.days.single.sessions.map((session) => session.startedAt), [
+      DateTime(2026, 10, 21, 21, 31),
+      DateTime(2026, 10, 21, 2),
+    ]);
+    expect(history.entries.map((entry) => entry.session.startedAt), [
+      DateTime(2026, 10, 21, 21, 31),
+      DateTime(2026, 10, 21, 2),
     ]);
   });
 

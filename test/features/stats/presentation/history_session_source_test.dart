@@ -4,76 +4,90 @@ import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/stats/presentation/history_session_source.dart';
 
 void main() {
-  SleepSession session({
-    String? healthRecordId,
-    bool isDownloaded = false,
-    String? sourceId,
-  }) {
+  SleepSession session({String? sourceId, bool isDownloaded = false}) {
     return SleepSession(
       startedAt: DateTime(2026, 10, 20, 22),
       endedAt: DateTime(2026, 10, 21, 6),
-      healthRecordId: healthRecordId,
       isDownloaded: isDownloaded,
       sourceId: sourceId,
     );
   }
 
   group('Local mode', () {
-    test('a session without a Health Connect record is local', () {
+    test('a local session is Sleepy3\'s own', () {
       expect(
-        historySessionSource(session(), SleepDataSource.local),
-        HistorySessionSource.local,
+        isSessionFromAnotherApp(session(), SleepDataSource.local),
+        isFalse,
       );
     });
 
-    test('an uploaded session is Google Health', () {
+    test('an uploaded session is still Sleepy3\'s own', () {
       expect(
-        historySessionSource(
-          session(healthRecordId: 'health-1'),
+        isSessionFromAnotherApp(
+          session(sourceId: 'com.sleepy3.app'),
           SleepDataSource.local,
         ),
-        HistorySessionSource.googleHealth,
+        isFalse,
       );
     });
 
-    test('a downloaded session is Google Health', () {
+    test('a downloaded copy from another app belongs to that app', () {
       expect(
-        historySessionSource(
-          session(healthRecordId: 'health-1', isDownloaded: true),
+        isSessionFromAnotherApp(
+          session(sourceId: 'com.example.watch', isDownloaded: true),
           SleepDataSource.local,
         ),
-        HistorySessionSource.googleHealth,
+        isTrue,
+      );
+    });
+
+    test('a downloaded copy of a Sleepy3 record is still Sleepy3\'s', () {
+      expect(
+        isSessionFromAnotherApp(
+          session(sourceId: 'com.sleepy3.app', isDownloaded: true),
+          SleepDataSource.local,
+        ),
+        isFalse,
+      );
+    });
+
+    test('a downloaded copy without a source id counts as another app', () {
+      expect(
+        isSessionFromAnotherApp(
+          session(isDownloaded: true),
+          SleepDataSource.local,
+        ),
+        isTrue,
       );
     });
   });
 
   group('Google Health mode', () {
-    test('a Sleepy3 record read from Google Health is Google Health', () {
+    test('a Sleepy3 record is its own', () {
       expect(
-        historySessionSource(
-          session(healthRecordId: 'health-1', sourceId: 'com.sleepy3.app'),
+        isSessionFromAnotherApp(
+          session(sourceId: 'com.sleepy3.app'),
           SleepDataSource.healthConnect,
         ),
-        HistorySessionSource.googleHealth,
+        isFalse,
       );
     });
 
-    test('a record from another app is Google Health', () {
+    test('a record from another app is marked', () {
       expect(
-        historySessionSource(
-          session(healthRecordId: 'health-2', sourceId: 'com.example.watch'),
+        isSessionFromAnotherApp(
+          session(sourceId: 'com.example.watch'),
           SleepDataSource.healthConnect,
         ),
-        HistorySessionSource.googleHealth,
+        isTrue,
       );
     });
-  });
 
-  test('labels the two sources for tooltips and screen readers', () {
-    expect(historySessionSourceLabel(HistorySessionSource.local), 'Local');
-    expect(
-      historySessionSourceLabel(HistorySessionSource.googleHealth),
-      'Google Health',
-    );
+    test('a record without a source id counts as another app', () {
+      expect(
+        isSessionFromAnotherApp(session(), SleepDataSource.healthConnect),
+        isTrue,
+      );
+    });
   });
 }

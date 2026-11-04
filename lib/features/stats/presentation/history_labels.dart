@@ -44,6 +44,20 @@ String formatHistoryTimeRange(
   return '$from – $to';
 }
 
+/// The source pill on a session written by another app.
+///
+/// Android resolves the writer package label when the app is installed;
+/// [appLabel] is null otherwise and the generic fallback is used.
+String formatExternalSessionLabel(String? appLabel) {
+  return appLabel ?? 'Another app';
+}
+
+/// The spoken prefix for a session written by another app, for example
+/// `Read-only, from Samsung Health`.
+String formatExternalSessionSpokenLabel(String? appLabel) {
+  return 'Read-only, from ${appLabel ?? 'another app'}';
+}
+
 /// A session's start and end for screen readers, for example
 /// `10:32 PM to 6:45 AM`.
 String formatHistoryTimeRangeSpoken(

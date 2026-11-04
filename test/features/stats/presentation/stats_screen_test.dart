@@ -158,9 +158,11 @@ void main() {
     expect(cards.first.variant, M3ECardVariant.filled);
     expect(cards.first.padding, const EdgeInsets.all(16));
     final scheme = Sleepy3Theme.light().colorScheme;
-    expect(cards.first.color, scheme.primaryContainer);
-    expect(cards[1].color, scheme.secondaryContainer);
-    expect(cards[2].color, scheme.secondaryContainer);
+    final base = scheme.surfaceContainerHighest;
+    final accent = scheme.primaryContainer;
+    expect(cards[0].color, accent);
+    expect(cards[1].color, Color.lerp(base, accent, 2 / 3));
+    expect(cards[2].color, Color.lerp(base, accent, 1 / 3));
 
     final heroPill = tester.widget<Container>(
       find
@@ -186,11 +188,11 @@ void main() {
     );
     expect(
       (normalPill.decoration! as ShapeDecoration).color,
-      scheme.onSecondaryContainer.withValues(alpha: 0.10),
+      scheme.onSurface.withValues(alpha: 0.10),
     );
     expect(
       tester.widget<Text>(find.text('Yesterday')).style?.color,
-      scheme.onSecondaryContainer,
+      scheme.onSurface,
     );
 
     final rings = tester
@@ -201,13 +203,80 @@ void main() {
           ),
         )
         .toList();
-    expect(rings, hasLength(3));
+    expect(rings, hasLength(2));
     expect(rings.every((ring) => ring.size == 44), isTrue);
-    expect(rings.first.value, 1);
+
+    final badges = tester
+        .widgetList<M3EShapeContainer>(
+          find.descendant(
+            of: find.byType(SleepHistoryList),
+            matching: find.byType(M3EShapeContainer),
+          ),
+        )
+        .toList();
+    expect(badges, hasLength(1));
+    expect(badges.single.kind, M3EShapeKind.clover8Leaf);
+    expect(badges.single.width, 44);
+    expect(badges.single.height, 44);
 
     // These fake sessions have no Drift row id, so Local mode treats them as
     // read-only copies.
     expect(find.byIcon(M3EIcons.edit_outlined), findsNothing);
+  });
+
+  testWidgets('marks the goal exactly at eight hours', (tester) async {
+    final underGoal = closed(
+      DateTime(2026, 10, 21, 23, 1),
+      DateTime(2026, 10, 22, 7),
+    );
+    final exactGoal = closed(
+      DateTime(2026, 10, 20, 23),
+      DateTime(2026, 10, 21, 7),
+    );
+
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 22, 10),
+      initial: SleepSnapshot(closedSessions: [underGoal, exactGoal]),
+    );
+
+    expect(
+      find.descendant(
+        of: find.byType(SleepHistoryList),
+        matching: find.text('7h 59m'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(SleepHistoryList),
+        matching: find.text('8h 0m'),
+      ),
+      findsOneWidget,
+    );
+
+    final rings = tester
+        .widgetList<M3EProgressIndicator>(
+          find.descendant(
+            of: find.byType(SleepHistoryList),
+            matching: find.byType(M3EProgressIndicator),
+          ),
+        )
+        .toList();
+    final badges = tester
+        .widgetList<M3EShapeContainer>(
+          find.descendant(
+            of: find.byType(SleepHistoryList),
+            matching: find.byType(M3EShapeContainer),
+          ),
+        )
+        .toList();
+    expect(rings, hasLength(1));
+    expect(badges, hasLength(1));
+    expect(badges.single.kind, M3EShapeKind.clover8Leaf);
+
+    // The visual mark is decorative, so the state also reaches screen readers.
+    expect(find.bySemanticsLabel(RegExp('goal met')), findsOneWidget);
   });
 
   testWidgets('uses the two-line compact cards for 30 days and All', (
@@ -233,6 +302,9 @@ void main() {
     expect(cards, hasLength(4));
     expect(cards.first.padding, const EdgeInsets.all(12));
 
+    final compactScheme = Sleepy3Theme.light().colorScheme;
+    expect(cards[3].color, compactScheme.surfaceContainerHighest);
+
     final rings = tester
         .widgetList<M3EProgressIndicator>(
           find.descendant(
@@ -241,8 +313,23 @@ void main() {
           ),
         )
         .toList();
-    expect(rings, hasLength(4));
+    expect(rings, hasLength(2));
     expect(rings.every((ring) => ring.size == 36), isTrue);
+
+    final badges = tester
+        .widgetList<M3EShapeContainer>(
+          find.descendant(
+            of: find.byType(SleepHistoryList),
+            matching: find.byType(M3EShapeContainer),
+          ),
+        )
+        .toList();
+    expect(badges, hasLength(2));
+    expect(
+      badges.every((badge) => badge.kind == M3EShapeKind.clover8Leaf),
+      isTrue,
+    );
+    expect(badges.every((badge) => badge.width == 36), isTrue);
 
     final duration = tester.widget<Text>(find.text('8h 13m'));
     expect(duration.style?.fontSize, 22);
@@ -262,7 +349,7 @@ void main() {
     expect(allCards.first.padding, const EdgeInsets.all(12));
   });
 
-  testWidgets('highlights the latest session of the newest day', (
+  testWidgets('puts the latest session of the newest day first', (
     tester,
   ) async {
     final night = closed(DateTime(2026, 10, 20, 23), DateTime(2026, 10, 21, 7));
@@ -284,8 +371,19 @@ void main() {
         .toList();
     expect(cards, hasLength(2));
     final scheme = Sleepy3Theme.light().colorScheme;
-    expect(cards.first.color, scheme.secondaryContainer);
-    expect(cards.last.color, scheme.primaryContainer);
+    expect(cards.first.color, scheme.primaryContainer);
+    expect(
+      cards.last.color,
+      Color.lerp(
+        scheme.surfaceContainerHighest,
+        scheme.primaryContainer,
+        2 / 3,
+      ),
+    );
+    expect(
+      tester.getTopLeft(find.text('1h 0m')).dy,
+      lessThan(tester.getTopLeft(find.text('8h 0m')).dy),
+    );
   });
 
   testWidgets('fits the compact history at 200% text', (tester) async {
@@ -334,7 +432,7 @@ void main() {
     );
   });
 
-  testWidgets('marks local, uploaded and downloaded sessions in Local mode', (
+  testWidgets('marks only sessions from other apps in Local mode', (
     tester,
   ) async {
     final local = SleepSession(
@@ -347,32 +445,39 @@ void main() {
       endedAt: DateTime(2026, 10, 20, 6),
       localId: 2,
       healthRecordId: 'health-uploaded',
+      sourceId: 'com.sleepy3.app',
     );
-    final downloaded = SleepSession(
+    final downloadedOther = SleepSession(
       startedAt: DateTime(2026, 10, 18, 22),
       endedAt: DateTime(2026, 10, 19, 6),
-      localId: 3,
-      healthRecordId: 'health-downloaded',
+      localId: 4,
       isDownloaded: true,
+      healthRecordId: 'health-downloaded-other',
+      sourceId: 'com.sec.android.app.shealth',
     );
 
     await pumpStats(
       tester,
       clock: () => DateTime(2026, 10, 21, 10),
-      initial: SleepSnapshot(closedSessions: [local, uploaded, downloaded]),
+      initial: SleepSnapshot(
+        closedSessions: [local, uploaded, downloadedOther],
+      ),
+      appInfo: FakeAppInfoGateway({
+        'com.sec.android.app.shealth': 'Samsung Health',
+      }),
     );
 
-    expect(find.byIcon(M3EIcons.smartphone), findsOneWidget);
-    expect(find.byIcon(M3EIcons.cloud_outlined), findsNWidgets(2));
+    expect(find.text('Samsung Health'), findsOneWidget);
+    expect(find.byIcon(M3EIcons.open_in_new_outlined), findsOneWidget);
     expect(
-      tester
-          .widgetList<M3ETooltip>(find.byType(M3ETooltip))
-          .map((tooltip) => tooltip.message),
-      containsAll(['Local', 'Google Health']),
+      tester.widget<Icon>(find.byIcon(M3EIcons.open_in_new_outlined)).color,
+      Sleepy3Theme.light().colorScheme.onSurface,
     );
+    expect(find.byIcon(M3EIcons.smartphone), findsNothing);
+    expect(find.byIcon(M3EIcons.cloud_outlined), findsNothing);
   });
 
-  testWidgets('shows every Google Health row with the Google Health icon', (
+  testWidgets('marks Google Health records written by another app', (
     tester,
   ) async {
     final own = HealthSleepSession(
@@ -385,7 +490,7 @@ void main() {
       uuid: 'other',
       startedAt: DateTime(2026, 10, 19, 22),
       endedAt: DateTime(2026, 10, 20, 6),
-      sourceId: 'com.example.watch',
+      sourceId: 'com.sec.android.app.shealth',
     );
 
     await pumpStats(
@@ -393,16 +498,133 @@ void main() {
       clock: () => DateTime(2026, 10, 21, 10),
       source: SleepDataSource.healthConnect,
       gateway: FakeHealthConnectGateway(sessions: [own, other]),
+      appInfo: FakeAppInfoGateway({
+        'com.sec.android.app.shealth': 'Samsung Health',
+      }),
     );
 
+    expect(find.text('Samsung Health'), findsOneWidget);
+    expect(find.byIcon(M3EIcons.open_in_new_outlined), findsOneWidget);
     expect(find.byIcon(M3EIcons.smartphone), findsNothing);
-    expect(find.byIcon(M3EIcons.cloud_outlined), findsNWidgets(2));
-    expect(
-      tester
-          .widgetList<M3ETooltip>(find.byType(M3ETooltip))
-          .map((tooltip) => tooltip.message),
-      everyElement('Google Health'),
+    expect(find.byIcon(M3EIcons.cloud_outlined), findsNothing);
+  });
+
+  testWidgets('leaves downloaded Sleepy3 copies unmarked in Local mode', (
+    tester,
+  ) async {
+    final downloadedOwn = SleepSession(
+      startedAt: DateTime(2026, 10, 20, 22),
+      endedAt: DateTime(2026, 10, 21, 6),
+      localId: 1,
+      isDownloaded: true,
+      healthRecordId: 'health-downloaded-own',
+      sourceId: 'com.sleepy3.app',
     );
+
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: [downloadedOwn]),
+    );
+
+    expect(find.byIcon(M3EIcons.open_in_new_outlined), findsNothing);
+    expect(find.text('Another app'), findsNothing);
+  });
+
+  testWidgets('does not look up the source label for own sessions', (
+    tester,
+  ) async {
+    final appInfo = FakeAppInfoGateway();
+
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: sessions),
+      appInfo: appInfo,
+    );
+
+    expect(appInfo.requests, isEmpty);
+  });
+
+  testWidgets('falls back to Another app when the label is missing', (
+    tester,
+  ) async {
+    final downloaded = SleepSession(
+      startedAt: DateTime(2026, 10, 20, 22),
+      endedAt: DateTime(2026, 10, 21, 6),
+      localId: 1,
+      isDownloaded: true,
+      healthRecordId: 'health-downloaded',
+      sourceId: 'com.example.uninstalled',
+    );
+
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: [downloaded]),
+    );
+
+    expect(find.text('Another app'), findsOneWidget);
+    expect(find.byIcon(M3EIcons.open_in_new_outlined), findsOneWidget);
+  });
+
+  testWidgets('announces the source of a session from another app', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    final downloaded = SleepSession(
+      startedAt: DateTime(2026, 10, 17, 22),
+      endedAt: DateTime(2026, 10, 18, 6),
+      localId: 1,
+      isDownloaded: true,
+      healthRecordId: 'health-downloaded',
+      sourceId: 'com.sec.android.app.shealth',
+    );
+
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: [downloaded]),
+      appInfo: FakeAppInfoGateway({
+        'com.sec.android.app.shealth': 'Samsung Health',
+      }),
+    );
+
+    expect(
+      find.bySemanticsLabel(
+        RegExp('Read-only, from Samsung Health, Sunday, October 18'),
+      ),
+      findsOneWidget,
+    );
+
+    handle.dispose();
+  });
+
+  testWidgets('fits the source pill at 200% text', (tester) async {
+    final downloaded = SleepSession(
+      startedAt: DateTime(2026, 10, 20, 22),
+      endedAt: DateTime(2026, 10, 21, 6),
+      localId: 1,
+      isDownloaded: true,
+      healthRecordId: 'health-downloaded',
+      sourceId: 'com.sec.android.app.shealth',
+    );
+
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: [downloaded]),
+      appInfo: FakeAppInfoGateway({
+        'com.sec.android.app.shealth': 'Samsung Health',
+      }),
+      textScale: 2,
+    );
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -800));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Samsung Health'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('switches between 7 days, 30 days and All', (tester) async {
@@ -546,7 +768,13 @@ void main() {
     );
     expect(
       find.bySemanticsLabel(
-        RegExp('Local, Today, 8 hours 13 minutes, 10:32 PM to 6:45 AM'),
+        RegExp('Today, 8 hours 13 minutes, goal met, 10:32 PM to 6:45 AM'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(
+        RegExp('Yesterday, 7 hours 2 minutes, 11:10 PM to 6:12 AM'),
       ),
       findsOneWidget,
     );

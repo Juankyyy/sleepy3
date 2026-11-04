@@ -13,7 +13,9 @@ import '../../../sleep_tracking/application/sleep_session_edit_service.dart';
 import '../../../sleep_tracking/application/sleep_tracking_controller.dart';
 import '../../../sleep_tracking/domain/session_edit.dart';
 import '../../../sleep_tracking/domain/sleep_duration.dart';
+import '../../../sleep_tracking/domain/sleep_goal.dart';
 import '../../../sleep_tracking/domain/sleep_session.dart';
+import 'sleep_goal_mark.dart';
 
 /// Opens the session editor for one closed session.
 ///
@@ -36,7 +38,7 @@ Future<SleepSessionEditResult?> showSessionEditor(
   try {
     return await M3EDialog.showAdaptive<SleepSessionEditResult>(
       context,
-      title: 'Edit session',
+      title: 'Session',
       content: SessionEditor(
         key: editorKey,
         session: session,
@@ -75,7 +77,7 @@ Future<SleepSessionEditResult?> _showReadOnlySession(
   if (isCompact) {
     return M3EDialog.showFullScreen<SleepSessionEditResult>(
       context,
-      title: 'Session details',
+      title: 'Session',
       body: SingleChildScrollView(child: content),
     );
   }
@@ -83,7 +85,7 @@ Future<SleepSessionEditResult?> _showReadOnlySession(
   return M3EDialog.show<SleepSessionEditResult>(
     context,
     dialog: M3EDialog(
-      title: 'Session details',
+      title: 'Session',
       content: content,
       actions: [
         M3EButton(
@@ -391,11 +393,12 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
     final use24HourFormat = MediaQuery.alwaysUse24HourFormatOf(context);
     final duration = _endedAt.difference(_startedAt);
     final canEdit = _canEdit;
+    final now = ref.read(sleepClockProvider)();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _DurationSummary(
+        _SessionHero(
           duration: duration,
           endedAt: _endedAt,
           spokenDate: _spokenDate.format(_endedAt),
@@ -408,7 +411,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
         _SessionSection(
           title: 'Fell asleep',
           enabled: canEdit,
-          date: _formatEditorDate(_startedAt),
+          date: _formatEditorDateRow(_startedAt, now),
           time: formatSessionTime(_startedAt, use24HourFormat: use24HourFormat),
           onPickDate: _pickStartDate,
           onPickTime: _pickStartTime,
@@ -417,7 +420,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
         _SessionSection(
           title: 'Woke up',
           enabled: canEdit,
-          date: _formatEditorDate(_endedAt),
+          date: _formatEditorDateRow(_endedAt, now),
           time: formatSessionTime(_endedAt, use24HourFormat: use24HourFormat),
           onPickDate: _pickEndDate,
           onPickTime: _pickEndTime,
@@ -500,9 +503,17 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
   }
 }
 
-/// Duration and wake day, kept in sync with the draft.
-class _DurationSummary extends StatelessWidget {
-  const _DurationSummary({
+/// The session's identity: duration, goal comparison and wake day.
+///
+/// From M3: a filled card with `primaryContainer` / `onPrimaryContainer` and
+/// `headlineMedium` (28/36) for the duration. The accent container makes the
+/// night the leading element; secondary information uses neutral surfaces.
+///
+/// My design decisions (not in M3): the 56 dp goal mark, the 20 dp card radius
+/// shared with the history cards, the 16 dp padding and gap, and the wording
+/// of the goal line.
+class _SessionHero extends StatelessWidget {
+  const _SessionHero({
     required this.duration,
     required this.endedAt,
     required this.spokenDate,
@@ -519,30 +530,98 @@ class _DurationSummary extends StatelessWidget {
 
     return Semantics(
       container: true,
-      label: '${formatSpokenSleepDuration(duration)}, woke $spokenDate',
+      label:
+          '${formatSpokenSleepDuration(duration)}, ${_spokenGoal(duration)}, '
+          'woke $spokenDate',
       child: ExcludeSemantics(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              formatSleepDuration(duration),
-              style: theme.typography.emphasized.headlineSmall.copyWith(
-                color: scheme.onSurface,
-                fontFeatures: const [FontFeature.tabularFigures()],
+        child: M3ECard(
+          variant: M3ECardVariant.filled,
+          color: scheme.primaryContainer,
+          borderRadius: BorderRadius.circular(20),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  SleepGoalMark(
+                    duration: duration,
+                    size: 56,
+                    strokeWidth: 5,
+                    color: scheme.primary,
+                    onColor: scheme.onPrimary,
+                    trackColor: scheme.onPrimaryContainer.withValues(
+                      alpha: 0.18,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      formatSleepDuration(duration),
+                      style: theme.typography.emphasized.headlineMedium
+                          .copyWith(
+                            color: scheme.onPrimaryContainer,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'Woke ${_formatEditorDate(endedAt)}',
-              style: theme.typography.baseline.bodyMedium.copyWith(
-                color: scheme.onSurfaceVariant,
+              const SizedBox(height: 8),
+              Text(
+                _goalLabel(duration),
+                style: theme.typography.baseline.bodyMedium.copyWith(
+                  color: scheme.onPrimaryContainer,
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 2),
+              Text(
+                'Woke ${_formatEditorDate(endedAt)}',
+                style: theme.typography.baseline.bodySmall.copyWith(
+                  color: scheme.onPrimaryContainer,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
+}
+
+/// The goal line under the duration, for example `Goal met · 13m over the
+/// 8h goal` or `58m short of the 8h goal`.
+String _goalLabel(Duration duration) {
+  if (duration <= Duration.zero) return 'Your 8h goal';
+
+  final difference = duration - dailySleepGoal;
+  if (difference >= Duration.zero) {
+    if (difference == Duration.zero) return 'Goal met';
+    return 'Goal met · ${_goalDelta(difference)} over the 8h goal';
+  }
+  return '${_goalDelta(-difference)} short of the 8h goal';
+}
+
+/// The same comparison for screen readers.
+String _spokenGoal(Duration duration) {
+  if (duration <= Duration.zero) return '8-hour goal';
+
+  final difference = duration - dailySleepGoal;
+  if (difference == Duration.zero) return 'goal met';
+  if (difference > Duration.zero) {
+    return 'goal met, ${formatSpokenSleepDuration(difference)} over the '
+        '8-hour goal';
+  }
+  return '${formatSpokenSleepDuration(-difference)} short of the 8-hour goal';
+}
+
+/// A goal delta without a zero minute part: `13m`, `1h`, `1h 12m`.
+String _goalDelta(Duration duration) {
+  final hours = duration.inHours;
+  final minutes = duration.inMinutes.remainder(60);
+  if (hours == 0) return '${minutes}m';
+  if (minutes == 0) return '${hours}h';
+  return '${hours}h ${minutes}m';
 }
 
 /// One labelled date and time pair.
@@ -597,8 +676,7 @@ class _SessionSection extends StatelessWidget {
           itemBuilder: (context, index) {
             final isDate = index == 0;
             return M3EListItem(
-              headline: isDate ? 'Date' : 'Time',
-              supportingText: isDate ? date : time,
+              headline: isDate ? date : time,
               trailing: enabled
                   ? Icon(
                       isDate
@@ -616,11 +694,12 @@ class _SessionSection extends StatelessWidget {
 
 /// Why a session cannot be changed in Sleepy3.
 ///
-/// The filled primary-container card makes the state stand out from the
-/// neutral field groups below. The lock sits in a primary circle and is
-/// centered against the whole explanation, so it stays balanced when the
-/// message wraps. The 40dp circle is a design decision; the card radius,
-/// padding and paired color roles come from M3.
+/// The filled card uses the neutral `surfaceContainerHighest` / `onSurface`
+/// pair so the notice recedes behind the `primaryContainer` hero. The lock sits
+/// in a `surface` circle with an `onSurfaceVariant` icon and is centered against
+/// the whole explanation, so it stays balanced when the message wraps. The 40dp
+/// circle is a design decision; the card radius, padding and paired color roles
+/// come from M3.
 class _ReadOnlyCard extends StatelessWidget {
   const _ReadOnlyCard({required this.message});
 
@@ -633,7 +712,7 @@ class _ReadOnlyCard extends StatelessWidget {
 
     return M3ECard(
       variant: M3ECardVariant.filled,
-      color: scheme.primaryContainer,
+      color: scheme.surfaceContainerHighest,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -643,12 +722,12 @@ class _ReadOnlyCard extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: scheme.primary,
+              color: scheme.surface,
             ),
             child: Icon(
               M3EIcons.lock_outlined,
               size: 20,
-              color: scheme.onPrimary,
+              color: scheme.onSurfaceVariant,
             ),
           ),
           // 12dp separates the lock from the explanation, matching the health
@@ -661,14 +740,14 @@ class _ReadOnlyCard extends StatelessWidget {
                 Text(
                   'Read-only session',
                   style: theme.typography.emphasized.titleMedium.copyWith(
-                    color: scheme.onPrimaryContainer,
+                    color: scheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   message,
                   style: theme.typography.baseline.bodyMedium.copyWith(
-                    color: scheme.onPrimaryContainer,
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -711,9 +790,23 @@ class _HealthNotice extends StatelessWidget {
 }
 
 final _editorDate = DateFormat('EEE, MMM d, y', 'en_US');
+final _editorDateNoYear = DateFormat('EEE, MMM d', 'en_US');
+final _editorDateNoWeekday = DateFormat('MMM d, y', 'en_US');
 final _spokenDate = DateFormat('EEEE, MMMM d, y', 'en_US');
 
 String _formatEditorDate(DateTime value) => _editorDate.format(value.toLocal());
+
+/// The compact date in a fact row.
+///
+/// The row's headline is a single line, so the year only appears when it is not
+/// the current one; otherwise the weekday, month and day are enough and still
+/// fit at 200 % text.
+String _formatEditorDateRow(DateTime value, DateTime now) {
+  final local = value.toLocal();
+  return local.year == now.toLocal().year
+      ? _editorDateNoYear.format(local)
+      : _editorDateNoWeekday.format(local);
+}
 
 DateTime _withDate(DateTime value, DateTime date) =>
     DateTime(date.year, date.month, date.day, value.hour, value.minute);

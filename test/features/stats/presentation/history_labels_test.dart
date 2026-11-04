@@ -37,6 +37,32 @@ void main() {
     });
   });
 
+  group('formatExternalSessionLabel', () {
+    test('uses the resolved app label', () {
+      expect(formatExternalSessionLabel('Samsung Health'), 'Samsung Health');
+    });
+
+    test('falls back when the label cannot be resolved', () {
+      expect(formatExternalSessionLabel(null), 'Another app');
+    });
+  });
+
+  group('formatExternalSessionSpokenLabel', () {
+    test('spells out the read-only state and the app', () {
+      expect(
+        formatExternalSessionSpokenLabel('Samsung Health'),
+        'Read-only, from Samsung Health',
+      );
+    });
+
+    test('uses the generic fallback for an unknown app', () {
+      expect(
+        formatExternalSessionSpokenLabel(null),
+        'Read-only, from another app',
+      );
+    });
+  });
+
   group('formatHistoryTimeRange', () {
     final start = DateTime(2026, 10, 21, 22, 32);
     final end = DateTime(2026, 10, 22, 6, 45);

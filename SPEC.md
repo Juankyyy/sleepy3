@@ -290,25 +290,36 @@ Reglas:
   ofrece `Allow full history`, que vuelve a pedir el permiso y recarga el historial. Los
   rangos `7 days` y `30 days` no piden nada. Al volver del segundo plano se relee el
   permiso por si el usuario lo cambió en Health Connect.
-- Debajo, una tarjeta tonal por sesión cerrada, de la más reciente a la más antigua. En
-  `7 days` cada tarjeta tiene tres líneas: el día de despertar en una píldora
-  (`Today`, `Yesterday`, `Tue, Oct 20` o con año si no es el año actual), la duración
-  como headline y `inicio – fin` como supporting text. En `30 days` y `All` la tarjeta
-  es compacta de dos líneas: la píldora del día y la procedencia arriba, y duración y
-  rango en la segunda línea.
-- Todas las tarjetas usan `secondaryContainer`; la sesión más reciente del día más
-  reciente usa `primaryContainer`. El texto y los iconos usan el `on*` pareado. La
-  píldora del día usa el `on*` de la tarjeta al 10 % y el texto `on*` (decisión de
-  diseño: M3 no tiene un rol de container “on-color al 10 %”). Cada tarjeta
-  lleva un anillo con la duración frente al objetivo de 8 h de Home: 44 dp en `7 days`
-  y 36 dp en `30 days`/`All`, con un icono `bedtime`.
-- Cada tarjeta muestra la procedencia con `smartphone` para una sesión local y
-  `cloud_outlined` para una que está en Google Health, junto a la píldora del día. En
-  `Local`, una sesión pasa a Google Health en cuanto tiene registro en Health Connect,
-  ya sea porque Sleepy3 la subió o porque se descargó. En `Google Health` todas las
-  tarjetas son Google Health, incluidas las escritas por Sleepy3. El icono tiene tooltip
-  `Local` o `Google Health`, y la etiqueta hablada de la tarjeta empieza por esa
-  procedencia.
+- Debajo, una tarjeta tonal por sesión cerrada, de la más reciente a la más antigua,
+  también dentro de un mismo día. En `7 days` cada tarjeta tiene tres líneas: el día de
+  despertar en una píldora (`Today`, `Yesterday`, `Tue, Oct 20` o con año si no es el año
+  actual), la duración como headline y `inicio – fin` como supporting text. En `30 days`
+  y `All` la tarjeta es compacta de dos líneas: la píldora del día y, si la sesión viene
+  de otra app, su cápsula de origen arriba, y duración y rango en la segunda línea.
+- Las tarjetas parten de la pareja de filled card `surfaceContainerHighest` / `onSurface`.
+  La sesión más reciente del día más reciente usa el acento `primaryContainer` /
+  `onPrimaryContainer`; las dos siguientes mezclan ese acento con la base al 2/3 y 1/3, y
+  desde la cuarta todas usan la base. Solo la destacada usa el `onPrimaryContainer`; las
+  mezcladas mantienen `onSurface`. El degradado empieza en la sesión destacada, que es
+  siempre la primera de la lista. Es una decisión de diseño: M3 no tiene un rol de
+  degradado por recencia; los extremos son roles estándar. La píldora del día usa el
+  `on*` de la tarjeta al 10 % y el texto `on*`
+  (decisión de diseño: M3 no tiene un rol de container “on-color al 10 %”). La marca
+  inicial compara la duración con el objetivo de 8 h de Home: por debajo es un anillo de
+  progreso con un icono `bedtime`; al llegar o superarlo se sustituye por un
+  `clover8Leaf` de la librería de formas M3, relleno `primary` y con el icono en
+  `onPrimary`. Mide 44 dp en `7 days` y 36 dp en `30 days`/`All`. La forma es un refuerzo
+  decorativo: la etiqueta hablada añade `goal met` cuando se cumple.
+- Las sesiones escritas por otra app muestran una cápsula junto a la píldora del día,
+  con `open_in_new_outlined` y el label Android de la app que las creó (`Samsung
+  Health`); si Android no resuelve el paquete, dice `Another app`. Las sesiones propias
+  no llevan distintivo, aunque estén subidas a Google Health. En `Local` solo se marcan
+  las copias descargadas de otra app; una copia descargada de Sleepy3 sigue siendo
+  propia. En `Google Health` se marcan todos los registros que no escribió Sleepy3. La
+  flecha indica que la sesión viene de otra app; el estado de solo lectura queda en la
+  etiqueta hablada (`Read-only, from {app}`) y en la card `Read-only session` de los
+  detalles. La cápsula usa el mismo stadium y el mismo tinte del 10 % que la píldora del
+  día (decisión de diseño: M3 no tiene una etiqueta de estado no interactiva).
 - Las sesiones no se agrupan en una tarjeta por día: si hubo varias el mismo día, cada
   una conserva su propia tarjeta. La media y el total sí agrupan por día de despertar,
   con la misma regla que Home (3.1.2).
@@ -330,18 +341,25 @@ Reglas:
   versión; si no, la app lee `clientRecordId` y `clientRecordVersion` de Health Connect y
   escribe la versión siguiente, actualizando el mismo registro. Los registros de otras
   apps abren la vista de solo lectura.
-- La vista de solo lectura usa el título `Session details`. Los campos son filas estáticas:
-  no abren pickers, no llevan los iconos de calendario o reloj y no hay `Save` ni `Delete`.
-  Encima de `Fell asleep` muestra una card `Read-only session` que explica que la sesión se
-  creó en otra app y no se puede editar desde Sleepy3. La card usa el label Android del
-  paquete de origen (`Google Health`, `Samsung Health`, etc.) y cae a `another app` cuando
-  el paquete no está instalado o no se puede resolver. En `Local`, una copia descargada de
-  Sleepy3 invita a cambiarse a `Google Health` para editarla.
-- El editor de sesión es un diálogo adaptativo M3: pantalla completa en ventanas
-  compactas y diálogo básico en medianas y grandes. Título `Edit session`, acción `Save`
-  y cierre con `Cancel` o la X. Tiene secciones `Fell asleep` y `Woke up` con filas de
-  fecha y hora que abren `M3EDatePicker` y `M3ETimePicker`, duración y día de despertar
-  en vivo, y un aviso cuando la sesión también está en Google Health.
+- La vista de solo lectura usa el mismo hero y el título `Session`. Los campos son
+  filas estáticas: no abren pickers, no llevan los iconos de calendario o reloj y no hay
+  `Save` ni `Delete`. Entre el hero y `Fell asleep` muestra una card `Read-only session`
+  que explica que la sesión se creó en otra app y no se puede editar desde Sleepy3. La
+  card usa el label Android del paquete de origen (`Google Health`, `Samsung Health`,
+  etc.) y cae a `another app` cuando el paquete no está instalado o no se puede resolver.
+  En `Local`, una copia descargada de Sleepy3 invita a cambiarse a `Google Health` para
+  editarla.
+- El panel de sesión es un diálogo adaptativo M3: pantalla completa en ventanas
+  compactas y diálogo básico en medianas y grandes. Título `Session`, acción
+  `Save` y cierre con `Cancel` o la X. Arriba, una card `primaryContainer` con la
+  duración en vivo en `headlineMedium`, el día de despertar y el objetivo de 8 h: una
+  marca de 56 dp (el `clover8Leaf` si se cumple, el anillo si no) y una línea
+  `Goal met · 13m over the 8h goal`, `Goal met` o `58m short of the 8h goal`; con un
+  borrador sin duración dice `Your 8h goal`. Debajo, las secciones `Fell asleep` y
+  `Woke up` tienen filas de fecha y hora cuyo headline es el valor y cuyo icono final
+  abre `M3EDatePicker` o `M3ETimePicker`. La fecha omite el año cuando es el actual.
+  Duración y objetivo se recalculan con el borrador; un aviso explica cuando la sesión
+  también está en Google Health.
 - La vista de solo lectura reutiliza el contenido del editor: pantalla completa en
   compacto con solo la X de cierre y diálogo básico en mediano y expandido con una única
   acción `Close`. No muestra `Save` ni `Delete`.
@@ -406,8 +424,8 @@ Reglas:
   diálogo de resultado con el recuento de añadidas, actualizadas, omitidas y fallidas.
   `Sync` y `Add` solo envían filas `origin='local'` pendientes; `Import` añade o actualiza
   filas descargadas y nunca sobrescribe una fila local. Repetir una acción no duplica.
-  Cuando la copia cambia algo, el historial visible se recarga para que la lista y el
-  icono de procedencia reflejen las filas añadidas o actualizadas.
+  Cuando la copia cambia algo, el historial visible se recarga para que la lista y la
+  cápsula de origen reflejen las filas añadidas o actualizadas.
 - El primer cambio a `Google Health` con sesiones locales pendientes muestra el diálogo
   opcional `Copy local sessions?` con `Sync`, `Add` y `Not now`. Los botones de copia
   siguen disponibles después en la sección `Google Health`.
@@ -577,34 +595,45 @@ Reglas:
     tabulares, apoyo en `bodyMedium` y `Show all` como botón de texto.
   - Encabezado de lista `History` en `titleMedium` emphasized.
   - Historial con una `M3ECard` filled por sesión, radio 20 dp y padding 16 dp en
-    `7 days` o 12 dp en `30 days`/`All`; gap 8 dp o 6 dp. Relleno `secondaryContainer`
-    y `primaryContainer` para la sesión más reciente del día más reciente, con
-    `onSecondaryContainer`/`onPrimaryContainer`. En `7 days` la tarjeta tiene tres
-    líneas: píldora del día con el `on*` de la tarjeta al 10 % y texto `on*` (decisión
-    de diseño, no un rol M3), duración `headlineSmall` emphasized (24/32) con cifras
-    tabulares y rango `bodyMedium`. En `30 days`/`All` es de dos líneas: píldora
-    `labelSmall` con el mismo tinte, duración `titleLarge` emphasized (22/28) y rango
-    `bodySmall`, con el rango al final de la segunda línea.
+    `7 days` o 12 dp en `30 days`/`All`; gap 8 dp o 6 dp. La tarjeta destacada usa
+    `primaryContainer` / `onPrimaryContainer`; las dos siguientes mezclan ese acento con
+    `surfaceContainerHighest` al 2/3 y 1/3, y desde la cuarta todas usan
+    `surfaceContainerHighest` / `onSurface`. El degradado empieza en la sesión destacada
+    y es una decisión de diseño (M3 no tiene un rol de recencia); solo la destacada usa
+    `onPrimaryContainer`. En `7 days` la tarjeta tiene tres líneas: píldora del día con
+    el `on*` de la tarjeta al 10 % y texto `on*` (decisión de diseño, no un rol M3),
+    duración `headlineSmall` emphasized (24/32) con cifras tabulares y rango
+    `bodyMedium`. En `30 days`/`All` es de dos líneas: píldora `labelSmall` con el mismo
+    tinte, duración `titleLarge` emphasized (22/28) y rango `bodySmall`, con el rango al
+    final de la segunda línea.
     El anillo mide 44 dp con trazo de 4 dp en `7 days` y 36 dp con trazo de 3 dp en
     `30 days`/`All`, en `primary` sobre un track del 18–22 % del `on*`, con `bedtime`
-    de 18/15 dp. El icono de procedencia va de 18 dp en `7 days` y 16 dp en compacto,
-    junto al día y con tooltip; el chevron mide 20/18 dp. Todas las tarjetas son botones
-    con etiqueta hablada y pista `Opens the session`; crecen con el texto del sistema y
-    no usan alturas fijas. Las de solo lectura abren `Session details` con la card
-    `Read-only session` y los campos bloqueados. El objetivo táctil es de al menos
-    48 dp.
-  - Editor de sesión adaptativo: pantalla completa por debajo del breakpoint compacto y
-    diálogo básico por encima. Usa `M3EDatePicker`/`M3ETimePicker`, secciones con
-    encabezado `titleMedium` emphasized, duración en `headlineSmall` emphasized con cifras
-    tabulares, errores inline en `bodySmall` con rol `error`, y una acción `Delete session`
+    de 18/15 dp. La cápsula de origen comparte el stadium y el tinte del 10 % de la
+    píldora del día; la flecha `open_in_new` mide 14 dp en `7 days` y 12 dp en compacto
+    (decisión de diseño) y el nombre usa `labelMedium` (12/16) o `labelSmall` (11/16). El
+    chevron mide 20/18 dp. Todas las tarjetas son botones con etiqueta hablada y pista
+    `Opens the session`; crecen con el texto del sistema y no usan alturas fijas. Las de
+    solo lectura abren `Session` con la card `Read-only session` y los campos bloqueados.
+    El objetivo táctil es de al menos 48 dp.
+  - Panel de sesión adaptativo: pantalla completa por debajo del breakpoint compacto y
+    diálogo básico por encima. Usa `M3EDatePicker`/`M3ETimePicker`. El hero es una
+    `M3ECard` filled en `primaryContainer` con radio 20 dp y padding 16 dp: marca de
+    objetivo de 56 dp, duración `headlineMedium` emphasized con cifras tabulares, línea
+    del objetivo en `bodyMedium`, día de despertar en `bodySmall` y todo en
+    `onPrimaryContainer`. Las secciones usan encabezado `titleMedium` emphasized;
+    cada fila de fecha u hora lleva el valor como headline y un icono final
+    (`event_outlined`/`schedule_outlined`). La fecha omite el año cuando es el actual.
+    Errores inline en `bodySmall` con rol `error`, y una acción `Delete session`
     separada y de bajo énfasis. Respeta el formato de 24 h del sistema.
-  - La vista de solo lectura usa una `M3ECard` filled en `primaryContainer`, con radio
-    12 dp y padding 16 dp. El candado `lock_outlined` de 20 dp va en `onPrimary` dentro de
-    un círculo `primary` de 40 dp centrado verticalmente contra el texto; el titular
-    `Read-only session` usa `titleMedium` emphasized y el apoyo `bodyMedium`, ambos en
-    `onPrimaryContainer`. La card va encima de `Fell asleep`. Los campos no abren pickers
-    y no muestran los iconos de calendario o reloj. En compacto el diálogo solo tiene la
-    X; en mediano y expandido, una única acción de texto `Close`.
+  - La vista de solo lectura usa el mismo hero. La card `Read-only session` es una
+    `M3ECard` filled en `surfaceContainerHighest`, con radio 12 dp y padding 16 dp. El
+    candado `lock_outlined` de 20 dp va en `onSurfaceVariant` dentro de un círculo
+    `surface` de 40 dp centrado verticalmente contra el texto; el titular
+    `Read-only session` usa `titleMedium` emphasized en `onSurface` y el apoyo
+    `bodyMedium` en `onSurfaceVariant`. La card va entre el hero y `Fell asleep`. Los
+    campos no abren pickers y no muestran los iconos de calendario o reloj. En compacto
+    el diálogo solo tiene la X; en mediano y expandido, una única acción de texto
+    `Close`.
   - La lista y el resumen se reconstruyen desde el estado actualizado tras guardar o
     borrar; no se recarga el historial. El snackbar solo aparece para sincronización
     pendiente, permiso necesario o sesión borrada.
@@ -663,17 +692,18 @@ Reglas:
 | Historial denegado desde el banner | `Google Health needs permission to read older sleep sessions.` |
 | Descarga limitada al historial | `Only the last 30 days were downloaded.` |
 | Encabezado de la lista | `History` |
-| Procedencia de la sesión | `Local` / `Google Health` |
+| Cápsula de otra app | `{app}` / `Another app` |
+| Etiqueta hablada de otra app | `Read-only, from {app}` |
 | Pista de fila | `Opens the session` |
-| Título del editor | `Edit session` |
-| Título de solo lectura | `Session details` |
+| Título del panel de sesión | `Session` |
 | Card de solo lectura | `Read-only session`, `This session was created in {app}, so it can't be edited from Sleepy3.` |
 | Solo lectura sin app resuelta | `This session was created in another app, so it can't be edited from Sleepy3.` |
 | Copia descargada de Sleepy3 | `This session was downloaded from Google Health. Switch to Google Health to edit it.` |
 | Copia descargada de otra app | `This session was created in {app}. Downloaded copies can't be edited in Local.` |
-| Secciones del editor | `Fell asleep`, `Woke up` |
-| Filas de fecha y hora | `Date`, `Time` |
-| Acciones del editor | `Save`, `Cancel`, `Close`, `Delete session` |
+| Secciones del panel de sesión | `Fell asleep`, `Woke up` |
+| Objetivo en el panel | `Goal met · {delta} over the 8h goal`, `Goal met`, `{delta} short of the 8h goal`, `Your 8h goal` |
+| Día de despertar en el hero | `Woke {date}` |
+| Acciones del panel de sesión | `Save`, `Cancel`, `Close`, `Delete session` |
 | Aviso de Google Health | `This night is also in Google Health. Saving updates both copies.` / `This night is stored in Google Health. Saving updates the Health Connect record.` |
 | Confirmación de borrado | `Delete session?`, `Delete`, `Cancel` |
 | Errores de validación | `The wake time must be after the sleep time.`, `The sleep time cannot be in the future.`, `The wake time cannot be in the future.`, `This session overlaps another sleep session.`, `This session overlaps the session in progress.` |
@@ -1128,7 +1158,7 @@ dart run tool/generate_brand_assets.dart
   layout a 360 dp con texto al 200 %, densidad compacta en 30/All y `LocalDayBuilder` al
   pasar medianoche o volver del segundo plano.
 - Stats editable: todas las tarjetas son botones, sin icono de edición; las de solo lectura
-  abren `Session details` con la card de la app y campos bloqueados, editor adaptativo,
+  abren `Session` con la card de la app y campos bloqueados, editor adaptativo,
   guardado sin cambios, cambio de fecha y hora, validación inline (incluidos los límites
   de duración), descarte, 24 h, 200 % de texto, borrado con confirmación, empty state tras
   borrar la última sesión y actualización del resumen sin recargar.

@@ -1,43 +1,19 @@
 import '../../health/domain/sleep_data_source.dart';
+import '../../health/domain/sleepy3_health_source.dart';
 import '../../sleep_tracking/domain/sleep_session.dart';
 
-/// Where a history row came from, as shown by its leading source icon.
+/// Whether [session] was written by an app other than Sleepy3.
 ///
-/// This is not `SleepSessionOrigin`: that enum records how a Drift row was
-/// stored, while this one groups sessions by the place the user knows them
-/// from. A session that was sent to Google Health counts as Google Health even
-/// when Sleepy3 created it.
-enum HistorySessionSource {
-  /// The session only exists in Sleepy3's local database.
-  local,
-
-  /// The session was sent to or read from Google Health.
-  googleHealth,
-}
-
-/// The provenance of [session] in the selected [source].
+/// Google Health mode lists every record in Health Connect, so a session comes
+/// from another app when its writer package is not one of Sleepy3's. Local mode
+/// only reads Drift, where downloaded copies are the only rows written by
+/// another app; sessions Sleepy3 uploaded keep their own local row.
 ///
-/// In Local mode a session becomes Google Health as soon as it has a Health
-/// Connect record, whether Sleepy3 uploaded it or it was downloaded. In Google
-/// Health mode every visible row comes from Health Connect, so all of them are
-/// Google Health, including records written by Sleepy3.
-HistorySessionSource historySessionSource(
-  SleepSession session,
-  SleepDataSource source,
-) {
+/// A downloaded copy of a Sleepy3 record is still Sleepy3's, even though Local
+/// mode keeps it read-only, so it does not count as another app.
+bool isSessionFromAnotherApp(SleepSession session, SleepDataSource source) {
   if (source == SleepDataSource.healthConnect) {
-    return HistorySessionSource.googleHealth;
+    return !isSleepy3HealthRecord(session.sourceId);
   }
-  if (session.isDownloaded || session.healthRecordId != null) {
-    return HistorySessionSource.googleHealth;
-  }
-  return HistorySessionSource.local;
-}
-
-/// Short label for the source tooltip and the spoken row label.
-String historySessionSourceLabel(HistorySessionSource source) {
-  return switch (source) {
-    HistorySessionSource.local => 'Local',
-    HistorySessionSource.googleHealth => 'Google Health',
-  };
+  return session.isDownloaded && !isSleepy3HealthRecord(session.sourceId);
 }

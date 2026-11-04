@@ -13,6 +13,7 @@ import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_contr
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
 import 'package:sleepy3/features/stats/presentation/stats_screen.dart';
+import 'package:sleepy3/features/stats/presentation/widgets/session_editor.dart';
 
 import '../../health/fakes.dart';
 import '../../sleep_tracking/fakes.dart';
@@ -125,7 +126,7 @@ void main() {
 
       await openLocalEditor(tester);
 
-      expect(find.text('Edit session'), findsOneWidget);
+      expect(find.text('Session'), findsOneWidget);
       expect(find.text('Fell asleep'), findsOneWidget);
       expect(find.text('Woke up'), findsOneWidget);
       expect(find.text('Save'), findsOneWidget);
@@ -139,7 +140,7 @@ void main() {
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Edit session'), findsNothing);
+      expect(find.text('Session'), findsNothing);
       expect(find.text('Session deleted.'), findsNothing);
     },
   );
@@ -173,30 +174,22 @@ void main() {
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
     await tester.pumpAndSettle();
 
-    expect(find.byIcon(M3EIcons.smartphone), findsOneWidget);
     expect(find.text('10:32 PM – 6:45 AM'), findsOneWidget);
 
     await openLocalEditor(tester);
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Edit session'), findsOneWidget);
+    expect(find.text('Session'), findsOneWidget);
     expect(find.text('Save'), findsOneWidget);
   });
 
-  testWidgets('the source icon does not block the row action', (tester) async {
+  testWidgets('the card opens the editor from the row content', (tester) async {
     await pumpStats(tester, sessions: [localSession()]);
 
-    await tester.tap(find.byIcon(M3EIcons.smartphone));
+    await tester.tap(find.text('10:32 PM – 6:45 AM'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Edit session'), findsOneWidget);
-  });
-
-  testWidgets('the source icon uses the card content color', (tester) async {
-    await pumpStats(tester, sessions: [localSession()]);
-
-    final icon = tester.widget<Icon>(find.byIcon(M3EIcons.smartphone));
-    expect(icon.color, Sleepy3Theme.light().colorScheme.onPrimaryContainer);
+    expect(find.text('Session'), findsOneWidget);
   });
 
   testWidgets('editable rows are buttons that open the editor', (tester) async {
@@ -205,9 +198,158 @@ void main() {
     await pumpStats(tester, sessions: [localSession()]);
 
     final node = tester.getSemantics(find.text('10:32 PM – 6:45 AM'));
-    expect(node.label, 'Local, Today, 8 hours 13 minutes, 10:32 PM to 6:45 AM');
+    expect(
+      node.label,
+      'Today, 8 hours 13 minutes, goal met, 10:32 PM to 6:45 AM',
+    );
     expect(node.hint, 'Opens the session');
     expect(node.flagsCollection.isButton, isTrue);
+
+    handle.dispose();
+  });
+
+  testWidgets('shows the goal in the session details header', (tester) async {
+    await pumpStats(tester, sessions: [localSession()]);
+
+    await openLocalEditor(tester);
+
+    expect(find.text('Goal met · 13m over the 8h goal'), findsOneWidget);
+    expect(find.text('Woke Wed, Oct 21, 2026'), findsOneWidget);
+
+    final badges = tester
+        .widgetList<M3EShapeContainer>(
+          find.descendant(
+            of: find.byType(SessionEditor),
+            matching: find.byType(M3EShapeContainer),
+          ),
+        )
+        .toList();
+    expect(badges, hasLength(1));
+    expect(badges.single.kind, M3EShapeKind.clover8Leaf);
+    expect(badges.single.width, 56);
+    expect(badges.single.height, 56);
+
+    final hero = tester.widget<M3ECard>(
+      find
+          .descendant(
+            of: find.byType(SessionEditor),
+            matching: find.byType(M3ECard),
+          )
+          .first,
+    );
+    expect(hero.color, Sleepy3Theme.light().colorScheme.primaryContainer);
+  });
+
+  testWidgets('describes a night below the goal in the header', (tester) async {
+    await pumpStats(
+      tester,
+      sessions: [
+        localSession(
+          startedAt: DateTime(2026, 10, 20, 23, 10),
+          endedAt: DateTime(2026, 10, 21, 6, 12),
+        ),
+      ],
+    );
+
+    await tester.tap(find.text('11:10 PM – 6:12 AM'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('58m short of the 8h goal'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(SessionEditor),
+        matching: find.byType(M3EShapeContainer),
+      ),
+      findsNothing,
+    );
+    final ring = tester.widget<M3EProgressIndicator>(
+      find.descendant(
+        of: find.byType(SessionEditor),
+        matching: find.byType(M3EProgressIndicator),
+      ),
+    );
+    expect(ring.size, 56);
+  });
+
+  testWidgets('marks an exact eight-hour night as met', (tester) async {
+    await pumpStats(
+      tester,
+      sessions: [
+        localSession(
+          startedAt: DateTime(2026, 10, 20, 22),
+          endedAt: DateTime(2026, 10, 21, 6),
+        ),
+      ],
+    );
+
+    await tester.tap(find.text('10:00 PM – 6:00 AM'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Goal met'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(SessionEditor),
+        matching: find.byType(M3EShapeContainer),
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('updates the goal while the draft crosses it', (tester) async {
+    await pumpStats(tester, sessions: [localSession()]);
+
+    await openLocalEditor(tester);
+    expect(find.text('Goal met · 13m over the 8h goal'), findsOneWidget);
+
+    await tester.tap(find.text('10:32 PM'));
+    await tester.pumpAndSettle();
+
+    final dial = find.byWidgetPredicate(
+      (widget) =>
+          widget is CustomPaint &&
+          widget.painter?.runtimeType.toString() == 'M3ETimeDialPainter',
+    );
+    final rect = tester.getRect(dial);
+    final radius = rect.width * 0.35;
+
+    // 11 o'clock is 30 degrees left of 12; the period stays PM.
+    await tester.tapAt(rect.center + Offset(-radius * 0.5, -radius * 0.866));
+    await tester.pumpAndSettle();
+    // Tapping the minute field switches the dial to minute mode.
+    await tester.tap(find.text('32'));
+    await tester.pumpAndSettle();
+    // 3 o'clock selects minute 15.
+    await tester.tapAt(rect.center + Offset(radius, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('11:15 PM'), findsOneWidget);
+    expect(find.text('30m short of the 8h goal'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(SessionEditor),
+        matching: find.byType(M3EShapeContainer),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('spells out the goal for screen readers', (tester) async {
+    final handle = tester.ensureSemantics();
+
+    await pumpStats(tester, sessions: [localSession()]);
+    await openLocalEditor(tester);
+
+    expect(
+      find.bySemanticsLabel(
+        RegExp(
+          '8 hours 13 minutes, goal met, 13 minutes over the 8-hour goal, '
+          'woke Wednesday, October 21, 2026',
+        ),
+      ),
+      findsOneWidget,
+    );
 
     handle.dispose();
   });
@@ -216,19 +358,19 @@ void main() {
     final store = await pumpStats(tester, sessions: [localSession()]);
 
     await openLocalEditor(tester);
-    await tester.tap(find.text('Date').first);
+    await tester.tap(find.text('Tue, Oct 20'));
     await tester.pumpAndSettle();
     await pickDay(tester, '19');
-    await tester.tap(find.text('Date').last);
+    await tester.tap(find.text('Wed, Oct 21'));
     await tester.pumpAndSettle();
     await pickDay(tester, '20');
 
-    expect(find.text('Mon, Oct 19, 2026'), findsOneWidget);
+    expect(find.text('Mon, Oct 19'), findsOneWidget);
 
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Edit session'), findsNothing);
+    expect(find.text('Session'), findsNothing);
     expect(store.updates, hasLength(1));
     expect(store.updates.single.startedAt, DateTime(2026, 10, 19, 22, 32));
     expect(store.updates.single.endedAt, DateTime(2026, 10, 20, 6, 45));
@@ -239,7 +381,7 @@ void main() {
     final store = await pumpStats(tester, sessions: [localSession()]);
 
     await openLocalEditor(tester);
-    await tester.tap(find.text('Time').first);
+    await tester.tap(find.text('10:32 PM'));
     await tester.pumpAndSettle();
 
     final dial = find.byWidgetPredicate(
@@ -277,7 +419,7 @@ void main() {
     final store = await pumpStats(tester, sessions: [localSession()]);
 
     await openLocalEditor(tester);
-    await tester.tap(find.text('Date').first);
+    await tester.tap(find.text('Tue, Oct 20'));
     await tester.pumpAndSettle();
     await pickDay(tester, '19');
 
@@ -288,7 +430,7 @@ void main() {
     await tester.tap(find.text('Discard'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Edit session'), findsNothing);
+    expect(find.text('Session'), findsNothing);
     expect(store.updates, isEmpty);
   });
 
@@ -296,7 +438,7 @@ void main() {
     await pumpStats(tester, sessions: [localSession()]);
 
     await openLocalEditor(tester);
-    await tester.tap(find.text('Date').last);
+    await tester.tap(find.text('Wed, Oct 21'));
     await tester.pumpAndSettle();
     await pickDay(tester, '19');
 
@@ -307,7 +449,7 @@ void main() {
       find.text('The wake time must be after the sleep time.'),
       findsOneWidget,
     );
-    expect(find.text('Edit session'), findsOneWidget);
+    expect(find.text('Session'), findsOneWidget);
   });
 
   testWidgets('uses the system 24-hour format in the editor', (tester) async {
@@ -367,16 +509,16 @@ void main() {
     );
 
     await openLocalEditor(tester);
-    await tester.tap(find.text('Date').first);
+    await tester.tap(find.text('Tue, Oct 20'));
     await tester.pumpAndSettle();
     await pickDay(tester, '19');
-    await tester.tap(find.text('Date').last);
+    await tester.tap(find.text('Wed, Oct 21'));
     await tester.pumpAndSettle();
     await pickDay(tester, '20');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Edit session'), findsNothing);
+    expect(find.text('Session'), findsNothing);
     expect(
       find.text('Saved. Google Health will update when it can.'),
       findsOneWidget,
@@ -407,16 +549,16 @@ void main() {
     );
 
     await openLocalEditor(tester);
-    await tester.tap(find.text('Date').first);
+    await tester.tap(find.text('Tue, Oct 20'));
     await tester.pumpAndSettle();
     await pickDay(tester, '19');
-    await tester.tap(find.text('Date').last);
+    await tester.tap(find.text('Wed, Oct 21'));
     await tester.pumpAndSettle();
     await pickDay(tester, '20');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Edit session'), findsNothing);
+    expect(find.text('Session'), findsNothing);
     expect(
       find.text('Saved locally. Allow Google Health write access to sync it.'),
       findsOneWidget,
@@ -469,16 +611,16 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.text('Date').first);
+    await tester.tap(find.text('Tue, Oct 20'));
     await tester.pumpAndSettle();
     await pickDay(tester, '19');
-    await tester.tap(find.text('Date').last);
+    await tester.tap(find.text('Wed, Oct 21'));
     await tester.pumpAndSettle();
     await pickDay(tester, '20');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Edit session'), findsNothing);
+    expect(find.text('Session'), findsNothing);
     expect(gateway.writes, hasLength(1));
     expect(gateway.writes.single.clientRecordId, 'sleepy3-1');
     expect(gateway.writes.single.clientRecordVersion, 2);
@@ -499,7 +641,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(store.deletes, [1]);
-    expect(find.text('Edit session'), findsNothing);
+    expect(find.text('Session'), findsNothing);
     expect(find.text('Session deleted.'), findsOneWidget);
     expect(find.text('No sleep history yet'), findsOneWidget);
   });
@@ -528,20 +670,20 @@ void main() {
     await tester.tap(find.text('10:00 PM – 6:00 AM'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Edit session'), findsOneWidget);
+    expect(find.text('Session'), findsOneWidget);
     expect(find.text('Fell asleep'), findsOneWidget);
     expect(find.text('Woke up'), findsOneWidget);
 
-    await tester.tap(find.text('Date').first);
+    await tester.tap(find.text('Tue, Oct 20'));
     await tester.pumpAndSettle();
     await pickDay(tester, '19');
-    await tester.tap(find.text('Date').last);
+    await tester.tap(find.text('Wed, Oct 21'));
     await tester.pumpAndSettle();
     await pickDay(tester, '20');
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Edit session'), findsNothing);
+    expect(find.text('Session'), findsNothing);
     expect(gateway.updates, hasLength(1));
     expect(gateway.updates.single.healthRecordId, 'own-record');
     expect(gateway.updates.single.startedAt, DateTime(2026, 10, 19, 22));
@@ -574,7 +716,7 @@ void main() {
     await tester.tap(find.text('10:00 PM – 6:00 AM'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Session details'), findsOneWidget);
+    expect(find.text('Session'), findsOneWidget);
     expect(find.text('Read-only session'), findsOneWidget);
     expect(find.textContaining('created in Google Health'), findsOneWidget);
     expect(find.text('Save'), findsNothing);
@@ -589,22 +731,32 @@ void main() {
       matching: find.byType(M3ECard),
     );
     final card = tester.widget<M3ECard>(cardFinder);
+    final scheme = Sleepy3Theme.light().colorScheme;
     expect(card.variant, M3ECardVariant.filled);
-    expect(card.color, Sleepy3Theme.light().colorScheme.primaryContainer);
+    expect(card.color, scheme.surfaceContainerHighest);
+    expect(
+      tester.widget<Text>(find.text('Read-only session')).style?.color,
+      scheme.onSurface,
+    );
+    final lockFinder = find.descendant(
+      of: cardFinder,
+      matching: find.byIcon(M3EIcons.lock_outlined),
+    );
+    expect(tester.widget<Icon>(lockFinder).color, scheme.onSurfaceVariant);
 
-    final lockCenter = tester.getCenter(find.byIcon(M3EIcons.lock_outlined));
+    final lockCenter = tester.getCenter(lockFinder);
     final cardCenter = tester.getCenter(cardFinder);
     expect((lockCenter.dy - cardCenter.dy).abs(), lessThanOrEqualTo(0.5));
 
-    await tester.tap(find.text('Date').first);
+    await tester.tap(find.text('Tue, Oct 20'));
     await tester.pumpAndSettle();
     expect(find.text('Select sleep date'), findsNothing);
-    expect(find.text('Tue, Oct 20, 2026'), findsOneWidget);
+    expect(find.text('Tue, Oct 20'), findsOneWidget);
 
     await tester.tap(find.byIcon(M3EIcons.close));
     await tester.pumpAndSettle();
 
-    expect(find.text('Session details'), findsNothing);
+    expect(find.text('Session'), findsNothing);
     expect(gateway.writes, isEmpty);
     expect(gateway.updates, isEmpty);
     expect(gateway.deletes, isEmpty);
@@ -633,7 +785,7 @@ void main() {
     await tester.tap(find.text('10:00 PM – 6:00 AM'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Session details'), findsOneWidget);
+    expect(find.text('Session'), findsOneWidget);
     expect(find.textContaining('created in another app'), findsOneWidget);
   });
 
@@ -658,7 +810,7 @@ void main() {
     await tester.tap(find.text('10:00 PM – 6:00 AM'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Session details'), findsOneWidget);
+    expect(find.text('Session'), findsOneWidget);
     expect(find.textContaining('created in Google Health'), findsOneWidget);
     expect(
       find.textContaining("Downloaded copies can't be edited in Local"),
@@ -697,7 +849,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(find.text('Session details'), findsOneWidget);
+    expect(find.text('Session'), findsOneWidget);
     expect(find.text('Read-only session'), findsOneWidget);
   });
 
@@ -728,7 +880,7 @@ void main() {
     await tester.tap(find.text('10:00 PM – 6:00 AM'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Session details'), findsOneWidget);
+    expect(find.text('Session'), findsOneWidget);
     expect(find.text('Close'), findsOneWidget);
     expect(find.text('Cancel'), findsNothing);
     expect(find.text('Save'), findsNothing);
@@ -737,6 +889,6 @@ void main() {
     await tester.tap(find.text('Close'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Session details'), findsNothing);
+    expect(find.text('Session'), findsNothing);
   });
 }
