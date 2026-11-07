@@ -17,9 +17,9 @@ import 'widgets/home_header.dart';
 import 'widgets/live_clock.dart';
 import 'widgets/recent_sleep_summary.dart';
 import 'widgets/sleep_history_status.dart';
-import 'widgets/track_buttons_row.dart';
+import 'widgets/track_action_button.dart';
 
-/// The Home destination: brand, live clock, session line, actions and summary.
+/// The Home destination: brand, live clock, session line, action and summary.
 class SleepHomeScreen extends ConsumerWidget {
   const SleepHomeScreen({super.key});
 
@@ -64,15 +64,15 @@ class SleepHomeScreen extends ConsumerWidget {
                               sessionLine: _sessionLine(context, state, now),
                             ),
                             // 32dp layout spacer between the clock and the
-                            // actions.
+                            // action.
                             const SizedBox(height: 32),
-                            TrackButtonsRow(
+                            TrackActionButton(
                               isSleeping: state.isSleeping,
                               onSleep: () => unawaited(controller.sleep()),
                               onWake: () =>
                                   unawaited(_wake(context, ref, state, now)),
                             ),
-                            // 16dp between the actions and the summary.
+                            // 16dp between the action and the summary.
                             const SizedBox(height: 16),
                             const HealthSyncBanner(),
                             _HistorySummary(

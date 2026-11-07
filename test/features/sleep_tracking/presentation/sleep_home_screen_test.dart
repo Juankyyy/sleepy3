@@ -15,6 +15,7 @@ import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_contr
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
 import 'package:sleepy3/features/sleep_tracking/presentation/sleep_home_screen.dart';
+import 'package:sleepy3/features/sleep_tracking/presentation/widgets/track_action_button.dart';
 
 import '../../health/fakes.dart';
 import '../fakes.dart';
@@ -69,7 +70,9 @@ void main() {
     return sleepStore;
   }
 
-  testWidgets('the two actions drive the sleep state machine', (tester) async {
+  testWidgets('the single action drives the sleep state machine', (
+    tester,
+  ) async {
     var now = DateTime(2026, 10, 20, 22, 30);
     final store = await pumpHome(tester, clock: () => now);
 
@@ -85,9 +88,10 @@ void main() {
     expect(brand.style?.fontVariations!.single.value, 32);
 
     var buttons = tester.widgetList<M3EButton>(find.byType(M3EButton)).toList();
-    expect(buttons, hasLength(2));
-    expect(buttons[0].enabled, isTrue);
-    expect(buttons[1].enabled, isFalse);
+    expect(buttons, hasLength(1));
+    expect(buttons.single.enabled, isTrue);
+    expect(find.text('Sleep'), findsOneWidget);
+    expect(find.text('Wake'), findsNothing);
 
     await tester.tap(find.text('Sleep'));
     await tester.pumpAndSettle();
@@ -95,8 +99,10 @@ void main() {
     expect(find.text('Sleeping since 10:30 PM'), findsOneWidget);
     expect(store.starts, hasLength(1));
     buttons = tester.widgetList<M3EButton>(find.byType(M3EButton)).toList();
-    expect(buttons[0].enabled, isFalse);
-    expect(buttons[1].enabled, isTrue);
+    expect(buttons, hasLength(1));
+    expect(buttons.single.enabled, isTrue);
+    expect(find.text('Sleep'), findsNothing);
+    expect(find.text('Wake'), findsOneWidget);
 
     now = now.add(const Duration(hours: 7, minutes: 45));
     await tester.pump(const Duration(seconds: 1));
@@ -111,8 +117,34 @@ void main() {
     expect(find.text('Today'), findsOneWidget);
     expect(store.finishes, hasLength(1));
     buttons = tester.widgetList<M3EButton>(find.byType(M3EButton)).toList();
-    expect(buttons[0].enabled, isTrue);
-    expect(buttons[1].enabled, isFalse);
+    expect(buttons, hasLength(1));
+    expect(buttons.single.enabled, isTrue);
+    expect(find.text('Sleep'), findsOneWidget);
+    expect(find.text('Wake'), findsNothing);
+  });
+
+  testWidgets('a second tap right after Sleep is ignored', (tester) async {
+    var now = DateTime(2026, 10, 20, 22, 30);
+    final store = await pumpHome(tester, clock: () => now);
+
+    await tester.tap(find.text('Sleep'));
+    await tester.pump();
+    expect(find.text('Wake'), findsOneWidget);
+
+    // A second tap lands inside the post-change guard, so it must not close
+    // the session that was just opened.
+    await tester.tap(find.byType(M3EButton));
+    await tester.pump();
+    expect(find.text('Sleep too short'), findsNothing);
+    expect(find.text('Sleeping since 10:30 PM'), findsOneWidget);
+    expect(store.finishes, isEmpty);
+
+    // Once the guard expires, Wake follows its normal path.
+    now = now.add(const Duration(minutes: 1));
+    await tester.pump(TrackActionButton.tapGuard);
+    await tester.tap(find.byType(M3EButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Sleep too short'), findsOneWidget);
   });
 
   testWidgets('a Wake tap under 10 minutes asks before discarding', (
@@ -280,8 +312,10 @@ void main() {
     final buttons = tester
         .widgetList<M3EButton>(find.byType(M3EButton))
         .toList();
-    expect(buttons[0].enabled, isFalse);
-    expect(buttons[1].enabled, isTrue);
+    expect(buttons, hasLength(1));
+    expect(buttons.single.enabled, isTrue);
+    expect(find.text('Wake'), findsOneWidget);
+    expect(find.text('Sleep'), findsNothing);
   });
 
   testWidgets('shows the three-day summary from the startup snapshot', (

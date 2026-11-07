@@ -144,8 +144,8 @@ dart run tool/apply_release_notes.dart v0.1.7
 
 Sleepy3 es una app Android de registro de sueño con fricción cero.
 
-- Dos acciones grandes: **Sleep** y **Wake**. Sin formularios, sin cuentas, sin onboarding
-  obligatorio.
+- Una acción grande que cambia entre **Sleep** y **Wake** según el estado. Sin
+  formularios, sin cuentas, sin onboarding obligatorio.
 - Guarda la hora exacta de inicio y fin de cada sesión.
 - Los datos son locales por defecto. No hay backend ni nube propia.
 - Health Connect es opcional: el usuario elige `Local` o `Google Health` como fuente de
@@ -172,12 +172,17 @@ funcionar bien de noche, con una sola mano y con el teléfono bloqueado o desblo
 
 ### 3.1 Máquina de estados Sleep/Wake
 
-| Estado | Sleep | Wake | Línea de sesión |
-|---|---|---|---|
-| Despierto, sin sesión previa, de día | Habilitado | Deshabilitado | `No active session` |
-| Despierto, sin sesión previa, de noche | Habilitado | Deshabilitado | `Tap Sleep when you turn off the lights` |
-| Durmiendo | Deshabilitado | Habilitado | `Sleeping since HH:MM` |
-| Despierto, con sesión previa | Habilitado | Deshabilitado | `Last session: 7h 45m` |
+| Estado | Acción visible | Línea de sesión |
+|---|---|---|
+| Despierto, sin sesión previa, de día | Sleep | `No active session` |
+| Despierto, sin sesión previa, de noche | Sleep | `Tap Sleep when you turn off the lights` |
+| Durmiendo | Wake | `Sleeping since HH:MM` |
+| Despierto, con sesión previa | Sleep | `Last session: 7h 45m` |
+
+Home muestra una sola acción, siempre habilitada: la que corresponde al estado. El
+controlador conserva sus propias guardas (`sleep()` no hace nada con una sesión abierta y
+`wake()` no hace nada sin ella) para los caminos que no pasan por Home, como el futuro
+widget.
 
 Reglas:
 
@@ -511,8 +516,15 @@ Reglas:
 - Objetivo táctil mínimo de 48 × 48 dp.
 - Etiquetas visibles y descripciones accesibles.
 - Foco visible en botones.
-- Respetar el tamaño de texto del sistema; si no caben dos botones lado a lado, apilarlos.
-- Respetar la preferencia de movimiento reducido cuando se agreguen animaciones.
+- Respetar el tamaño de texto del sistema; el botón único ocupa el ancho disponible y su
+  etiqueta no se trunca, incluso con el 200 % de texto.
+- El botón siempre está habilitado: Home solo muestra la acción que corresponde al estado.
+- El cambio entre Sleep y Wake hace un rise-through de 350 ms: el icono y la etiqueta
+  suben 28 dp y se desvanecen, y el contenido nuevo entra desde abajo con la curva de
+  spring espacial expresivo de M3; la opacidad no rebota. Con movimiento reducido el
+  cambio es inmediato.
+- Tras cambiar de acción, una guarda de 400 ms ignora toques (decisión de producto) para
+  que un doble toque no cierre la sesión que se acaba de abrir.
 - La recarga de Stats es solo por gesto (decisión de producto). Para lectores de pantalla
   hay una acción `Refresh sleep history`; M3 pide además una acción visible sin gesto (por
   ejemplo, un icono `Refresh` en la cabecera), pendiente. El indicador expone
@@ -589,13 +601,17 @@ Reglas:
   - La pantalla solo hace scroll cuando el contenido no cabe por encima de la barra
     flotante. El padding inferior de `MediaQuery` (alto de la barra más inset del sistema)
     no añade recorrido por sí mismo.
-  - Dos `M3EButton.icon` XL de 136 dp de alto, forma square (radio 28 dp), estilo
-    `filled`, icono leading de 40 dp y etiqueta `labelLarge`. Ambos usan
-    `primary`/`onPrimary`; el deshabilitado usa los tokens disabled del botón M3E.
-    La etiqueta `labelLarge` y el padding horizontal de 16 dp son decisiones de layout
-    para que quepan dos botones en 360 dp, no tokens M3: M3 Expressive asigna al botón XL
-    un rol tipográfico mayor y 64 dp de padding lateral.
-  - En pantallas angostas o con texto grande, los botones se apilan.
+  - Un `M3EButton.icon` XL de 136 dp de alto, forma square (radio 28 dp), estilo
+    `filled`, icono leading de 40 dp y etiqueta `labelLarge`. Muestra Sleep (luna) o
+    Wake (sol) según el estado, nunca ambos, y siempre está habilitado. Usa
+    `primary`/`onPrimary`. El padding horizontal de 64 dp es el token XL; la etiqueta
+    `labelLarge` es una decisión de diseño (el token XL usa un rol tipográfico mayor).
+  - El contenedor no se mueve: el icono y la etiqueta suben 28 dp y se desvanecen en el
+    primer 35 % del cambio; el contenido nuevo entra desde 28 dp por debajo con la curva
+    de spring espacial expresivo de M3 y un fade corto en el 65 % restante. Total:
+    350 ms (decisión de diseño). El desplazamiento es espacial y la opacidad no rebota.
+    Con movimiento reducido el cambio es inmediato. Una guarda de 400 ms ignora toques
+    después del cambio para que un doble toque no cierre la sesión recién creada.
   - Tarjeta de resumen `M3ECard` outlined (radio 12 dp, padding 16 dp):
     - título `Last 3 days · {avg} avg` en `titleMedium` emphasized;
     - tres columnas `Today` / `Yesterday` / `2 days ago` con etiquetas
@@ -1189,7 +1205,8 @@ dart run tool/generate_brand_assets.dart
 - Persistencia: alta, cierre, restauración, sesiones abiertas duplicadas, carga de todo
   el historial cerrado, descarte de la sesión abierta, cambio del inicio de la sesión
   abierta y purga de filas locales fuera de rango no sincronizadas al arrancar.
-- UI: estado inicial, cambio Sleep/Wake, restauración y layout a 360 dp.
+- UI: estado inicial, botón único Sleep/Wake, cambio de acción, guarda de doble toque,
+  restauración y layout a 360 dp.
 - Cabecera, reloj en vivo y línea de sesión: formato 12/24 h, límites día/noche, timer,
   cambio de fecha y layout con texto al 200 %.
 - Resumen de 3 días: agrupación por día de despertar, sesiones que cruzan medianoche,
@@ -1257,7 +1274,7 @@ dart run tool/generate_brand_assets.dart
 ### Hecho
 
 - Scaffold Flutter Android.
-- Pantalla principal con dos botones y estado Sleep/Wake.
+- Pantalla principal con un botón contextual y estado Sleep/Wake.
 - Tema M3 Expressive fijo con la paleta de marca, Space Grotesk empaquetada y los títulos
   en Google Sans Flex instanciada.
 - Persistencia Drift y restauración de sesión abierta.

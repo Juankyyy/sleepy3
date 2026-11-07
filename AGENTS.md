@@ -2,9 +2,9 @@
 
 ## Project
 
-Sleepy3 is a Flutter Android app for zero-friction sleep tracking: two large buttons
-(Sleep / Wake), a home-screen widget, local session history, and Health Connect as an
-optional data source.
+Sleepy3 is a Flutter Android app for zero-friction sleep tracking: one large action button
+that switches between Sleep and Wake, a home-screen widget, local session history, and
+Health Connect as an optional data source.
 
 - Flutter stable 3.47.x / Dart 3.13.x, Android only, `minSdk` 28.
 - The previous native Android prototype is archived at Git tag
