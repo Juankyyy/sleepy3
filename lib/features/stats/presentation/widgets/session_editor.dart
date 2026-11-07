@@ -590,11 +590,15 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
 /// From M3: a filled card with `primaryContainer` / `onPrimaryContainer` and
 /// `headlineMedium` (28/36) for the duration. The accent container makes the
 /// night the leading element; secondary information uses neutral surfaces.
+/// Motion guides attention, and shape can carry progress by rotating.
 ///
 /// My design decisions (not in M3): the 56 dp goal mark, the 20 dp card radius
-/// shared with the history cards, the 16 dp padding and gap, and the wording
-/// of the goal line.
-class _SessionHero extends StatelessWidget {
+/// shared with the history cards, the 16 dp padding and gap, the wording of
+/// the goal line, the eight-second continuous turn, rotating only the clover
+/// so the crescent stays upright, and keeping the turn in the details instead
+/// of the history list. There is no published M3 reduce-motion swap rule;
+/// following the Android setting is also a product decision.
+class _SessionHero extends StatefulWidget {
   const _SessionHero({
     required this.duration,
     required this.endedAt,
@@ -606,15 +610,66 @@ class _SessionHero extends StatelessWidget {
   final String spokenDate;
 
   @override
+  State<_SessionHero> createState() => _SessionHeroState();
+}
+
+class _SessionHeroState extends State<_SessionHero>
+    with SingleTickerProviderStateMixin {
+  /// One continuous turn every eight seconds, clockwise.
+  static const _turnPeriod = Duration(seconds: 8);
+
+  late final AnimationController _turn;
+
+  @override
+  void initState() {
+    super.initState();
+    _turn = AnimationController(vsync: this, duration: _turnPeriod);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncTurn();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SessionHero oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _syncTurn();
+  }
+
+  @override
+  void dispose() {
+    _turn.dispose();
+    super.dispose();
+  }
+
+  bool get _met => widget.duration >= dailySleepGoal;
+
+  bool get _motionEnabled => !MediaQuery.disableAnimationsOf(context);
+
+  /// Starts or stops the loop as the draft crosses the goal or the platform
+  /// changes its animation preference. The controller is never reset while
+  /// the tree is building; the mark is replaced anyway when the state changes.
+  void _syncTurn() {
+    if (_met && _motionEnabled) {
+      if (!_turn.isAnimating) _turn.repeat();
+    } else if (_turn.isAnimating) {
+      _turn.stop();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
+    final motionEnabled = _motionEnabled;
 
     return Semantics(
       container: true,
       label:
-          '${formatSpokenSleepDuration(duration)}, ${_spokenGoal(duration)}, '
-          'woke $spokenDate',
+          '${formatSpokenSleepDuration(widget.duration)}, '
+          '${_spokenGoal(widget.duration)}, woke ${widget.spokenDate}',
       child: ExcludeSemantics(
         child: M3ECard(
           variant: M3ECardVariant.filled,
@@ -627,7 +682,7 @@ class _SessionHero extends StatelessWidget {
               Row(
                 children: [
                   SleepGoalMark(
-                    duration: duration,
+                    duration: widget.duration,
                     size: 56,
                     strokeWidth: 5,
                     color: scheme.primary,
@@ -635,11 +690,13 @@ class _SessionHero extends StatelessWidget {
                     trackColor: scheme.onPrimaryContainer.withValues(
                       alpha: 0.18,
                     ),
+                    rotation: _met && motionEnabled ? _turn : null,
+                    animateProgress: motionEnabled,
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
-                      formatSleepDuration(duration),
+                      formatSleepDuration(widget.duration),
                       style: theme.typography.emphasized.headlineMedium
                           .copyWith(
                             color: scheme.onPrimaryContainer,
@@ -651,14 +708,14 @@ class _SessionHero extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                _goalLabel(duration),
+                _goalLabel(widget.duration),
                 style: theme.typography.baseline.bodyMedium.copyWith(
                   color: scheme.onPrimaryContainer,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
-                'Woke ${_formatEditorDate(endedAt)}',
+                'Woke ${_formatEditorDate(widget.endedAt)}',
                 style: theme.typography.baseline.bodySmall.copyWith(
                   color: scheme.onPrimaryContainer,
                 ),

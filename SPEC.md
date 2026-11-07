@@ -314,7 +314,8 @@ Reglas:
   progreso con un icono `bedtime`; al llegar o superarlo se sustituye por un
   `clover8Leaf` de la librería de formas M3, relleno `primary` y con el icono en
   `onPrimary`. Mide 44 dp en `7 days` y 36 dp en `30 days`/`All`. La forma es un refuerzo
-  decorativo: la etiqueta hablada añade `goal met` cuando se cumple.
+  decorativo: la etiqueta hablada añade `goal met` cuando se cumple. En la lista la marca
+  es estática; el movimiento vive solo en los detalles de la sesión.
 - Las sesiones escritas por otra app muestran una cápsula junto a la píldora del día,
   con `open_in_new_outlined` y el label Android de la app que las creó (`Samsung
   Health`); si Android no resuelve el paquete, dice `Another app`. Las sesiones propias
@@ -372,7 +373,15 @@ Reglas:
   duración en vivo en `headlineMedium`, el día de despertar y el objetivo de 8 h: una
   marca de 56 dp (el `clover8Leaf` si se cumple, el anillo si no) y una línea
   `Goal met · 13m over the 8h goal`, `Goal met` o `58m short of the 8h goal`; con un
-  borrador sin duración dice `Your 8h goal`. Debajo, las secciones `Fell asleep` y
+  borrador sin duración dice `Your 8h goal`. La marca cobra vida solo aquí: si el objetivo
+  se cumple, el `clover8Leaf` gira continuamente en sentido horario, una vuelta cada 8 s,
+  y la luna queda erguida; si no, el anillo espera 400 ms y se dibuja de 0 al porcentaje
+  real en 600 ms (`long4` + `emphasizedDecelerate`, sin rebote) y después se queda quieto.
+  Al cruzar el objetivo con el borrador, el clover toma el relevo y, al volver atrás, el
+  giro se detiene. Con «Quitar animaciones» de Android ambas marcas quedan fijas. El giro
+  continuo de 8 s, rotar solo el clover y limitar el movimiento a los detalles son
+  decisiones de diseño; M3 sí documenta que las formas pueden comunicar progreso girando.
+  Debajo, las secciones `Fell asleep` y
   `Woke up` tienen filas de fecha y hora cuyo headline es el valor y cuyo icono final
   abre `M3EDatePicker` o `M3ETimePicker`. La fecha omite el año cuando es el actual.
   Duración y objetivo se recalculan con el borrador; un aviso explica cuando la sesión

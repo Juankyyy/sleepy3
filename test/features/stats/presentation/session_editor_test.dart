@@ -16,6 +16,7 @@ import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
 import 'package:sleepy3/features/stats/presentation/stats_screen.dart';
 import 'package:sleepy3/features/stats/presentation/widgets/session_editor.dart';
+import 'package:sleepy3/features/stats/presentation/widgets/sleep_goal_mark.dart';
 
 import '../../health/fakes.dart';
 import '../../sleep_tracking/fakes.dart';
@@ -49,6 +50,7 @@ void main() {
     bool use24HourFormat = false,
     Size size = const Size(360, 800),
     double textScale = 1,
+    bool disableAnimations = true,
   }) async {
     tester.view.physicalSize = size * 3;
     tester.view.devicePixelRatio = 3;
@@ -57,6 +59,13 @@ void main() {
 
     tester.platformDispatcher.textScaleFactorTestValue = textScale;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    // The loop in the details hero never settles. Most tests only care about
+    // the static layout, so they run with animations off; the motion tests
+    // opt back in and pump explicit frames instead of waiting for a settle.
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        FakeAccessibilityFeatures(disableAnimations: disableAnimations);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
 
     final sleepStore =
         store ??
@@ -242,6 +251,54 @@ void main() {
           .first,
     );
     expect(hero.color, Sleepy3Theme.light().colorScheme.primaryContainer);
+  });
+
+  testWidgets('keeps the goal mark still when animations are off', (
+    tester,
+  ) async {
+    await pumpStats(tester, sessions: [localSession()]);
+
+    await openLocalEditor(tester);
+
+    expect(
+      find.descendant(
+        of: find.byType(SleepGoalMark),
+        matching: find.byType(RotationTransition),
+      ),
+      findsNothing,
+    );
+  });
+
+  testWidgets('turns the clover behind the crescent in the details', (
+    tester,
+  ) async {
+    await pumpStats(
+      tester,
+      sessions: [localSession()],
+      disableAnimations: false,
+    );
+
+    await tester.tap(find.text('10:32 PM – 6:45 AM'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+
+    final turns = find.descendant(
+      of: find.byType(SleepGoalMark),
+      matching: find.byType(RotationTransition),
+    );
+    expect(turns, findsOneWidget);
+    expect(
+      find.descendant(
+        of: turns,
+        matching: find.byIcon(M3EIcons.bedtime_rounded),
+      ),
+      findsNothing,
+    );
+
+    final before = tester.widget<RotationTransition>(turns).turns.value;
+    await tester.pump(const Duration(seconds: 2));
+    final after = tester.widget<RotationTransition>(turns).turns.value;
+    expect(after, greaterThan(before));
   });
 
   testWidgets('describes a night below the goal in the header', (tester) async {
