@@ -224,30 +224,34 @@ class HealthConnectGatewayImpl implements HealthConnectGateway {
   }
 
   @override
-  Future<bool> updateSleepSession({
+  Future<HealthRecordUpdate?> updateSleepSession({
     required String healthRecordId,
     required DateTime startedAt,
     required DateTime endedAt,
   }) async {
-    final token = await _readWriteToken(healthRecordId);
-    if (token == null) return false;
+    final token = await readSleepSessionWriteToken(healthRecordId);
+    if (token == null) return null;
 
+    final nextVersion = token.clientRecordVersion + 1;
     final uuid = await writeSleepSession(
       startedAt: startedAt,
       endedAt: endedAt,
       clientRecordId: token.clientRecordId,
-      clientRecordVersion: token.clientRecordVersion + 1,
+      clientRecordVersion: nextVersion,
     );
-    return uuid != null && uuid.isNotEmpty;
+    if (uuid == null || uuid.isEmpty) return null;
+
+    return HealthRecordUpdate(
+      healthRecordId: uuid,
+      clientRecordId: token.clientRecordId,
+      clientRecordVersion: nextVersion,
+    );
   }
 
-  /// Reads the stable client id and version of a record written by Sleepy3.
-  ///
-  /// The `health` plugin does not expose these metadata fields, so a small
-  /// Android bridge reads them directly. The bridge also verifies that the
-  /// record belongs to this package; Health Connect would reject an update
-  /// from another data origin anyway.
-  Future<_HealthWriteToken?> _readWriteToken(String healthRecordId) async {
+  @override
+  Future<HealthRecordWriteToken?> readSleepSessionWriteToken(
+    String healthRecordId,
+  ) async {
     try {
       final result = await _bridgeChannel.invokeMapMethod<String, Object?>(
         'readSleepSessionWriteToken',
@@ -262,7 +266,10 @@ class HealthConnectGatewayImpl implements HealthConnectGateway {
           clientRecordVersion is! num) {
         return null;
       }
-      return _HealthWriteToken(clientRecordId, clientRecordVersion.toInt());
+      return HealthRecordWriteToken(
+        clientRecordId: clientRecordId,
+        clientRecordVersion: clientRecordVersion.toInt(),
+      );
     } on PlatformException catch (error, stackTrace) {
       debugPrint(
         'Sleepy3: could not read Health Connect record metadata: '
@@ -279,26 +286,62 @@ class HealthConnectGatewayImpl implements HealthConnectGateway {
   }
 
   @override
-  Future<bool> deleteSleepSession({
+  Future<SleepRecordDeleteResult> deleteSleepSession({
     String? clientRecordId,
     String? healthRecordId,
   }) async {
     final clientId = _normalizeId(clientRecordId);
-    if (clientId != null) {
-      return _health.deleteByClientRecordId(
-        dataTypeKey: _sleepType,
-        clientRecordId: clientId,
+    final uuid = _normalizeId(healthRecordId);
+    if (clientId == null && uuid == null) {
+      return SleepRecordDeleteResult.failed;
+    }
+
+    try {
+      final status = await _bridgeChannel.invokeMethod<String>(
+        'deleteSleepSession',
+        {'clientRecordId': clientId, 'healthRecordId': uuid},
+      );
+      switch (status) {
+        case 'deleted':
+          return SleepRecordDeleteResult.deleted;
+        case 'notFound':
+          return SleepRecordDeleteResult.notFound;
+        case 'permission':
+          return SleepRecordDeleteResult.permission;
+        default:
+          return SleepRecordDeleteResult.failed;
+      }
+    } on PlatformException catch (error, stackTrace) {
+      debugPrint(
+        'Sleepy3: Health Connect delete bridge failed: '
+        '$error\n$stackTrace',
+      );
+    } on MissingPluginException catch (error, stackTrace) {
+      debugPrint(
+        'Sleepy3: Health Connect delete bridge is unavailable: '
+        '$error\n$stackTrace',
       );
     }
 
-    final uuid = _normalizeId(healthRecordId);
-    if (uuid != null) {
-      return _health.deleteByUUID(uuid: uuid, type: _sleepType);
+    // Older builds without the bridge still get the plugin's boolean. It
+    // cannot distinguish a missing record from a permission failure.
+    try {
+      final confirmed = clientId != null
+          ? await _health.deleteByClientRecordId(
+              dataTypeKey: _sleepType,
+              clientRecordId: clientId,
+            )
+          : await _health.deleteByUUID(uuid: uuid!, type: _sleepType);
+      return confirmed
+          ? SleepRecordDeleteResult.deleted
+          : SleepRecordDeleteResult.failed;
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Sleepy3: could not delete a Health Connect record: '
+        '$error\n$stackTrace',
+      );
+      return SleepRecordDeleteResult.failed;
     }
-
-    throw ArgumentError(
-      'deleteSleepSession needs a clientRecordId or a healthRecordId',
-    );
   }
 
   String? _normalizeId(String? value) {
@@ -320,12 +363,4 @@ class HealthConnectGatewayImpl implements HealthConnectGateway {
 
   Future<bool> _isAvailable() async =>
       await checkAvailability() == HealthConnectAvailability.available;
-}
-
-/// Metadata needed to replace an existing Health Connect record by client id.
-class _HealthWriteToken {
-  const _HealthWriteToken(this.clientRecordId, this.clientRecordVersion);
-
-  final String clientRecordId;
-  final int clientRecordVersion;
 }

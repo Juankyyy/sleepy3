@@ -13,4 +13,37 @@ void main() {
     expect(isSleepy3HealthRecord(null), isFalse);
     expect(isSleepy3HealthRecord(''), isFalse);
   });
+
+  test('only the running package owns a writable record', () {
+    expect(isHealthRecordOwnedBy('com.sleepy3.app', 'com.sleepy3.app'), isTrue);
+    expect(
+      isHealthRecordOwnedBy('com.sleepy3.app.debug', 'com.sleepy3.app'),
+      isFalse,
+    );
+    expect(
+      isHealthRecordOwnedBy('com.sleepy3.app', 'com.sleepy3.app.debug'),
+      isFalse,
+    );
+    expect(
+      isHealthRecordOwnedBy('com.example.other', 'com.sleepy3.app'),
+      isFalse,
+    );
+    expect(isHealthRecordOwnedBy(null, 'com.sleepy3.app'), isFalse);
+  });
+
+  test('recognizes a record written by the other Sleepy3 build', () {
+    expect(
+      isOtherSleepy3Build('com.sleepy3.app.debug', 'com.sleepy3.app'),
+      isTrue,
+    );
+    expect(
+      isOtherSleepy3Build('com.sleepy3.app', 'com.sleepy3.app.debug'),
+      isTrue,
+    );
+    expect(isOtherSleepy3Build('com.sleepy3.app', 'com.sleepy3.app'), isFalse);
+    expect(
+      isOtherSleepy3Build('com.example.other', 'com.sleepy3.app'),
+      isFalse,
+    );
+  });
 }

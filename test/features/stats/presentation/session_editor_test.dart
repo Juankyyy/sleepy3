@@ -4,9 +4,11 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
 import 'package:sleepy3/features/health/application/app_info_provider.dart';
+import 'package:sleepy3/features/health/application/current_app_package_provider.dart';
 import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
 import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
 import 'package:sleepy3/features/health/application/sleep_data_source_controller.dart';
+import 'package:sleepy3/features/health/domain/health_connect_gateway.dart';
 import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
@@ -43,6 +45,7 @@ void main() {
     FakeHealthConnectGateway? gateway,
     FakeHealthSyncStore? healthSyncStore,
     FakeAppInfoGateway? appInfo,
+    String currentPackage = 'com.sleepy3.app',
     bool use24HourFormat = false,
     Size size = const Size(360, 800),
     double textScale = 1,
@@ -86,6 +89,7 @@ void main() {
                 appInfoGatewayProvider.overrideWithValue(
                   appInfo ?? FakeAppInfoGateway(),
                 ),
+                currentAppPackageProvider.overrideWithValue(currentPackage),
               ],
               child: M3EMaterialApp(
                 title: 'Sleepy3',
@@ -590,6 +594,10 @@ void main() {
         ),
       ],
     );
+    gateway.writeTokens['fake-sleepy3-1'] = const HealthRecordWriteToken(
+      clientRecordId: 'sleepy3-1',
+      clientRecordVersion: 1,
+    );
 
     await pumpStats(
       tester,
@@ -644,6 +652,55 @@ void main() {
     expect(find.text('Session'), findsNothing);
     expect(find.text('Session deleted.'), findsOneWidget);
     expect(find.text('No sleep history yet'), findsOneWidget);
+  });
+
+  testWidgets('asks for permission and deletes after Allow', (tester) async {
+    final session = localSession(
+      healthRecordId: 'permission-record',
+      healthClientRecordId: 'sleepy3-1',
+    );
+    final gateway = FakeHealthConnectGateway(
+      writePermission: false,
+      grantWriteOnRequest: true,
+      sessions: [
+        HealthSleepSession(
+          uuid: 'permission-record',
+          startedAt: session.startedAt,
+          endedAt: session.endedAt!,
+          sourceId: 'com.sleepy3.app',
+        ),
+      ],
+    );
+    final sync = FakeHealthSyncStore()
+      ..addLocal(
+        session,
+        synced: true,
+        healthRecordId: 'permission-record',
+        healthClientRecordId: 'sleepy3-1',
+        healthRecordVersion: 1,
+      );
+    final store = await pumpStats(
+      tester,
+      sessions: [session],
+      gateway: gateway,
+      healthSyncStore: sync,
+    );
+
+    await openLocalEditor(tester);
+    await tester.tap(find.text('Delete session'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Google Health needs permission'), findsOneWidget);
+    await tester.tap(find.text('Allow'));
+    await tester.pumpAndSettle();
+
+    expect(gateway.permissionRequestCalls, 1);
+    expect(gateway.sessions, isEmpty);
+    expect(store.snapshot.closedSessions, isEmpty);
+    expect(find.text('Session'), findsNothing);
+    expect(find.text('Session deleted.'), findsOneWidget);
   });
 
   testWidgets('edits an own Health Connect record without a local copy', (
@@ -787,6 +844,36 @@ void main() {
 
     expect(find.text('Session'), findsOneWidget);
     expect(find.textContaining('created in another app'), findsOneWidget);
+  });
+
+  testWidgets('opens a record from the other Sleepy3 build read-only', (
+    tester,
+  ) async {
+    final gateway = FakeHealthConnectGateway(
+      sessions: [
+        HealthSleepSession(
+          uuid: 'debug-record',
+          startedAt: DateTime(2026, 10, 20, 22),
+          endedAt: DateTime(2026, 10, 21, 6),
+          sourceId: 'com.sleepy3.app.debug',
+        ),
+      ],
+    );
+
+    await pumpStats(
+      tester,
+      source: SleepDataSource.healthConnect,
+      gateway: gateway,
+      appInfo: FakeAppInfoGateway({'com.sleepy3.app.debug': 'Sleepy3 Debug'}),
+    );
+
+    await tester.tap(find.text('10:00 PM – 6:00 AM'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Read-only session'), findsOneWidget);
+    expect(find.textContaining('created in Sleepy3 Debug'), findsOneWidget);
+    expect(find.text('Delete session'), findsNothing);
+    expect(find.text('Save'), findsNothing);
   });
 
   testWidgets('opens a downloaded copy as read-only details', (tester) async {

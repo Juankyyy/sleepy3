@@ -327,6 +327,18 @@ Reglas:
   la cabecera lo explica con `Sleeping since {time} · it will appear when you wake.`
 - Sin ninguna sesión cerrada se muestra un empty state. El texto cambia si hay una sesión
   abierta para explicar que la primera noche aparecerá al despertar.
+- `Stats` se recarga con un pull-to-refresh, también desde el empty state. La pantalla no
+  se mueve: un indicador M3 Expressive contenido de 48 dp (forma activa de 38 dp, el
+  default de M3) baja desde el borde superior siguiendo el gesto. Mientras se arrastra
+  la forma rota con el dedo; al soltar, el loader se queda en la posición alcanzada,
+  limitada a 56–140 dp desde el borde, empieza a mutar y a girar, y al terminar sube y se
+  desvanece. El umbral de recarga es 80 unidades de pull y el dedo se aplica a 0,6×. Es
+  una variante de diseño: M3 mantiene el indicador anclado arriba.
+- La recarga no vacía la lista: las filas siguen visibles mientras se lee la fuente. Si la
+  lectura falla, se conservan y aparece `Couldn't refresh your sleep history. Try again.`.
+  En `Google Health` primero se reintentan las subidas pendientes y después se relee el
+  permiso de historial y las sesiones; en `Local` solo se reintentan actualizaciones de
+  sesiones que ya tienen registro en Health Connect y nunca se sube una sesión nueva.
 - La fecha y la ventana se recalculan a medianoche local y al volver del segundo plano
   con `LocalDayBuilder`, no con un reloj que reconstruye cada segundo. Los días se
   calculan con aritmética de calendario para no desplazar los grupos con DST.
@@ -480,6 +492,9 @@ Reglas:
   actualizaciones de sesiones que ya tienen registro en Health Connect; nunca sube
   sesiones nuevas automáticamente. En `Google Health` reintenta todas las pendientes,
   incluidas las altas.
+- El pull-to-refresh de Stats comparte esa regla antes de releer: `retryPending` sube todas
+  las pendientes en `Google Health` y solo actualiza las ya sincronizadas en `Local`.
+  Después relee la fuente elegida sin vaciar la lista visible.
 - Los permisos se piden al usar la función, no en el primer arranque. Si Health Connect no
   está disponible o el permiso se deniega, la app sigue funcionando localmente.
 - Sleepy3 lee y escribe en Health Connect, no en la nube de Google Health. Un registro que
@@ -498,6 +513,10 @@ Reglas:
 - Foco visible en botones.
 - Respetar el tamaño de texto del sistema; si no caben dos botones lado a lado, apilarlos.
 - Respetar la preferencia de movimiento reducido cuando se agreguen animaciones.
+- La recarga de Stats es solo por gesto (decisión de producto). Para lectores de pantalla
+  hay una acción `Refresh sleep history`; M3 pide además una acción visible sin gesto (por
+  ejemplo, un icono `Refresh` en la cabecera), pendiente. El indicador expone
+  `Refreshing sleep history` como etiqueta de progreso.
 
 ---
 
@@ -567,6 +586,9 @@ Reglas:
   - Fecha en `bodyMedium` y línea de sesión en `bodyMedium` emphasized.
   - El reloj es una línea única. Si el tamaño de texto del sistema no cabe en el ancho,
     solo el reloj se reduce; el resto del texto respeta la escala del sistema.
+  - La pantalla solo hace scroll cuando el contenido no cabe por encima de la barra
+    flotante. El padding inferior de `MediaQuery` (alto de la barra más inset del sistema)
+    no añade recorrido por sí mismo.
   - Dos `M3EButton.icon` XL de 136 dp de alto, forma square (radio 28 dp), estilo
     `filled`, icono leading de 40 dp y etiqueta `labelLarge`. Ambos usan
     `primary`/`onPrimary`; el deshabilitado usa los tokens disabled del botón M3E.
@@ -882,6 +904,12 @@ splash.
 - `SleepTrackingController` siempre escribe la fila local y carga `closedSessions` desde
   la fuente elegida mediante `SleepHistoryRepository`. `historyStatus` y `historyError`
   cubren carga y error; al cambiar de fuente se vacía la lista visible antes de recargar.
+- `SleepTrackingController.refreshHistory` relee sin vaciar `closedSessions` y devuelve
+  `false` si la fuente falla; `reloadHistory` mantiene el vaciado y la tarjeta de carga
+  para Retry, Wake, cambios de fuente y banners. `StatsScreen` monta su propio overlay con
+  `M3ELoadingIndicator` de 48 dp (38 dp activo), captura el pull con
+  `OverscrollNotification`/`ScrollUpdateNotification`, desactiva el overscroll nativo y no
+  transforma el contenido. El empty state comparte el mismo `CustomScrollView`.
 - `SleepTrackingController.updateClosedSession` y `deleteClosedSession` pasan por
   `SleepSessionEditService` dentro de la misma cola serializada que el resto de escrituras.
   El servicio decide si va primero Health Connect o la fila local, devuelve un resultado
@@ -920,14 +948,20 @@ splash.
   `healthConnectHistoryLimit` (30 días) e incluye hasta el día siguiente para tolerar
   relojes desfasados. Además enriquece cada registro con `localId` y
   `healthClientRecordId` si existe una copia local; un fallo al leer esos metadatos no
-  oculta el historial, y las filas propias siguen siendo editables por su UUID.
+  oculta el historial, y las filas escritas por la build actual siguen siendo editables por
+  su UUID y su token real.
 - `healthSleepSessionFromDataPoint` usa `sourceName` como paquete cuando el plugin deja
   `sourceId` vacío en Android, para que los registros propios se reconozcan.
 - `sessionEditAccess` decide qué ofrece cada sesión: editar y borrar o nada.
-  `isSleepy3HealthRecord` reconoce los paquetes release y debug de Sleepy3.
+  `isSleepy3HealthRecord` reconoce los paquetes release y debug de Sleepy3 para etiquetar
+  su procedencia, pero la escritura exige `isHealthRecordOwnedBy`: el `sourceId` debe ser
+  el paquete actual (`currentAppPackageProvider`, cargado desde `PackageInfo.packageName`).
+  Un registro de la otra build es de solo lectura porque Health Connect solo deja modificarlo
+  al paquete que lo escribió.
 - `HealthConnectBridge` es un puente Android mínimo que lee `clientRecordId` y
-  `clientRecordVersion` de un registro; el gateway reutiliza la escritura idempotente con
-  la versión siguiente. No se usa para registros de otras apps ni de otro paquete.
+  `clientRecordVersion` de un registro y borra un registro devolviendo `deleted`,
+  `notFound`, `permission` o `failed`. El gateway reutiliza la escritura idempotente con la
+  versión siguiente. No se usa para registros de otras apps ni de otro paquete.
 - `AppInfoBridge` es un puente Android mínimo que resuelve el label de un paquete con
   `PackageManager`. `MethodChannelAppInfoGateway` lo cachea por paquete y devuelve null si
   la app no está instalada o el canal no responde; la card de solo lectura cae entonces a
@@ -1084,16 +1118,22 @@ dart run build_runner build
   - Una sesión pendiente no aparece en las gráficas de Google Health hasta que Health
     Connect confirma la escritura.
   - Editar un registro propio escribe primero en Health Connect y, si confirma, actualiza
-    la copia local (si existe) y la lista visible. Si falla, el editor sigue abierto. Sin
-    copia local se leen de Health Connect el `clientRecordId` y la versión y se escribe la
-    siguiente, sin duplicar el registro.
+    la copia local (si existe) y la lista visible. Si falla, el editor sigue abierto. El
+    `clientRecordId` y la versión se leen siempre del puente nativo, que verifica el paquete
+    actual; así una fila migrada de una versión anterior no crea un duplicado. La sesión
+    devuelta al controlador conserva el UUID nuevo que asigna la escritura.
   - Borrar un registro propio lo elimina de Health Connect y después de la copia local.
-    Los registros de otras apps son de solo lectura.
+    Se intenta primero el UUID actual, después el `clientRecordId` guardado y, si ambos
+    fallan por inexistentes, se relee el registro por las horas exactas y se borra su UUID
+    actual. Si ya no existe ningún registro propio en ese intervalo, se considera borrado y
+    se limpia la copia local. Un fallo de permiso conserva la copia y el editor ofrece
+    **Allow** para solicitarlo y reintentar. Los registros de otras apps y los de la otra
+    build de Sleepy3 son de solo lectura.
 - Escritura idempotente: el `clientRecordId` estable y la versión creciente evitan
   duplicados al reintentar o actualizar una sesión editada.
 - El historial de Google Health adjunta `localId` y `healthClientRecordId` desde la copia
-  local. Si esa lectura falla, el historial se muestra igualmente; las filas propias
-  siguen siendo editables por su UUID.
+  local. Si esa lectura falla, el historial se muestra igualmente; las filas propias de
+  esta build siguen siendo editables por su UUID y su token real.
 - Sesiones fuera del rango registrable (menos de 10 minutos o 24 horas o más): la subida y
   las copias las marcan `health_sync_skipped` y no las escriben, porque Health Connect las
   rechaza; en Google Health el Wake descarta antes la sesión corta y, si la larga se
@@ -1175,6 +1215,10 @@ dart run tool/generate_brand_assets.dart
 - Stats en Google Health: `All` pide historial, una concesión recarga el historial
   completo, una denegación mantiene los 30 días con el banner y `Allow full history`
   vuelve a pedir el permiso.
+- Pull-to-refresh de Stats: el loader de 48 dp aparece y se retrae, la lista no se vacía,
+  Google Health reintenta pendientes antes de leer, Local no sube altas, un fallo conserva
+  las filas y muestra el snackbar, el empty state también se puede tirar y el layout aguanta
+  el 200 % de texto.
 - Settings: tema por defecto y persistido, diálogo de selección con `Cancel`/`Apply`,
   resolución `System`/`Light`/`Dark`, fuente `Local`/`Google Health`, diálogo de fuente,
   estado de conexión, `Connect`/`Install`, `Import`/`Sync`/`Add`, primer cambio con aviso

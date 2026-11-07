@@ -166,12 +166,19 @@ class SleepUploadService {
   ///
   /// [stored] should be the row as it was before the local times changed, so a
   /// missing client record id can still be derived from the original start.
+  ///
+  /// [token] is the identity Health Connect actually stores for the record. It
+  /// wins over the local copy, because a row migrated from an older version can
+  /// carry a client id that no longer matches the record.
   Future<SleepUploadResult> updateSyncedSession(
     StoredSleepSession stored,
     DateTime startedAt,
-    DateTime endedAt,
-  ) async {
-    if (stored.healthRecordId == null && stored.healthClientRecordId == null) {
+    DateTime endedAt, {
+    HealthRecordWriteToken? token,
+  }) async {
+    if (token == null &&
+        stored.healthRecordId == null &&
+        stored.healthClientRecordId == null) {
       return const SleepUploadResult(SleepUploadStatus.skipped);
     }
     final duration = endedAt.difference(startedAt);
@@ -182,9 +189,12 @@ class SleepUploadService {
 
     try {
       final clientRecordId =
+          token?.clientRecordId ??
           stored.healthClientRecordId ??
           clientRecordIdFor(stored.session.startedAt);
-      final version = stored.healthRecordVersion + 1;
+      final version = token != null
+          ? token.clientRecordVersion + 1
+          : stored.healthRecordVersion + 1;
       await _store.markUploadAttempt(stored.id, version);
 
       final uuid = await _gateway.writeSleepSession(
@@ -216,6 +226,23 @@ class SleepUploadService {
     }
   }
 
+  /// Reads the platform token for an existing record.
+  ///
+  /// A missing record, another package, or a missing bridge returns null; the
+  /// caller then falls back to the local metadata.
+  Future<HealthRecordWriteToken?> _readToken(String? healthRecordId) async {
+    if (healthRecordId == null) return null;
+    try {
+      return await _gateway.readSleepSessionWriteToken(healthRecordId);
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Sleepy3: could not read the Health Connect record token: '
+        '$error\n$stackTrace',
+      );
+      return null;
+    }
+  }
+
   Future<SleepUploadResult> _upload(
     SleepSession session,
     StoredSleepSession? stored,
@@ -235,9 +262,17 @@ class SleepUploadService {
         return const SleepUploadResult(SleepUploadStatus.skipped);
       }
 
+      // A row migrated from an older version can carry a client id that no
+      // longer matches the record. The platform token is the source of truth;
+      // otherwise writing would create a duplicate instead of updating it.
+      final token = await _readToken(stored?.healthRecordId);
       final clientRecordId =
-          stored?.healthClientRecordId ?? clientRecordIdFor(session.startedAt);
-      final version = (stored?.healthRecordVersion ?? 0) + 1;
+          token?.clientRecordId ??
+          stored?.healthClientRecordId ??
+          clientRecordIdFor(session.startedAt);
+      final version = token != null
+          ? token.clientRecordVersion + 1
+          : (stored?.healthRecordVersion ?? 0) + 1;
       if (stored != null) await _store.markUploadAttempt(stored.id, version);
 
       final uuid = await _gateway.writeSleepSession(

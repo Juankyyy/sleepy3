@@ -161,7 +161,7 @@ void main() {
         clientRecordId: 'sleepy3-1',
       );
 
-      expect(deleted, isTrue);
+      expect(deleted, SleepRecordDeleteResult.deleted);
       expect(gateway.deletes.single.clientRecordId, 'sleepy3-1');
       expect(gateway.sessions, isEmpty);
     });
@@ -173,7 +173,7 @@ void main() {
         healthRecordId: 'night-1',
       );
 
-      expect(deleted, isTrue);
+      expect(deleted, SleepRecordDeleteResult.deleted);
       expect(gateway.deletes.single.healthRecordId, 'night-1');
       expect(gateway.sessions, isEmpty);
     });
@@ -186,7 +186,7 @@ void main() {
         healthRecordId: 'night-1',
       );
 
-      expect(deleted, isFalse);
+      expect(deleted, SleepRecordDeleteResult.failed);
       expect(gateway.sessions, hasLength(1));
     });
 

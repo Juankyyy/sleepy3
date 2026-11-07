@@ -6,6 +6,7 @@ import 'package:sleepy3/features/health/application/health_connect_gateway_provi
 import 'package:sleepy3/features/health/application/health_sync_controller.dart';
 import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
 import 'package:sleepy3/features/health/application/sleep_data_source_controller.dart';
+import 'package:sleepy3/features/health/domain/health_connect_gateway.dart';
 import 'package:sleepy3/features/health/domain/health_history_access.dart';
 import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
@@ -1018,7 +1019,7 @@ void main() {
           final result = await controller.deleteClosedSession(session);
 
           expect(result.status, SleepSessionEditStatus.deleted);
-          expect(gateway.deletes.single.clientRecordId, 'sleepy3-1');
+          expect(gateway.deletes.single.healthRecordId, 'fake-sleepy3-1');
           expect(gateway.sessions, isEmpty);
           expect(store.snapshot.closedSessions, isEmpty);
           expect(
@@ -1102,6 +1103,10 @@ void main() {
                 sourceId: 'com.sleepy3.app',
               ),
             ],
+          );
+          gateway.writeTokens['health-record-1'] = const HealthRecordWriteToken(
+            clientRecordId: 'sleepy3-1',
+            clientRecordVersion: 1,
           );
           final sync = FakeHealthSyncStore()
             ..addLocal(
@@ -1327,7 +1332,7 @@ void main() {
           final result = await controller.deleteClosedSession(localCopy);
 
           expect(result.status, SleepSessionEditStatus.deleted);
-          expect(gateway.deletes.single.clientRecordId, 'sleepy3-1');
+          expect(gateway.deletes.single.healthRecordId, 'fake-sleepy3-1');
           expect(store.snapshot.closedSessions, isEmpty);
           expect(
             container.read(sleepTrackingControllerProvider).closedSessions,
@@ -1335,6 +1340,181 @@ void main() {
           );
         },
       );
+
+      test(
+        'falls back to the current record when both stored ids are stale',
+        () async {
+          final session = localSession(
+            healthRecordId: 'stale-uuid',
+            healthClientRecordId: 'stale-client',
+          );
+          final gateway = FakeHealthConnectGateway(
+            sessions: [
+              HealthSleepSession(
+                uuid: 'current-uuid',
+                startedAt: start,
+                endedAt: end,
+                sourceId: 'com.sleepy3.app',
+              ),
+            ],
+          );
+          final sync = FakeHealthSyncStore()
+            ..addLocal(
+              session,
+              synced: true,
+              healthRecordId: 'stale-uuid',
+              healthClientRecordId: 'stale-client',
+              healthRecordVersion: 1,
+            );
+          create(
+            storeSnapshot: SleepSnapshot(closedSessions: [session]),
+            healthGateway: gateway,
+            healthSyncStore: sync,
+          );
+          await controller.historyLoad;
+
+          final result = await controller.deleteClosedSession(session);
+
+          expect(result.status, SleepSessionEditStatus.deleted);
+          expect(gateway.sessions, isEmpty);
+          expect(gateway.deletes.map((delete) => delete.healthRecordId), [
+            'stale-uuid',
+            null,
+            'current-uuid',
+          ]);
+          expect(store.snapshot.closedSessions, isEmpty);
+        },
+      );
+
+      test('deletes a local row whose Health Connect record is gone', () async {
+        final session = localSession(
+          healthRecordId: 'gone-uuid',
+          healthClientRecordId: 'sleepy3-1',
+        );
+        final gateway = FakeHealthConnectGateway();
+        final sync = FakeHealthSyncStore()
+          ..addLocal(
+            session,
+            synced: true,
+            healthRecordId: 'gone-uuid',
+            healthClientRecordId: 'sleepy3-1',
+            healthRecordVersion: 1,
+          );
+        create(
+          storeSnapshot: SleepSnapshot(closedSessions: [session]),
+          healthGateway: gateway,
+          healthSyncStore: sync,
+        );
+        await controller.historyLoad;
+
+        final result = await controller.deleteClosedSession(session);
+
+        expect(result.status, SleepSessionEditStatus.deleted);
+        expect(gateway.sessions, isEmpty);
+        expect(store.snapshot.closedSessions, isEmpty);
+      });
+
+      test('keeps the new Health Connect identity after an edit', () async {
+        final localCopy = localSession(
+          healthRecordId: 'health-record-1',
+          healthClientRecordId: 'sleepy3-1',
+          sourceId: 'com.sleepy3.app',
+        );
+        final gateway = FakeHealthConnectGateway(
+          sessions: [
+            HealthSleepSession(
+              uuid: 'health-record-1',
+              startedAt: start,
+              endedAt: end,
+              sourceId: 'com.sleepy3.app',
+            ),
+          ],
+        )..updateChangesUuid = true;
+        gateway.writeTokens['health-record-1'] = const HealthRecordWriteToken(
+          clientRecordId: 'sleepy3-1',
+          clientRecordVersion: 1,
+        );
+        final sync = FakeHealthSyncStore()
+          ..addLocal(
+            localCopy,
+            synced: true,
+            healthRecordId: 'health-record-1',
+            healthClientRecordId: 'sleepy3-1',
+            healthRecordVersion: 1,
+          );
+        create(
+          storeSnapshot: SleepSnapshot(closedSessions: [localCopy]),
+          source: SleepDataSource.healthConnect,
+          healthGateway: gateway,
+          healthSyncStore: sync,
+        );
+        await controller.historyLoad;
+
+        final result = await controller.updateClosedSession(
+          session: localCopy,
+          startedAt: start.add(const Duration(minutes: 30)),
+          endedAt: end.add(const Duration(minutes: 30)),
+        );
+
+        expect(result.status, SleepSessionEditStatus.saved);
+        expect(result.session?.healthRecordId, 'updated-health-record-1');
+        expect(
+          container
+              .read(sleepTrackingControllerProvider)
+              .closedSessions
+              .single
+              .healthRecordId,
+          'updated-health-record-1',
+        );
+        expect(sync.rows.single.healthRecordId, 'updated-health-record-1');
+      });
+    });
+
+    test(
+      'refreshHistory keeps the rows visible while the source is read',
+      () async {
+        final old = closed(
+          DateTime(2026, 10, 19, 23),
+          DateTime(2026, 10, 20, 7),
+        );
+        final fresh = closed(
+          DateTime(2026, 10, 20, 22),
+          DateTime(2026, 10, 21, 6),
+        );
+        create(storeSnapshot: SleepSnapshot(closedSessions: [old]));
+        await controller.historyLoad;
+
+        store.snapshot = SleepSnapshot(closedSessions: [fresh]);
+        store.closedLoadGate = Completer<void>();
+        final refresh = controller.refreshHistory();
+        await Future<void>.delayed(Duration.zero);
+
+        var state = container.read(sleepTrackingControllerProvider);
+        expect(state.historyStatus, SleepHistoryStatus.ready);
+        expect(state.closedSessions, [old]);
+
+        store.closedLoadGate!.complete();
+        expect(await refresh, isTrue);
+
+        state = container.read(sleepTrackingControllerProvider);
+        expect(state.historyStatus, SleepHistoryStatus.ready);
+        expect(state.closedSessions, [fresh]);
+      },
+    );
+
+    test('refreshHistory keeps the visible rows when the read fails', () async {
+      final old = closed(DateTime(2026, 10, 19, 23), DateTime(2026, 10, 20, 7));
+      create(storeSnapshot: SleepSnapshot(closedSessions: [old]));
+      await controller.historyLoad;
+
+      store.closedLoadError = StateError('offline');
+      final refreshed = await controller.refreshHistory();
+
+      final state = container.read(sleepTrackingControllerProvider);
+      expect(refreshed, isFalse);
+      expect(state.historyStatus, SleepHistoryStatus.ready);
+      expect(state.closedSessions, [old]);
+      expect(state.historyError, isNull);
     });
   });
 }

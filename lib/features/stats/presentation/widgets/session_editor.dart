@@ -7,6 +7,8 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../../core/time/clock_format.dart';
 import '../../../health/application/app_info_provider.dart';
+import '../../../health/application/current_app_package_provider.dart';
+import '../../../health/application/health_connect_gateway_provider.dart';
 import '../../../health/domain/sleep_data_source.dart';
 import '../../../health/domain/sleepy3_health_source.dart';
 import '../../../sleep_tracking/application/sleep_session_edit_service.dart';
@@ -325,10 +327,30 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
     if (!mounted || confirmed != true) return;
 
     setState(() => _deleting = true);
-    final result = await ref
-        .read(sleepTrackingControllerProvider.notifier)
-        .deleteClosedSession(widget.session);
+    var result = await _delete();
     if (!mounted) return;
+
+    if (result.status == SleepSessionEditStatus.permissionNeeded) {
+      setState(() => _deleting = false);
+      final allow = await _askToAllowDelete();
+      if (!mounted || allow != true) return;
+
+      final granted = await _requestWriteAccess();
+      if (!mounted) return;
+      if (!granted) {
+        await _showError(
+          title: 'Google Health needs permission',
+          message:
+              'Allow Sleepy3 to write sleep data in Google Health, then try '
+              'again.',
+        );
+        return;
+      }
+
+      setState(() => _deleting = true);
+      result = await _delete();
+      if (!mounted) return;
+    }
 
     setState(() => _deleting = false);
 
@@ -346,6 +368,50 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
                 'try again.'
           : 'The session could not be deleted. Try again.',
     );
+  }
+
+  Future<SleepSessionEditResult> _delete() {
+    return ref
+        .read(sleepTrackingControllerProvider.notifier)
+        .deleteClosedSession(widget.session);
+  }
+
+  Future<bool?> _askToAllowDelete() {
+    return M3EDialog.show<bool>(
+      context,
+      dialog: M3EDialog(
+        title: 'Google Health needs permission',
+        content: const Text(
+          'Allow Sleepy3 to delete this session from Google Health.',
+        ),
+        actions: [
+          M3EButton(
+            style: M3EButtonStyle.text,
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Close'),
+          ),
+          M3EButton(
+            style: M3EButtonStyle.text,
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Allow'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _requestWriteAccess() async {
+    try {
+      return await ref
+          .read(healthConnectGatewayProvider)
+          .requestPermissions(read: true, write: true);
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Sleepy3: could not request Health Connect write access: '
+        '$error\n$stackTrace',
+      );
+      return false;
+    }
   }
 
   String get _deleteMessage {
@@ -471,7 +537,14 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
   /// resolve its label.
   String _readOnlyMessage() {
     final session = widget.session;
+    final currentPackage = ref.read(currentAppPackageProvider);
+    final otherBuild = isOtherSleepy3Build(session.sourceId, currentPackage);
+
     if (widget.source == SleepDataSource.healthConnect) {
+      if (otherBuild) {
+        return 'This session was created in ${_otherBuildName()}, so it '
+            "can't be edited from this build.";
+      }
       if (isSleepy3HealthRecord(session.sourceId)) {
         return "This session can't be edited from Sleepy3.";
       }
@@ -480,6 +553,10 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
     }
 
     if (widget.source == SleepDataSource.local && session.isDownloaded) {
+      if (otherBuild) {
+        return 'This session was created in ${_otherBuildName()}. Downloaded '
+            "copies can't be edited from this build.";
+      }
       if (isSleepy3HealthRecord(session.sourceId)) {
         return 'This session was downloaded from Google Health. Switch to '
             'Google Health to edit it.';
@@ -493,6 +570,11 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
     }
 
     return "This session can't be edited from Sleepy3.";
+  }
+
+  String _otherBuildName() {
+    final label = _sourceAppLabel();
+    return label == 'another app' ? 'another Sleepy3 build' : label;
   }
 
   String _sourceAppLabel() {

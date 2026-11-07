@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../health/application/current_app_package_provider.dart';
 import '../../health/application/health_connect_gateway_provider.dart';
 import '../../health/application/health_sync_controller.dart';
 import '../../health/application/health_sync_store_provider.dart';
@@ -85,14 +86,19 @@ class SleepSessionEditService {
     this._sync,
     this._gateway,
     this._upload,
-    this._clock,
-  );
+    this._clock, {
+    this.currentPackage = 'com.sleepy3.app',
+  });
 
   final SleepSessionStore _sessions;
   final HealthSyncStore _sync;
   final HealthConnectGateway _gateway;
   final SleepUploadService _upload;
   final DateTime Function() _clock;
+
+  /// Package of the running build. Health Connect only lets this package
+  /// change the records it wrote.
+  final String currentPackage;
 
   /// Saves new times for one closed session.
   ///
@@ -166,7 +172,10 @@ class SleepSessionEditService {
     return sessionEditAccess(
       session,
       healthConnectSource: source == SleepDataSource.healthConnect,
-      isOwnHealthRecord: isSleepy3HealthRecord(session.sourceId),
+      isOwnHealthRecord: isHealthRecordOwnedBy(
+        session.sourceId,
+        currentPackage,
+      ),
     );
   }
 
@@ -201,14 +210,23 @@ class SleepSessionEditService {
       case _WriteAccess.unavailable:
         return SleepSessionEditResult.savedPendingSync(updatedSession);
       case _WriteAccess.granted:
+        final token = await _readToken(recordId);
         final result = await _upload.updateSyncedSession(
           stored,
           startedAt,
           endedAt,
+          token: token,
         );
-        return result.status == SleepUploadStatus.uploaded
-            ? SleepSessionEditResult.saved(updatedSession)
-            : SleepSessionEditResult.savedPendingSync(updatedSession);
+        if (result.status != SleepUploadStatus.uploaded) {
+          return SleepSessionEditResult.savedPendingSync(updatedSession);
+        }
+        return SleepSessionEditResult.saved(
+          updatedSession.withHealthIdentity(
+            healthRecordId: result.healthRecordId,
+            healthClientRecordId:
+                token?.clientRecordId ?? stored.healthClientRecordId,
+          ),
+        );
     }
   }
 
@@ -236,9 +254,12 @@ class SleepSessionEditService {
 
     final stored = localId == null ? null : await _sync.findById(localId);
 
-    // The local copy carries the exact client id and version used to replace
-    // the record. This is the original path for synced sessions.
-    if (stored != null && stored.healthClientRecordId != null) {
+    // A record with no UUID only has its local client id. This is a fallback
+    // for a pending row that reached the Google Health list with an older id.
+    if (healthRecordId == null) {
+      if (stored == null || stored.healthClientRecordId == null) {
+        return const SleepSessionEditResult.failed();
+      }
       final upload = await _upload.updateSyncedSession(
         stored,
         startedAt,
@@ -252,37 +273,62 @@ class SleepSessionEditService {
       if (!localUpdated) return const SleepSessionEditResult.failed();
 
       return SleepSessionEditResult.saved(
-        session.withTimes(startedAt, endedAt),
+        session
+            .withTimes(startedAt, endedAt)
+            .withHealthIdentity(
+              healthRecordId: upload.healthRecordId,
+              healthClientRecordId: stored.healthClientRecordId,
+            ),
+      );
+    }
+
+    // Health Connect is the authority on the client id and version. A row
+    // migrated from an older version can carry an id that no longer matches the
+    // record, and reusing it would create a duplicate instead of an update.
+    final token = await _readToken(healthRecordId);
+    if (token == null) return const SleepSessionEditResult.failed();
+
+    if (stored != null) {
+      final upload = await _upload.updateSyncedSession(
+        stored,
+        startedAt,
+        endedAt,
+        token: token,
+      );
+      if (upload.status != SleepUploadStatus.uploaded) {
+        return SleepSessionEditResult.failed(error: upload.error);
+      }
+
+      final localUpdated = await _updateLocalCopy(stored, startedAt, endedAt);
+      if (!localUpdated) return const SleepSessionEditResult.failed();
+
+      return SleepSessionEditResult.saved(
+        session
+            .withTimes(startedAt, endedAt)
+            .withHealthIdentity(
+              healthRecordId: upload.healthRecordId,
+              healthClientRecordId: token.clientRecordId,
+            ),
       );
     }
 
     // A Google Health record can exist without a local copy, for example after
-    // reinstalling the app. Update it in place through its stable client id
-    // instead of guessing a new id, which would duplicate the record.
-    if (healthRecordId == null) {
-      return const SleepSessionEditResult.failed();
-    }
-
+    // reinstalling the app. Update it in place through its platform token.
     final updated = await _gateway.updateSleepSession(
       healthRecordId: healthRecordId,
       startedAt: startedAt,
       endedAt: endedAt,
     );
-    if (!updated) return const SleepSessionEditResult.failed();
+    if (updated == null) return const SleepSessionEditResult.failed();
 
-    if (stored != null) {
-      final localUpdated = await _updateLocalCopy(stored, startedAt, endedAt);
-      if (!localUpdated) {
-        // Health Connect already confirmed the update and is the source of
-        // truth in this mode; keep the new times visible and leave the stale
-        // local copy for the next import to repair.
-        debugPrint(
-          'Sleepy3: updated a Health Connect record but not its local copy.',
-        );
-      }
-    }
-
-    return SleepSessionEditResult.saved(session.withTimes(startedAt, endedAt));
+    return SleepSessionEditResult.saved(
+      session
+          .withTimes(startedAt, endedAt)
+          .withHealthIdentity(
+            healthRecordId: updated.healthRecordId,
+            healthClientRecordId: updated.clientRecordId,
+          ),
+    );
   }
 
   Future<bool> _updateLocalCopy(
@@ -325,11 +371,16 @@ class SleepSessionEditService {
       case _WriteAccess.unavailable:
         return const SleepSessionEditResult.failed();
       case _WriteAccess.granted:
-        final deletedOnHealth = await _gateway.deleteSleepSession(
-          clientRecordId: clientRecordId,
+        final deletedOnHealth = await _deleteHealthRecord(
           healthRecordId: healthRecordId,
+          clientRecordId: clientRecordId,
+          startedAt: stored?.session.startedAt ?? session.startedAt,
+          endedAt: stored?.session.endedAt ?? session.endedAt!,
         );
-        if (!deletedOnHealth) {
+        if (deletedOnHealth == SleepRecordDeleteResult.permission) {
+          return const SleepSessionEditResult.permissionNeeded();
+        }
+        if (deletedOnHealth != SleepRecordDeleteResult.deleted) {
           return const SleepSessionEditResult.failed();
         }
     }
@@ -355,35 +406,167 @@ class SleepSessionEditService {
       case _WriteAccess.unavailable:
         return const SleepSessionEditResult.failed();
       case _WriteAccess.granted:
-        final deleted = await _gateway.deleteSleepSession(
-          clientRecordId: clientRecordId,
+        final deleted = await _deleteHealthRecord(
           healthRecordId: healthRecordId,
+          clientRecordId: clientRecordId,
+          startedAt: session.startedAt,
+          endedAt: session.endedAt!,
         );
-        if (!deleted) return const SleepSessionEditResult.failed();
+        if (deleted == SleepRecordDeleteResult.permission) {
+          return const SleepSessionEditResult.permissionNeeded();
+        }
+        if (deleted != SleepRecordDeleteResult.deleted) {
+          return const SleepSessionEditResult.failed();
+        }
     }
 
     // Health Connect is the source of truth in this mode. Removing the local
     // copy is cleanup; a failure there must not keep the record in the list.
-    final localId = session.localId;
-    if (localId != null) {
-      try {
-        final stored = await _sync.findById(localId);
-        if (stored != null) {
-          if (stored.origin == SleepSessionOrigin.local) {
-            await _sessions.deleteSession(stored.id);
-          } else {
-            await _sync.deleteDownloaded(stored.id);
-          }
-        }
-      } catch (error, stackTrace) {
-        debugPrint(
-          'Sleepy3: could not delete the local copy of a Health Connect '
-          'record: $error\n$stackTrace',
-        );
+    await _cleanupLocalCopy(session);
+    return const SleepSessionEditResult.deleted();
+  }
+
+  /// Deletes one Sleepy3 record, trying every stored identity.
+  ///
+  /// UUID first: a record migrated from an older version can carry a client id
+  /// that no longer matches the record. If neither id works, the record is
+  /// looked up again by its exact times. A record that no longer exists counts
+  /// as deleted, so a stale local row cannot block the action forever.
+  Future<SleepRecordDeleteResult> _deleteHealthRecord({
+    required String? healthRecordId,
+    required String? clientRecordId,
+    required DateTime startedAt,
+    required DateTime endedAt,
+  }) async {
+    final attempts = <({String? healthRecordId, String? clientRecordId})>[
+      if (healthRecordId != null)
+        (healthRecordId: healthRecordId, clientRecordId: null),
+      if (clientRecordId != null)
+        (healthRecordId: null, clientRecordId: clientRecordId),
+    ];
+    if (attempts.isEmpty) return SleepRecordDeleteResult.failed;
+
+    var sawPermission = false;
+    var sawFailure = false;
+    var sawNotFound = false;
+    for (final attempt in attempts) {
+      final result = await _gateway.deleteSleepSession(
+        healthRecordId: attempt.healthRecordId,
+        clientRecordId: attempt.clientRecordId,
+      );
+      debugPrint(
+        'Sleepy3: delete attempt '
+        '${attempt.healthRecordId != null ? 'uuid' : 'client id'} -> '
+        '$result',
+      );
+      switch (result) {
+        case SleepRecordDeleteResult.deleted:
+          return SleepRecordDeleteResult.deleted;
+        case SleepRecordDeleteResult.permission:
+          sawPermission = true;
+        case SleepRecordDeleteResult.notFound:
+          sawNotFound = true;
+        case SleepRecordDeleteResult.failed:
+          sawFailure = true;
       }
     }
+    if (sawPermission) return SleepRecordDeleteResult.permission;
+    // Only a missing id is safe to repair by reading the record again. A real
+    // platform failure must stay visible instead of being reported as deleted.
+    if (sawFailure || !sawNotFound) return SleepRecordDeleteResult.failed;
 
-    return const SleepSessionEditResult.deleted();
+    return _deleteByExactTimes(startedAt, endedAt);
+  }
+
+  /// Finds the current record by its exact times and deletes it.
+  ///
+  /// Returns [SleepRecordDeleteResult.deleted] when no Sleepy3 record covers
+  /// the interval: there is nothing left to delete.
+  Future<SleepRecordDeleteResult> _deleteByExactTimes(
+    DateTime startedAt,
+    DateTime endedAt,
+  ) async {
+    try {
+      final records = await _gateway.readSleepSessions(
+        from: startedAt,
+        to: endedAt.add(const Duration(seconds: 1)),
+      );
+      final exact = records
+          .where(
+            (record) =>
+                record.startedAt == startedAt && record.endedAt == endedAt,
+          )
+          .toList(growable: false);
+      final own = exact
+          .where(
+            (record) => isHealthRecordOwnedBy(record.sourceId, currentPackage),
+          )
+          .toList(growable: false);
+
+      // A Sleepy3 record at these times belongs to the other build. Health
+      // Connect will not let this package delete it.
+      if (own.isEmpty &&
+          exact.any((record) => isSleepy3HealthRecord(record.sourceId))) {
+        return SleepRecordDeleteResult.permission;
+      }
+
+      var sawFailure = false;
+      for (final record in own) {
+        final result = await _gateway.deleteSleepSession(
+          healthRecordId: record.uuid,
+        );
+        switch (result) {
+          case SleepRecordDeleteResult.deleted:
+            return SleepRecordDeleteResult.deleted;
+          case SleepRecordDeleteResult.permission:
+            return SleepRecordDeleteResult.permission;
+          case SleepRecordDeleteResult.notFound:
+            break;
+          case SleepRecordDeleteResult.failed:
+            sawFailure = true;
+        }
+      }
+      return sawFailure
+          ? SleepRecordDeleteResult.failed
+          : SleepRecordDeleteResult.deleted;
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Sleepy3: could not re-read a session to delete it: '
+        '$error\n$stackTrace',
+      );
+      return SleepRecordDeleteResult.failed;
+    }
+  }
+
+  Future<void> _cleanupLocalCopy(SleepSession session) async {
+    final localId = session.localId;
+    if (localId == null) return;
+    try {
+      final stored = await _sync.findById(localId);
+      if (stored == null) return;
+      if (stored.origin == SleepSessionOrigin.local) {
+        await _sessions.deleteSession(stored.id);
+      } else {
+        await _sync.deleteDownloaded(stored.id);
+      }
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Sleepy3: could not delete the local copy of a Health Connect '
+        'record: $error\n$stackTrace',
+      );
+    }
+  }
+
+  Future<HealthRecordWriteToken?> _readToken(String healthRecordId) async {
+    try {
+      return await _gateway.readSleepSessionWriteToken(healthRecordId);
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Sleepy3: could not read a Health Connect record token: '
+        '$error\n$stackTrace',
+      );
+      return null;
+    }
   }
 
   Future<_WriteAccess> _writeAccess() async {
@@ -416,5 +599,6 @@ final sleepSessionEditServiceProvider = Provider<SleepSessionEditService>((
     ref.watch(healthConnectGatewayProvider),
     ref.watch(sleepUploadServiceProvider),
     ref.watch(sleepClockProvider),
+    currentPackage: ref.watch(currentAppPackageProvider),
   );
 });

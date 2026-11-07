@@ -13,43 +13,56 @@ class Sleepy3EmptyState extends StatelessWidget {
     required this.icon,
     required this.headline,
     required this.supportingText,
+    this.scrollable = true,
   });
 
   final IconData icon;
   final String headline;
   final String supportingText;
 
+  /// Whether this state owns a scroll view.
+  ///
+  /// Set to false when the parent already provides one, such as the Stats
+  /// pull-to-refresh scroll view, so the state does not nest scrollables.
+  final bool scrollable;
+
   @override
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
+    final content = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 48, color: scheme.onSurfaceVariant),
+        const SizedBox(height: 16),
+        Text(
+          headline,
+          textAlign: TextAlign.center,
+          style: theme.typography.baseline.headlineSmall.copyWith(
+            color: scheme.onSurface,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          supportingText,
+          textAlign: TextAlign.center,
+          style: theme.typography.baseline.bodyMedium.copyWith(
+            color: scheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
 
     return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 48, color: scheme.onSurfaceVariant),
-            const SizedBox(height: 16),
-            Text(
-              headline,
-              textAlign: TextAlign.center,
-              style: theme.typography.baseline.headlineSmall.copyWith(
-                color: scheme.onSurface,
-              ),
+      child: scrollable
+          ? SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              child: content,
+            )
+          : Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              child: content,
             ),
-            const SizedBox(height: 8),
-            Text(
-              supportingText,
-              textAlign: TextAlign.center,
-              style: theme.typography.baseline.bodyMedium.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

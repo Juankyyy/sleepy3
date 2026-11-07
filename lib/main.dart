@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import 'app/sleepy3_app.dart';
+import 'features/health/application/current_app_package_provider.dart';
 import 'features/health/application/health_connect_gateway_provider.dart';
 import 'features/health/application/health_sync_store_provider.dart';
 import 'features/health/application/sleep_data_source_controller.dart';
@@ -35,7 +36,8 @@ Future<void> main() async {
   final themeMode = await _loadThemeMode(settingsStore);
   await const AndroidAppNightMode().setMode(themeMode);
   final dataSource = await _loadSleepDataSource(settingsStore);
-  final appVersion = await _loadAppVersion();
+  final packageInfo = await _loadPackageInfo();
+  final appVersion = _appVersionFrom(packageInfo);
 
   runApp(
     ProviderScope(
@@ -50,6 +52,9 @@ Future<void> main() async {
         healthSyncStoreProvider.overrideWithValue(healthSyncStore),
         initialSleepDataSourceProvider.overrideWithValue(dataSource),
         appVersionProvider.overrideWithValue(appVersion),
+        currentAppPackageProvider.overrideWithValue(
+          packageInfo?.packageName ?? 'com.sleepy3.app',
+        ),
       ],
       child: const Sleepy3App(),
     ),
@@ -108,14 +113,19 @@ Future<SleepDataSource> _loadSleepDataSource(SettingsStore store) async {
   }
 }
 
-Future<AppVersion?> _loadAppVersion() async {
+Future<PackageInfo?> _loadPackageInfo() async {
   try {
-    final info = await PackageInfo.fromPlatform();
-    if (info.version.isEmpty) return null;
-    return AppVersion(version: info.version, buildNumber: info.buildNumber);
+    return await PackageInfo.fromPlatform();
   } catch (error, stackTrace) {
-    // Version is informational; a missing plugin must not block launch.
-    debugPrint('Sleepy3: could not load app version: $error\n$stackTrace');
+    // Version and package name are informational; a missing plugin must not
+    // block launch. The package name also decides which Health Connect records
+    // are writable, so the provider falls back to the release id.
+    debugPrint('Sleepy3: could not load package info: $error\n$stackTrace');
     return null;
   }
+}
+
+AppVersion? _appVersionFrom(PackageInfo? info) {
+  if (info == null || info.version.isEmpty) return null;
+  return AppVersion(version: info.version, buildNumber: info.buildNumber);
 }

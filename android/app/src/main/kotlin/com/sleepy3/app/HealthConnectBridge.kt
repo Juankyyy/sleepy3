@@ -1,6 +1,7 @@
 package com.sleepy3.app
 
 import android.content.Context
+import android.os.RemoteException
 import android.util.Log
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.records.SleepSessionRecord
@@ -29,6 +30,7 @@ class HealthConnectBridge(
         MethodChannel(messenger, CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "readSleepSessionWriteToken" -> readSleepSessionWriteToken(call, result)
+                "deleteSleepSession" -> deleteSleepSession(call, result)
                 else -> result.notImplemented()
             }
         }
@@ -72,6 +74,59 @@ class HealthConnectBridge(
                 }
             }
             result.success(token)
+        }
+    }
+
+    /**
+     * Deletes one sleep record by UUID or by client id.
+     *
+     * The `health` plugin collapses every failure into `false`, which cannot
+     * tell a record that is already gone from one this package is not allowed
+     * to touch. Health Connect throws a different exception for each case, so
+     * the Dart side can repair a stale id or explain the failure.
+     */
+    private fun deleteSleepSession(
+        call: MethodCall,
+        result: MethodChannel.Result,
+    ) {
+        val healthRecordId = call.argument<String>("healthRecordId")
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+        val clientRecordId = call.argument<String>("clientRecordId")
+            ?.trim()
+            ?.takeIf { it.isNotEmpty() }
+
+        if (healthRecordId == null && clientRecordId == null) {
+            result.success("failed")
+            return
+        }
+
+        scope.launch {
+            val status = withContext(Dispatchers.IO) {
+                try {
+                    val client = HealthConnectClient.getOrCreate(context)
+                    client.deleteRecords(
+                        recordType = SleepSessionRecord::class,
+                        recordIdsList = listOfNotNull(healthRecordId),
+                        clientRecordIdsList = listOfNotNull(clientRecordId),
+                    )
+                    "deleted"
+                } catch (error: RemoteException) {
+                    Log.w(TAG, "The sleep record no longer exists", error)
+                    "notFound"
+                } catch (error: SecurityException) {
+                    Log.w(
+                        TAG,
+                        "This package cannot delete the sleep record",
+                        error,
+                    )
+                    "permission"
+                } catch (error: Exception) {
+                    Log.w(TAG, "Could not delete the sleep record", error)
+                    "failed"
+                }
+            }
+            result.success(status)
         }
     }
 

@@ -102,6 +102,25 @@ class SleepSession {
     );
   }
 
+  /// A copy of this session with a different Health Connect identity.
+  ///
+  /// A Health Connect upsert can assign a new UUID, so the editor must replace
+  /// the id it opened with. The local row id and source are preserved.
+  SleepSession withHealthIdentity({
+    String? healthRecordId,
+    String? healthClientRecordId,
+  }) {
+    return SleepSession(
+      startedAt: startedAt,
+      endedAt: endedAt,
+      localId: localId,
+      isDownloaded: isDownloaded,
+      healthRecordId: healthRecordId,
+      healthClientRecordId: healthClientRecordId,
+      sourceId: sourceId,
+    );
+  }
+
   /// A copy of this session with a new start and the same identity metadata.
   ///
   /// Used to fix a session that has been open for longer than

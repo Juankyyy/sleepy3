@@ -56,7 +56,9 @@ Health Connect only accepts sleep sessions between 10 minutes and 24 hours. If a
 
 Stats groups nights by the day you woke up and offers 7-day, 30-day and all-history filters, with the average, total and number of nights. Each night is a tonal card with a ring that compares it with the 8-hour goal, replaced by a Material 3 Expressive clover badge once the goal is met; the 30-day and all-history views use a denser two-line card so more nights fit on screen. Sessions written by another app show an external-app arrow and that app's name, or **Another app** when Android cannot resolve it; your own sessions stay unmarked.
 
-Tap any card to open it. Your own sessions open in a detail view with the night's duration against the 8-hour goal, where you can change the start or end time or delete the session after confirming. Sessions created by another app open read-only, with locked fields and a card that names the app when Android can resolve it (otherwise it says another app). In Local mode, sessions downloaded from Health Connect are read-only too. In Google Health mode, your own records stay editable even without a local copy.
+Pull down on Stats to refresh. The list stays in place while an M3 Expressive loader descends from the top; pending Google Health uploads are retried first, then the selected source is read again. In Local mode a refresh never uploads a new session.
+
+Tap any card to open it. Sessions written by the app you are using open in a detail view with the night's duration against the 8-hour goal, where you can change the start or end time or delete the session after confirming. If Google Health needs write access, the delete dialog offers **Allow** and tries again. Sessions created by another app open read-only, with locked fields and a card that names the app when Android can resolve it (otherwise it says another app). In Local mode, sessions downloaded from Health Connect are read-only too. In Google Health mode, your own records stay editable even without a local copy. A record written by the other Sleepy3 build (release vs debug) is read-only from the build you are using, because Health Connect only lets the app that wrote it change it.
 
 ## Local or Google Health?
 
@@ -66,12 +68,12 @@ Choose the source in **Settings → Sleep data**.
 |---|---|---|
 | Where sessions are stored | Only in Sleepy3 | Health Connect, plus a local safety copy |
 | What Stats shows | Only Sleepy3 sessions | Every sleep session in Health Connect, including other apps' |
-| Editing | Only your Sleepy3 sessions | Your Sleepy3 records; other apps' records are read-only |
+| Editing | Only your Sleepy3 sessions | Records written by this build; other apps' records and the other Sleepy3 build are read-only |
 | Good for | Keeping everything in one private app | Seeing all your sleep data together |
 
 In Local mode Sleepy3 never touches Health Connect on its own. If you already sent a session there, editing it updates that record too.
 
-In Google Health mode, the app asks for permission the first time. If you decline, it stays on Local. When a write fails, the session stays pending, a banner offers **Retry**, and Sleepy3 tries again when you reopen the app.
+In Google Health mode, the app asks for permission the first time. If you decline, it stays on Local. When a write fails, the session stays pending, a banner offers **Retry**, and Sleepy3 tries again when you reopen the app or pull down on Stats.
 
 **Copy actions** in Settings:
 

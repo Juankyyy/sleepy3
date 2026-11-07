@@ -1,5 +1,55 @@
 import 'health_sleep_session.dart';
 
+/// The ids Health Connect needs to replace an existing Sleepy3 record.
+class HealthRecordWriteToken {
+  const HealthRecordWriteToken({
+    required this.clientRecordId,
+    required this.clientRecordVersion,
+  });
+
+  /// Stable client id assigned by Sleepy3 when the record was written.
+  final String clientRecordId;
+
+  /// Version currently stored by Health Connect.
+  final int clientRecordVersion;
+}
+
+/// The identity of a Sleepy3 record after an update.
+class HealthRecordUpdate {
+  const HealthRecordUpdate({
+    required this.healthRecordId,
+    required this.clientRecordId,
+    required this.clientRecordVersion,
+  });
+
+  /// Health Connect UUID of the updated record.
+  ///
+  /// An upsert can assign a new UUID, so callers must replace the old one.
+  final String healthRecordId;
+
+  /// Stable client id used for the write.
+  final String clientRecordId;
+
+  /// Version written to Health Connect.
+  final int clientRecordVersion;
+}
+
+/// What happened when Sleepy3 tried to delete a record.
+enum SleepRecordDeleteResult {
+  /// The platform confirmed the deletion.
+  deleted,
+
+  /// The record no longer exists; there is nothing left to delete.
+  notFound,
+
+  /// Health Connect rejected the call, usually because the record belongs to
+  /// another package or the write permission is missing.
+  permission,
+
+  /// The platform call failed for another reason.
+  failed,
+}
+
 /// Whether Health Connect can be used on this device.
 enum HealthConnectAvailability {
   /// Health Connect is installed and the SDK is current.
@@ -62,26 +112,36 @@ abstract interface class HealthConnectGateway {
     required int clientRecordVersion,
   });
 
+  /// Reads the stable ids Health Connect stored for one Sleepy3 record.
+  ///
+  /// Returns null when the record does not exist, belongs to another package,
+  /// has no client id, or the platform cannot answer. The ids are the ones the
+  /// running build must reuse to replace the record without creating a
+  /// duplicate.
+  Future<HealthRecordWriteToken?> readSleepSessionWriteToken(
+    String healthRecordId,
+  );
+
   /// Updates a sleep record written by Sleepy3, even without a local copy.
   ///
   /// Reads the record's stable client id and version from Health Connect and
   /// writes the new times with the next version, so the same record is
-  /// replaced. Returns false when the record has no stable id, belongs to
-  /// another app, or the platform rejects the update. Throws when the platform
-  /// call itself fails.
-  Future<bool> updateSleepSession({
+  /// replaced. Returns the new identity, or null when the record has no stable
+  /// id, belongs to another app, or the platform rejects the update. Throws
+  /// when the platform call itself fails.
+  Future<HealthRecordUpdate?> updateSleepSession({
     required String healthRecordId,
     required DateTime startedAt,
     required DateTime endedAt,
   });
 
-  /// Deletes a sleep record written by Sleepy3.
+  /// Deletes one sleep record written by Sleepy3.
   ///
-  /// Uses [clientRecordId] when known and falls back to [healthRecordId].
-  /// Health Connect itself rejects records written by another app, so callers
-  /// must only pass ids from Sleepy3 records. Returns whether the platform
-  /// confirmed the deletion; throws when the platform call fails.
-  Future<bool> deleteSleepSession({
+  /// Pass one id at a time: [healthRecordId] or [clientRecordId]. Health
+  /// Connect only lets the package that wrote a record delete it. The result
+  /// distinguishes a missing record from a permission rejection so callers can
+  /// repair stale ids or explain the failure.
+  Future<SleepRecordDeleteResult> deleteSleepSession({
     String? clientRecordId,
     String? healthRecordId,
   });

@@ -119,10 +119,14 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
         historyStatus: SleepHistoryStatus.loading,
         historyError: null,
       );
-      _historyFuture = Future.microtask(_loadHistory);
+      _historyFuture = Future<void>.microtask(() async {
+        await _loadHistory();
+      });
     });
 
-    _historyFuture = Future.microtask(_loadHistory);
+    _historyFuture = Future<void>.microtask(() async {
+      await _loadHistory();
+    });
 
     return SleepTrackingState(
       openSession: initial.openSession,
@@ -299,23 +303,40 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
   /// Reloads the closed history from the selected source.
   ///
   /// Used by the Retry action and after Wake. The open session is untouched.
-  Future<void> reloadHistory() {
-    final future = _loadHistory();
-    _historyFuture = future;
+  /// The list is cleared and shows the loading state until the read finishes;
+  /// use [refreshHistory] for a manual refresh that keeps the rows visible.
+  Future<void> reloadHistory() async {
+    await _startHistoryLoad();
+  }
+
+  /// Re-reads the closed history without dropping the rows already on screen.
+  ///
+  /// Used by the Stats pull-to-refresh. Returns false only when the selected
+  /// source failed and the visible history was kept. A load superseded by a
+  /// source switch returns true because the new source's load owns the screen.
+  Future<bool> refreshHistory() => _startHistoryLoad(keepVisible: true);
+
+  Future<bool> _startHistoryLoad({bool keepVisible = false}) {
+    final future = _loadHistory(keepVisible: keepVisible);
+    _historyFuture = future.then<void>((_) {});
     return future;
   }
 
-  Future<void> _loadHistory() async {
-    if (!ref.mounted) return;
+  Future<bool> _loadHistory({bool keepVisible = false}) async {
+    if (!ref.mounted) return false;
 
     final generation = _history.begin();
     final source = ref.read(sleepDataSourceProvider);
+    final preserveRows =
+        keepVisible && state.historyStatus == SleepHistoryStatus.ready;
 
-    state = state.copyWith(
-      closedSessions: const [],
-      historyStatus: SleepHistoryStatus.loading,
-      historyError: null,
-    );
+    if (!preserveRows) {
+      state = state.copyWith(
+        closedSessions: const [],
+        historyStatus: SleepHistoryStatus.loading,
+        historyError: null,
+      );
+    }
 
     try {
       // Resolve the history grant before choosing the read window. This also
@@ -323,30 +344,39 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
       // is honoured without opening Stats first.
       if (source == SleepDataSource.healthConnect) {
         await ref.read(healthHistoryPermissionProvider.notifier).refresh();
-        if (!ref.mounted || !_history.isCurrent(generation)) return;
-        if (ref.read(sleepDataSourceProvider) != source) return;
+        if (!ref.mounted || !_history.isCurrent(generation)) return true;
+        if (ref.read(sleepDataSourceProvider) != source) return true;
       }
 
       final repository = ref.read(sleepHistoryRepositoryProvider);
       final sessions = await repository.loadClosedSessions();
-      if (!ref.mounted || !_history.isCurrent(generation)) return;
+      if (!ref.mounted || !_history.isCurrent(generation)) return true;
       // A source switch invalidates the load; this is belt and braces for a
       // listener that has not run yet.
-      if (ref.read(sleepDataSourceProvider) != source) return;
+      if (ref.read(sleepDataSourceProvider) != source) return true;
 
       state = state.copyWith(
         closedSessions: List.unmodifiable(sessions),
         historyStatus: SleepHistoryStatus.ready,
         historyError: null,
       );
+      return true;
     } catch (error, stackTrace) {
-      if (!ref.mounted || !_history.isCurrent(generation)) return;
+      if (!ref.mounted || !_history.isCurrent(generation)) return true;
+      if (ref.read(sleepDataSourceProvider) != source) return true;
+
       debugPrint('Sleepy3: could not load sleep history: $error\n$stackTrace');
+      if (preserveRows) {
+        // The pull-to-refresh keeps the visible history and reports the
+        // failure through its own surface.
+        return false;
+      }
       state = state.copyWith(
         closedSessions: const [],
         historyStatus: SleepHistoryStatus.error,
         historyError: error,
       );
+      return false;
     }
   }
 

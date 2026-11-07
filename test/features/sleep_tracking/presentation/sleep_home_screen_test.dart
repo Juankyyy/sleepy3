@@ -14,6 +14,7 @@ import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
+import 'package:sleepy3/features/sleep_tracking/presentation/sleep_home_screen.dart';
 
 import '../../health/fakes.dart';
 import '../fakes.dart';
@@ -429,6 +430,74 @@ void main() {
       find.text('Tap Sleep when you turn off the lights'),
     );
     expect(MediaQuery.textScalerOf(sessionContext).scale(14), 28);
+  });
+
+  testWidgets('does not scroll when everything fits above the nav bar', (
+    tester,
+  ) async {
+    const pixelRatio = 3.0;
+    tester.view.physicalSize = const Size(360, 800) * pixelRatio;
+    tester.view.devicePixelRatio = pixelRatio;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    // The Scaffold extends the body behind the floating bar and adds the bar
+    // height to the body's bottom padding on top of the system inset.
+    const bottomInset = 24.0;
+    tester.view.padding = const FakeViewPadding(
+      bottom: bottomInset * pixelRatio,
+    );
+    tester.view.viewPadding = const FakeViewPadding(
+      bottom: bottomInset * pixelRatio,
+    );
+    addTearDown(tester.view.resetPadding);
+    addTearDown(tester.view.resetViewPadding);
+
+    await pumpHome(tester, clock: () => DateTime(2026, 10, 20, 22, 30));
+
+    final homeScroll = tester.state<ScrollableState>(
+      find.descendant(
+        of: find.byType(SleepHomeScreen),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    expect(homeScroll.position.pixels, 0);
+    expect(
+      homeScroll.position.maxScrollExtent,
+      0,
+      reason: 'Home must not scroll when the content fits above the nav bar',
+    );
+  });
+
+  testWidgets('still scrolls when the content does not fit', (tester) async {
+    const pixelRatio = 3.0;
+    tester.view.physicalSize = const Size(360, 480) * pixelRatio;
+    tester.view.devicePixelRatio = pixelRatio;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    const bottomInset = 24.0;
+    tester.view.padding = const FakeViewPadding(
+      bottom: bottomInset * pixelRatio,
+    );
+    tester.view.viewPadding = const FakeViewPadding(
+      bottom: bottomInset * pixelRatio,
+    );
+    addTearDown(tester.view.resetPadding);
+    addTearDown(tester.view.resetViewPadding);
+
+    await pumpHome(tester, clock: () => DateTime(2026, 10, 20, 22, 30));
+
+    final homeScroll = tester.state<ScrollableState>(
+      find.descendant(
+        of: find.byType(SleepHomeScreen),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    expect(homeScroll.position.maxScrollExtent, greaterThan(0));
   });
 
   testWidgets('shows a loading card while the history loads', (tester) async {

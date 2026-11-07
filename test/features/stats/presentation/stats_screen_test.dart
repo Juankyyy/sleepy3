@@ -960,6 +960,166 @@ void main() {
     expect(find.text('Across 1 night · 8h 0m total'), findsOneWidget);
   });
 
+  group('pull to refresh', () {
+    testWidgets('shows the 48 dp loader while the list stays visible', (
+      tester,
+    ) async {
+      final old = closed(
+        DateTime(2026, 10, 20, 22, 32),
+        DateTime(2026, 10, 21, 6, 45),
+      );
+      final fresh = closed(
+        DateTime(2026, 10, 20, 23, 10),
+        DateTime(2026, 10, 21, 6, 12),
+      );
+      final store = FakeSleepSessionStore(
+        snapshot: SleepSnapshot(closedSessions: [old]),
+      );
+
+      await pumpStats(
+        tester,
+        clock: () => DateTime(2026, 10, 21, 10),
+        store: store,
+      );
+
+      store.snapshot = SleepSnapshot(closedSessions: [fresh]);
+      store.closedLoadGate = Completer<void>();
+
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, 300));
+      await tester.pump();
+
+      final loader = tester.widget<M3ELoadingIndicator>(
+        find.byType(M3ELoadingIndicator),
+      );
+      expect(loader.size, 48);
+      expect(find.text('10:32 PM – 6:45 AM'), findsOneWidget);
+      expect(find.text('11:10 PM – 6:12 AM'), findsNothing);
+
+      store.closedLoadGate!.complete();
+      await tester.pumpAndSettle();
+
+      expect(find.text('10:32 PM – 6:45 AM'), findsNothing);
+      expect(find.text('11:10 PM – 6:12 AM'), findsOneWidget);
+    });
+
+    testWidgets('pull retries pending uploads before reading Google Health', (
+      tester,
+    ) async {
+      final session = closed(
+        DateTime(2026, 10, 20, 22),
+        DateTime(2026, 10, 21, 6),
+      );
+      final gateway = FakeHealthConnectGateway()
+        ..writeError = StateError('Health Connect is offline');
+
+      await pumpStats(
+        tester,
+        clock: () => DateTime(2026, 10, 21, 10),
+        source: SleepDataSource.healthConnect,
+        gateway: gateway,
+        healthSyncStore: FakeHealthSyncStore()..addLocal(session),
+      );
+
+      expect(find.text('1 session waiting to sync'), findsOneWidget);
+
+      gateway.writeError = null;
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, 300));
+      await tester.pumpAndSettle();
+
+      expect(gateway.writes, hasLength(1));
+      expect(find.text('1 session waiting to sync'), findsNothing);
+      expect(find.text('Across 1 night · 8h 0m total'), findsOneWidget);
+    });
+
+    testWidgets('pull in Local never uploads a new local session', (
+      tester,
+    ) async {
+      final session = closed(
+        DateTime(2026, 10, 20, 22),
+        DateTime(2026, 10, 21, 6),
+      );
+      final gateway = FakeHealthConnectGateway();
+
+      await pumpStats(
+        tester,
+        clock: () => DateTime(2026, 10, 21, 10),
+        store: FakeSleepSessionStore(
+          snapshot: SleepSnapshot(closedSessions: [session]),
+        ),
+        gateway: gateway,
+        healthSyncStore: FakeHealthSyncStore()..addLocal(session),
+      );
+
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, 300));
+      await tester.pumpAndSettle();
+
+      expect(gateway.writes, isEmpty);
+      expect(find.text('8h 0m'), findsWidgets);
+    });
+
+    testWidgets('a failed pull keeps the visible rows and explains it', (
+      tester,
+    ) async {
+      final old = closed(
+        DateTime(2026, 10, 20, 22, 32),
+        DateTime(2026, 10, 21, 6, 45),
+      );
+      final store = FakeSleepSessionStore(
+        snapshot: SleepSnapshot(closedSessions: [old]),
+      );
+
+      await pumpStats(
+        tester,
+        clock: () => DateTime(2026, 10, 21, 10),
+        store: store,
+      );
+
+      store.closedLoadError = StateError('offline');
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, 300));
+      await tester.pumpAndSettle();
+
+      expect(find.text('10:32 PM – 6:45 AM'), findsOneWidget);
+      expect(
+        find.text("Couldn't refresh your sleep history. Try again."),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('the empty state can pull to refresh', (tester) async {
+      final store = FakeSleepSessionStore();
+      final fresh = closed(
+        DateTime(2026, 10, 20, 22),
+        DateTime(2026, 10, 21, 6),
+      );
+
+      await pumpStats(
+        tester,
+        clock: () => DateTime(2026, 10, 21, 10),
+        store: store,
+      );
+
+      expect(find.text('No sleep history yet'), findsOneWidget);
+      store.snapshot = SleepSnapshot(closedSessions: [fresh]);
+
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, 300));
+      await tester.pumpAndSettle();
+
+      expect(find.text('No sleep history yet'), findsNothing);
+      expect(find.text('8h 0m'), findsWidgets);
+    });
+
+    testWidgets('the empty state fits at 200% text', (tester) async {
+      await pumpStats(
+        tester,
+        clock: () => DateTime(2026, 10, 21, 10),
+        textScale: 2,
+      );
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('No sleep history yet'), findsOneWidget);
+    });
+  });
+
   group('history permission', () {
     final recent = HealthSleepSession(
       uuid: 'recent',

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
@@ -8,7 +9,9 @@ import '../../../core/theme/sleepy3_theme.dart';
 import '../../../core/time/clock_format.dart';
 import '../../../core/time/local_day_builder.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../health/application/current_app_package_provider.dart';
 import '../../health/application/health_history_permission_controller.dart';
+import '../../health/application/health_sync_controller.dart';
 import '../../health/application/sleep_data_source_controller.dart';
 import '../../health/domain/health_history_access.dart';
 import '../../health/domain/sleep_data_source.dart';
@@ -34,8 +37,59 @@ class StatsScreen extends ConsumerStatefulWidget {
   ConsumerState<StatsScreen> createState() => _StatsScreenState();
 }
 
-class _StatsScreenState extends ConsumerState<StatsScreen> {
+class _StatsScreenState extends ConsumerState<StatsScreen>
+    with SingleTickerProviderStateMixin {
+  /// The contained M3 loader at its default size: 48 dp container and 38 dp
+  /// active shape.
+  static const _loaderSize = 48.0;
+
+  /// Hidden position above the scroll view, so the 48 dp loader clears the top
+  /// edge before it starts descending.
+  static const _loaderBaseTop = -56.0;
+
+  /// How far the loader travels per unit of pull, and how much of the finger
+  /// movement becomes pull.
+  static const _pullTravel = 1.2;
+  static const _pullFactor = 0.6;
+  static const _maxPull = 160.0;
+
+  /// The pull at which releasing starts the refresh.
+  static const _armedPull = 80.0;
+
+  /// Where the loader rests while refreshing. It stays near where the user
+  /// released it, clamped so it never sits on the very top edge or too low.
+  static const _lockMinTop = 56.0;
+  static const _lockMaxTop = 140.0;
+
+  static const _minLoaderScale = 0.6;
+  static const _maxLoaderScale = 1.05;
+  static const _loaderScalePull = 140.0;
+  static const _loaderOpacityPull = 40.0;
+
+  static const _settleDuration = Duration(milliseconds: 320);
+  static const _settleCurve = Curves.easeOutCubic;
+
   SleepHistoryRange _range = SleepHistoryRange.sevenDays;
+
+  late final AnimationController _pullController;
+  bool _dragging = false;
+  bool _refreshing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _pullController = AnimationController(
+      vsync: this,
+      lowerBound: 0,
+      upperBound: _maxPull,
+    );
+  }
+
+  @override
+  void dispose() {
+    _pullController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,41 +120,6 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
       );
     }
 
-    if (state.closedSessions.isEmpty) {
-      return Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(margin, 16, margin, 0),
-            child: _StatsHeader(openSession: state.openSession),
-          ),
-          // With no recent sessions the range chips are hidden, so this is the
-          // only place to ask for the full history when it is available.
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: margin),
-            child: HealthHistoryBanner(
-              visible: source == SleepDataSource.healthConnect,
-            ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: bottomInset),
-              child: Sleepy3EmptyState(
-                icon: M3EIcons.analytics_rounded,
-                headline: source == SleepDataSource.healthConnect
-                    ? 'No sleep history in Google Health'
-                    : 'No sleep history yet',
-                supportingText: source == SleepDataSource.healthConnect
-                    ? 'Sleep sessions in Health Connect will appear here.'
-                    : state.isSleeping
-                    ? 'Your first night will appear here when you wake up.'
-                    : 'Your nights will appear here after you wake up.',
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
     final clock = ref.watch(sleepClockProvider);
 
     return LocalDayBuilder(
@@ -123,64 +142,134 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
             : null;
         final showAll = allHistory?.hasData ?? false;
 
-        return CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(margin, 16, margin, 0),
-              sliver: SliverToBoxAdapter(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _StatsHeader(openSession: state.openSession),
-                    const SizedBox(height: 24),
-                    StatsRangeSelector(
-                      selected: _range,
-                      onChanged: (range) {
-                        unawaited(_selectRange(range));
-                      },
-                    ),
-                    HealthHistoryBanner(
-                      visible:
-                          source == SleepDataSource.healthConnect &&
-                          _range == SleepHistoryRange.all,
-                    ),
-                    const SizedBox(height: 24),
-                    StatsSummaryCard(
-                      history: history,
-                      onShowAll: showAll
-                          ? () {
-                              unawaited(_selectRange(SleepHistoryRange.all));
-                            }
-                          : null,
-                    ),
-                    if (history.hasData) ...[
-                      const SizedBox(height: 24),
-                      Semantics(
-                        header: true,
-                        child: Text(
-                          'History',
-                          style: theme.typography.emphasized.titleMedium
-                              .copyWith(color: scheme.onSurface),
+        final isEmpty = state.closedSessions.isEmpty;
+
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            Positioned.fill(
+              child: Semantics(
+                customSemanticsActions: {
+                  const CustomSemanticsAction(label: 'Refresh sleep history'):
+                      _refreshFromSemantics,
+                },
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: _handleScrollNotification,
+                  child: NotificationListener<OverscrollIndicatorNotification>(
+                    onNotification: _handleIndicatorNotification,
+                    child: CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      slivers: [
+                        SliverPadding(
+                          padding: EdgeInsets.fromLTRB(margin, 16, margin, 0),
+                          sliver: SliverToBoxAdapter(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                _StatsHeader(openSession: state.openSession),
+                                if (isEmpty)
+                                  HealthHistoryBanner(
+                                    visible:
+                                        source == SleepDataSource.healthConnect,
+                                  )
+                                else ...[
+                                  const SizedBox(height: 24),
+                                  StatsRangeSelector(
+                                    selected: _range,
+                                    onChanged: (range) {
+                                      unawaited(_selectRange(range));
+                                    },
+                                  ),
+                                  HealthHistoryBanner(
+                                    visible:
+                                        source ==
+                                            SleepDataSource.healthConnect &&
+                                        _range == SleepHistoryRange.all,
+                                  ),
+                                  const SizedBox(height: 24),
+                                  StatsSummaryCard(
+                                    history: history,
+                                    onShowAll: showAll
+                                        ? () {
+                                            unawaited(
+                                              _selectRange(
+                                                SleepHistoryRange.all,
+                                              ),
+                                            );
+                                          }
+                                        : null,
+                                  ),
+                                  if (history.hasData) ...[
+                                    const SizedBox(height: 24),
+                                    Semantics(
+                                      header: true,
+                                      child: Text(
+                                        'History',
+                                        style: theme
+                                            .typography
+                                            .emphasized
+                                            .titleMedium
+                                            .copyWith(color: scheme.onSurface),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ],
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
-                  ],
+                        if (isEmpty)
+                          SliverFillRemaining(
+                            hasScrollBody: false,
+                            child: Padding(
+                              padding: EdgeInsets.only(bottom: bottomInset),
+                              child: Sleepy3EmptyState(
+                                scrollable: false,
+                                icon: M3EIcons.analytics_rounded,
+                                headline:
+                                    source == SleepDataSource.healthConnect
+                                    ? 'No sleep history in Google Health'
+                                    : 'No sleep history yet',
+                                supportingText:
+                                    source == SleepDataSource.healthConnect
+                                    ? 'Sleep sessions in Health Connect will appear here.'
+                                    : state.isSleeping
+                                    ? 'Your first night will appear here when you wake up.'
+                                    : 'Your nights will appear here after you wake up.',
+                              ),
+                            ),
+                          )
+                        else ...[
+                          if (history.hasData)
+                            SliverPadding(
+                              padding: EdgeInsets.fromLTRB(
+                                margin,
+                                8,
+                                margin,
+                                0,
+                              ),
+                              sliver: SleepHistoryList(
+                                history: history,
+                                today: today,
+                                use24HourFormat:
+                                    MediaQuery.alwaysUse24HourFormatOf(context),
+                                source: source,
+                                compact: _range != SleepHistoryRange.sevenDays,
+                                onEdit: (session) =>
+                                    unawaited(_openEditor(session)),
+                              ),
+                            ),
+                          SliverToBoxAdapter(
+                            child: SizedBox(height: 24 + bottomInset),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-            if (history.hasData)
-              SliverPadding(
-                padding: EdgeInsets.fromLTRB(margin, 8, margin, 0),
-                sliver: SleepHistoryList(
-                  history: history,
-                  today: today,
-                  use24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
-                  source: source,
-                  compact: _range != SleepHistoryRange.sevenDays,
-                  onEdit: (session) => unawaited(_openEditor(session)),
-                ),
-              ),
-            SliverToBoxAdapter(child: SizedBox(height: 24 + bottomInset)),
+            _buildLoaderOverlay(),
           ],
         );
       },
@@ -191,7 +280,10 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     return sessionEditAccess(
       session,
       healthConnectSource: source == SleepDataSource.healthConnect,
-      isOwnHealthRecord: isSleepy3HealthRecord(session.sourceId),
+      isOwnHealthRecord: isHealthRecordOwnedBy(
+        session.sourceId,
+        ref.read(currentAppPackageProvider),
+      ),
     );
   }
 
@@ -257,6 +349,188 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
 
     if (!mounted) return;
     setState(() => _range = range);
+  }
+
+  /// Builds the floating M3 loader above the scroll view.
+  ///
+  /// The list never moves. The loader starts above the top edge and follows the
+  /// pull until it reaches the lock range, then stays there while the refresh
+  /// runs. The loader is ignored by hit testing so the list below can still be
+  /// scrolled.
+  Widget _buildLoaderOverlay() {
+    final scheme = M3ETheme.of(context).colorScheme;
+
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: Align(
+        alignment: Alignment.topCenter,
+        heightFactor: 1,
+        child: IgnorePointer(
+          child: AnimatedBuilder(
+            animation: _pullController,
+            builder: (context, child) {
+              final pull = _pullController.value;
+              if (pull <= 0 && !_refreshing) return const SizedBox.shrink();
+
+              final top = _loaderTopFor(pull);
+              final scale = _refreshing ? 1.0 : _loaderScaleFor(pull);
+              final opacity = _refreshing ? 1.0 : _loaderOpacityFor(pull);
+
+              return Transform.translate(
+                offset: Offset(0, top),
+                child: Opacity(
+                  opacity: opacity,
+                  child: Transform.scale(
+                    scale: scale,
+                    // M3's refresh indicator gives the contained loader an
+                    // elevation so it separates from the content below.
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: scheme.shadow.withValues(alpha: 0.18),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: M3ELoadingIndicator(
+                        size: _loaderSize,
+                        variant: M3ELoadingIndicatorVariant.contained,
+                        // Manual during the pull so the shape follows the
+                        // finger; the component morphs on its own while
+                        // refreshing.
+                        rotationTurns: _refreshing
+                            ? null
+                            : (pull / _maxPull) * 0.5,
+                        semanticLabel: 'Refreshing sleep history',
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  bool _handleScrollNotification(ScrollNotification notification) {
+    if (_refreshing) return false;
+    if (notification.metrics.axis != Axis.vertical ||
+        notification.metrics.axisDirection != AxisDirection.down) {
+      return false;
+    }
+
+    if (notification is ScrollStartNotification &&
+        notification.dragDetails != null &&
+        notification.metrics.extentBefore == 0) {
+      _pullController.stop();
+      _pullController.value = 0;
+      _dragging = true;
+      return false;
+    }
+
+    if (!_dragging) return false;
+
+    if (notification is OverscrollNotification) {
+      _pullController.value -= notification.overscroll * _pullFactor;
+    } else if (notification is ScrollUpdateNotification) {
+      _pullController.value -= (notification.scrollDelta ?? 0) * _pullFactor;
+    } else if (notification is ScrollEndNotification) {
+      _dragging = false;
+      if (_pullController.value >= _armedPull) {
+        unawaited(_beginRefresh());
+      } else {
+        unawaited(_settlePull(0));
+      }
+    }
+
+    return false;
+  }
+
+  /// Suppresses the platform overscroll effect while the user is pulling.
+  ///
+  /// The screen must stay still; only the loader moves. Without this, Android's
+  /// stretch/glow would move the list under the pull.
+  bool _handleIndicatorNotification(
+    OverscrollIndicatorNotification notification,
+  ) {
+    if (notification.depth != 0 || !notification.leading) return false;
+    if (_dragging) {
+      notification.disallowIndicator();
+      return true;
+    }
+    return false;
+  }
+
+  double _loaderTopFor(double pull) => _loaderBaseTop + pull * _pullTravel;
+
+  double _loaderScaleFor(double pull) {
+    final progress = (pull / _loaderScalePull).clamp(0.0, 1.0).toDouble();
+    return _minLoaderScale + (_maxLoaderScale - _minLoaderScale) * progress;
+  }
+
+  double _loaderOpacityFor(double pull) =>
+      (pull / _loaderOpacityPull).clamp(0.0, 1.0).toDouble();
+
+  Future<void> _settlePull(double target) async {
+    await _pullController.animateTo(
+      target,
+      duration: _settleDuration,
+      curve: _settleCurve,
+    );
+  }
+
+  /// Non-gesture refresh for assistive technology.
+  void _refreshFromSemantics() {
+    if (_refreshing) return;
+    _pullController.value = (_lockMinTop - _loaderBaseTop) / _pullTravel;
+    unawaited(_beginRefresh());
+  }
+
+  /// Moves the loader to its resting position and syncs before re-reading.
+  ///
+  /// Uploads already pending for Health Connect are retried first. Local mode
+  /// only retries updates of sessions that already have a Health Connect
+  /// record; it never uploads a new local session from here.
+  Future<void> _beginRefresh() async {
+    if (!mounted || _refreshing) return;
+
+    final currentTop = _loaderTopFor(_pullController.value);
+    final lockTop = currentTop.clamp(_lockMinTop, _lockMaxTop).toDouble();
+    final targetPull = (lockTop - _loaderBaseTop) / _pullTravel;
+
+    setState(() => _refreshing = true);
+    await _pullController.animateTo(
+      targetPull,
+      duration: _settleDuration,
+      curve: _settleCurve,
+    );
+    if (!mounted) return;
+
+    await ref.read(healthSyncControllerProvider.notifier).retryPending();
+    if (!mounted) return;
+
+    final refreshed = await ref
+        .read(sleepTrackingControllerProvider.notifier)
+        .refreshHistory();
+    if (!mounted) return;
+
+    setState(() => _refreshing = false);
+    await _settlePull(0);
+    if (!mounted) return;
+
+    if (!refreshed) {
+      M3ESnackbar.show(
+        context,
+        message: "Couldn't refresh your sleep history. Try again.",
+      );
+    }
   }
 }
 

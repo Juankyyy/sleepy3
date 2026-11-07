@@ -2,6 +2,7 @@ import 'package:sleepy3/features/health/domain/app_info_gateway.dart';
 import 'package:sleepy3/features/health/domain/health_connect_gateway.dart';
 import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
 import 'package:sleepy3/features/health/domain/health_sync_store.dart';
+import 'package:sleepy3/features/health/domain/sleepy3_health_source.dart';
 import 'package:sleepy3/features/health/domain/stored_sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 
@@ -74,11 +75,19 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
   /// When false, [writeSleepSession] returns null without touching [sessions].
   bool writeSucceeds;
 
-  /// When false, [deleteSleepSession] returns false without touching [sessions].
+  /// When false, [deleteSleepSession] returns failed without touching
+  /// [sessions].
   bool deleteSucceeds = true;
 
-  /// When false, [updateSleepSession] returns false without touching [sessions].
+  /// When false, [updateSleepSession] returns null without touching [sessions].
   bool updateSucceeds = true;
+
+  /// When true, an update assigns a new UUID, like a real Health Connect
+  /// upsert can. Used to catch stale identities in the editor.
+  bool updateChangesUuid = false;
+
+  /// Tokens returned by [readSleepSessionWriteToken], keyed by UUID.
+  final Map<String, HealthRecordWriteToken> writeTokens = {};
 
   /// Sessions that throw instead of being written, for partial-failure tests.
   final Set<DateTime> failWriteStarts = {};
@@ -197,7 +206,27 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
     }
     if (!writeSucceeds) return null;
 
-    final uuid = 'fake-$clientRecordId';
+    // An upsert finds the record by its client id, even when its UUID is not
+    // the fake's default. A new record gets the usual `fake-<client id>`.
+    String? existingUuid;
+    for (final entry in writeTokens.entries) {
+      if (entry.value.clientRecordId == clientRecordId &&
+          sessions.any((session) => session.uuid == entry.key)) {
+        existingUuid = entry.key;
+        break;
+      }
+    }
+    final uuid = updateChangesUuid && existingUuid != null
+        ? 'updated-$existingUuid'
+        : existingUuid ?? 'fake-$clientRecordId';
+    if (existingUuid != null && existingUuid != uuid) {
+      sessions.removeWhere((session) => session.uuid == existingUuid);
+      writeTokens.remove(existingUuid);
+    }
+    writeTokens[uuid] = HealthRecordWriteToken(
+      clientRecordId: clientRecordId,
+      clientRecordVersion: clientRecordVersion,
+    );
     final index = sessions.indexWhere((session) => session.uuid == uuid);
     final written = HealthSleepSession(
       uuid: uuid,
@@ -215,7 +244,30 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
   }
 
   @override
-  Future<bool> updateSleepSession({
+  Future<HealthRecordWriteToken?> readSleepSessionWriteToken(
+    String healthRecordId,
+  ) async {
+    final stored = writeTokens[healthRecordId];
+    if (stored != null) return stored;
+
+    HealthSleepSession? session;
+    for (final candidate in sessions) {
+      if (candidate.uuid == healthRecordId) {
+        session = candidate;
+        break;
+      }
+    }
+    if (session == null || !isSleepy3HealthRecord(session.sourceId)) {
+      return null;
+    }
+    return HealthRecordWriteToken(
+      clientRecordId: 'sleepy3-${session.uuid}',
+      clientRecordVersion: 1,
+    );
+  }
+
+  @override
+  Future<HealthRecordUpdate?> updateSleepSession({
     required String healthRecordId,
     required DateTime startedAt,
     required DateTime endedAt,
@@ -232,26 +284,45 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
     if (availability != HealthConnectAvailability.available) {
       throw StateError('Health Connect is not available');
     }
-    if (!updateSucceeds) return false;
+    if (!updateSucceeds) return null;
 
     final index = sessions.indexWhere(
       (session) => session.uuid == healthRecordId,
     );
-    if (index == -1) return false;
+    if (index == -1) return null;
 
     final previous = sessions[index];
+    final token =
+        writeTokens[healthRecordId] ??
+        HealthRecordWriteToken(
+          clientRecordId: 'sleepy3-${previous.uuid}',
+          clientRecordVersion: 1,
+        );
+    final nextVersion = token.clientRecordVersion + 1;
+    final newUuid = updateChangesUuid
+        ? 'updated-${previous.uuid}'
+        : previous.uuid;
     sessions[index] = HealthSleepSession(
-      uuid: previous.uuid,
+      uuid: newUuid,
       startedAt: startedAt,
       endedAt: endedAt,
       sourceId: previous.sourceId,
       sourceName: previous.sourceName,
     );
-    return true;
+    writeTokens.remove(healthRecordId);
+    writeTokens[newUuid] = HealthRecordWriteToken(
+      clientRecordId: token.clientRecordId,
+      clientRecordVersion: nextVersion,
+    );
+    return HealthRecordUpdate(
+      healthRecordId: newUuid,
+      clientRecordId: token.clientRecordId,
+      clientRecordVersion: nextVersion,
+    );
   }
 
   @override
-  Future<bool> deleteSleepSession({
+  Future<SleepRecordDeleteResult> deleteSleepSession({
     String? clientRecordId,
     String? healthRecordId,
   }) async {
@@ -266,14 +337,17 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
     if (availability != HealthConnectAvailability.available) {
       throw StateError('Health Connect is not available');
     }
-    if (!deleteSucceeds) return false;
+    if (!deleteSucceeds) return SleepRecordDeleteResult.failed;
 
     final byClientId = clientRecordId?.trim();
     if (byClientId != null && byClientId.isNotEmpty) {
       final uuid = 'fake-$byClientId';
       final before = sessions.length;
       sessions.removeWhere((session) => session.uuid == uuid);
-      return sessions.length != before;
+      writeTokens.remove(uuid);
+      return sessions.length != before
+          ? SleepRecordDeleteResult.deleted
+          : SleepRecordDeleteResult.notFound;
     }
 
     final uuid = healthRecordId?.trim();
@@ -284,7 +358,10 @@ class FakeHealthConnectGateway implements HealthConnectGateway {
     }
     final before = sessions.length;
     sessions.removeWhere((session) => session.uuid == uuid);
-    return sessions.length != before;
+    writeTokens.remove(uuid);
+    return sessions.length != before
+        ? SleepRecordDeleteResult.deleted
+        : SleepRecordDeleteResult.notFound;
   }
 
   @override

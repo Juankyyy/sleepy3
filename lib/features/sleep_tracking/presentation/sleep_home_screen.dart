@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -44,8 +45,15 @@ class SleepHomeScreen extends ConsumerWidget {
                     return SingleChildScrollView(
                       padding: EdgeInsets.only(bottom: bottomInset),
                       child: ConstrainedBox(
+                        // Keep the content centered in the space above the
+                        // bottom inset. Using the full viewport here would make
+                        // the scroll always extend by `bottomInset`, even when
+                        // everything fits, and Home would scroll for nothing.
                         constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight,
+                          minHeight: math.max(
+                            0,
+                            constraints.maxHeight - bottomInset,
+                          ),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
