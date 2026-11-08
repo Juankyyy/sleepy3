@@ -1,5 +1,6 @@
 import '../../health/domain/sleep_data_source.dart';
 import '../../sleep_tracking/data/sleepy3_database.dart';
+import '../domain/app_language.dart';
 import '../domain/app_theme_mode.dart';
 import '../domain/app_time_format.dart';
 import '../domain/settings_store.dart';
@@ -12,6 +13,7 @@ class DriftSettingsStore implements SettingsStore {
 
   static const _themeModeKey = 'theme_mode';
   static const _timeFormatKey = 'time_format';
+  static const _languageKey = 'language';
   static const _sleepDataSourceKey = 'sleep_data_source';
 
   @override
@@ -32,6 +34,16 @@ class DriftSettingsStore implements SettingsStore {
   @override
   Future<void> saveTimeFormat(AppTimeFormat format) {
     return _write(_timeFormatKey, format.name);
+  }
+
+  @override
+  Future<AppLanguage?> loadLanguage() async {
+    return AppLanguage.fromStorageValue(await _read(_languageKey));
+  }
+
+  @override
+  Future<void> saveLanguage(AppLanguage language) {
+    return _write(_languageKey, language.name);
   }
 
   @override

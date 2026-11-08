@@ -1,6 +1,7 @@
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../sleep_tracking/domain/sleep_history.dart';
 
 /// Single-select filter chips for the Stats range.
@@ -20,8 +21,10 @@ class StatsRangeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return M3EChipGroup(
-      groupLabel: 'Time range',
+      groupLabel: l10n.timeRange,
       child: Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -29,7 +32,7 @@ class StatsRangeSelector extends StatelessWidget {
           for (final range in SleepHistoryRange.values)
             M3EChip(
               type: M3EChipType.filter,
-              label: _label(range),
+              label: _label(l10n, range),
               selected: range == selected,
               leading: range == selected
                   ? const Icon(M3EIcons.check, size: 18)
@@ -43,11 +46,11 @@ class StatsRangeSelector extends StatelessWidget {
     );
   }
 
-  String _label(SleepHistoryRange range) {
+  String _label(AppLocalizations l10n, SleepHistoryRange range) {
     return switch (range) {
-      SleepHistoryRange.sevenDays => '7 days',
-      SleepHistoryRange.thirtyDays => '30 days',
-      SleepHistoryRange.all => 'All',
+      SleepHistoryRange.sevenDays => l10n.range7Days,
+      SleepHistoryRange.thirtyDays => l10n.range30Days,
+      SleepHistoryRange.all => l10n.rangeAll,
     };
   }
 }

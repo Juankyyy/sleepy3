@@ -1,6 +1,8 @@
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../../l10n/l10n.dart';
+
 /// The Home/Stats card shown while the selected source is being read.
 ///
 /// M3 has no history-status component; this uses the same outlined card as the
@@ -12,20 +14,21 @@ class SleepHistoryLoadingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
 
     return M3ECard(
       variant: M3ECardVariant.outlined,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const M3ELoadingIndicator(
+          M3ELoadingIndicator(
             size: 32,
-            semanticLabel: 'Loading sleep history',
+            semanticLabel: l10n.loadingSleepHistorySemantic,
           ),
           // 8dp separates the indicator from its label.
           const SizedBox(height: 8),
           Text(
-            'Loading sleep history…',
+            l10n.loadingSleepHistory,
             textAlign: TextAlign.center,
             style: theme.typography.baseline.bodyMedium.copyWith(
               color: scheme.onSurfaceVariant,
@@ -47,6 +50,7 @@ class SleepHistoryErrorCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
 
     return M3ECard(
       variant: M3ECardVariant.outlined,
@@ -57,7 +61,7 @@ class SleepHistoryErrorCard extends StatelessWidget {
           // 8dp separates the icon from the headline.
           const SizedBox(height: 8),
           Text(
-            "Couldn't load your sleep history",
+            l10n.historyLoadError,
             textAlign: TextAlign.center,
             style: theme.typography.emphasized.titleMedium.copyWith(
               color: scheme.onSurface,
@@ -66,7 +70,7 @@ class SleepHistoryErrorCard extends StatelessWidget {
           // 4dp between the headline and its supporting line.
           const SizedBox(height: 4),
           Text(
-            'Your sessions are safe. Try again.',
+            l10n.historyLoadErrorSupport,
             textAlign: TextAlign.center,
             style: theme.typography.baseline.bodyMedium.copyWith(
               color: scheme.onSurfaceVariant,
@@ -78,7 +82,7 @@ class SleepHistoryErrorCard extends StatelessWidget {
             style: M3EButtonStyle.text,
             size: M3EButtonSize.sm,
             onPressed: onRetry,
-            child: const Text('Retry'),
+            child: Text(l10n.retry),
           ),
         ],
       ),

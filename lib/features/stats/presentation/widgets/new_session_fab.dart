@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../health/application/sleep_data_source_controller.dart';
 import '../../../health/domain/sleep_data_source.dart';
 import '../../../sleep_tracking/application/sleep_session_edit_service.dart';
@@ -41,7 +42,7 @@ class NewSessionFab extends ConsumerWidget {
         size: M3EFabSize.regular,
         color: M3EFabColor.primaryFilled,
         cornerRadius: 28,
-        tooltip: 'Add a sleep session',
+        tooltip: context.l10n.addSleepSession,
         onPressed: () => unawaited(_open(context, ref)),
       ),
     );
@@ -52,17 +53,15 @@ class NewSessionFab extends ConsumerWidget {
     final result = await showNewSessionEditor(context, source: source);
     if (!context.mounted || result == null) return;
 
+    final l10n = context.l10n;
     final message = switch (result.status) {
       SleepSessionEditStatus.saved =>
         source == SleepDataSource.healthConnect
-            ? 'Session added to Google Health.'
-            : 'Session added.',
-      SleepSessionEditStatus.savedPendingSync =>
-        'Session saved locally. Google Health will update when it can.',
+            ? l10n.sessionAddedHealth
+            : l10n.sessionAdded,
+      SleepSessionEditStatus.savedPendingSync => l10n.sessionSavedLocally,
       SleepSessionEditStatus.permissionNeeded =>
-        result.hasLocalChange
-            ? 'Saved locally. Allow Google Health write access to sync it.'
-            : null,
+        result.hasLocalChange ? l10n.sessionSavedLocallyPermission : null,
       SleepSessionEditStatus.deleted => null,
       SleepSessionEditStatus.failed => null,
     };

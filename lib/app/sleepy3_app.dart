@@ -9,9 +9,11 @@ import '../features/health/application/health_history_permission_controller.dart
 import '../features/health/application/health_sync_controller.dart';
 import '../features/health/application/sleep_data_source_controller.dart';
 import '../features/health/domain/sleep_data_source.dart';
+import '../features/settings/application/language_controller.dart';
 import '../features/settings/application/theme_mode_controller.dart';
 import '../features/settings/application/time_format_controller.dart';
 import '../features/settings/domain/app_theme_mode.dart';
+import '../l10n/l10n.dart';
 import '../features/sleep_tracking/application/sleep_tracking_controller.dart';
 import 'sleepy3_shell.dart';
 import 'splash_gate.dart';
@@ -106,6 +108,7 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
   Widget build(BuildContext context) {
     final mode = ref.watch(themeModeControllerProvider);
     final timeFormat = ref.watch(timeFormatControllerProvider);
+    final language = ref.watch(languageControllerProvider);
     final platformBrightness =
         WidgetsBinding.instance.platformDispatcher.platformBrightness;
     final data = Sleepy3Theme.forBrightness(
@@ -126,9 +129,9 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
         autoTheming: false,
         dynamicColoring: false,
         drawUnderSystemBars: true,
-        locale: const Locale('en', 'US'),
-        localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        supportedLocales: const [Locale('en', 'US')],
+        locale: language.locale,
+        localizationsDelegates: appLocalizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: SplashGate(
           startSignal: widget.splashStartSignal,
           onFinished: () => unawaited(_retryPendingUploads()),

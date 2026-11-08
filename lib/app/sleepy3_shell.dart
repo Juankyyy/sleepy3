@@ -5,6 +5,7 @@ import '../features/settings/presentation/settings_screen.dart';
 import '../features/sleep_tracking/presentation/sleep_home_screen.dart';
 import '../features/stats/presentation/stats_screen.dart';
 import '../features/stats/presentation/widgets/new_session_fab.dart';
+import '../l10n/l10n.dart';
 import 'navigation/pill_navigation_bar.dart';
 import 'navigation/sleepy3_destination.dart';
 
@@ -41,6 +42,7 @@ class _Sleepy3ShellState extends State<Sleepy3Shell> {
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
 
     return PopScope<Object?>(
       canPop: _selectedIndex == _homeIndex,
@@ -85,7 +87,7 @@ class _Sleepy3ShellState extends State<Sleepy3Shell> {
                 selectedIndex: _selectedIndex,
                 onDestinationSelected: _selectDestination,
                 destinations: Sleepy3Destination.values,
-                semanticLabel: 'Main navigation',
+                semanticLabel: l10n.mainNavigation,
                 // The FAB decides internally whether the history is ready. It
                 // stays mounted in the bar so the snackbar still has a context
                 // while a Google Health upload reloads the history.

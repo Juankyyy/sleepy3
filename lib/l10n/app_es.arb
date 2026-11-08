@@ -1,0 +1,532 @@
+{
+  "@@locale": "es",
+  "cancel": "Cancelar",
+  "apply": "Aplicar",
+  "close": "Cerrar",
+  "retry": "Reintentar",
+  "delete": "Eliminar",
+  "save": "Guardar",
+  "allow": "Permitir",
+  "notNow": "Ahora no",
+  "navHome": "Inicio",
+  "navStats": "Estadísticas",
+  "navSettings": "Ajustes",
+  "mainNavigation": "Navegación principal",
+  "settingsTitle": "Ajustes",
+  "settingsSupport": "Tema, datos de sueño e información de la app.",
+  "appearance": "Apariencia",
+  "sleepData": "Datos de sueño",
+  "googleHealth": "Google Health",
+  "about": "Acerca de",
+  "theme": "Tema",
+  "timeFormat": "Formato de hora",
+  "language": "Idioma",
+  "themeSystem": "Sistema",
+  "themeLight": "Claro",
+  "themeDark": "Oscuro",
+  "timeFormat12": "12 horas",
+  "timeFormat24": "24 horas",
+  "languageEnglish": "English",
+  "languageSpanish": "Español",
+  "privacy": "Privacidad",
+  "version": "Versión",
+  "licenses": "Licencias",
+  "privacyLocal": "Solo en este dispositivo.",
+  "privacyHealth": "Guardado en Health Connect. Google Health puede leerlo.",
+  "source": "Fuente",
+  "import": "Importar",
+  "importSupport": "Descarga de Google Health a la copia local.",
+  "sleepDataSourceDialogTitle": "Fuente de datos de sueño",
+  "sourceLocal": "Local",
+  "sourceHealth": "Google Health",
+  "copyLocalSessionsTitle": "¿Copiar las sesiones locales?",
+  "localSessionsNotInHealth": "{count, plural, =1{1 sesión local aún no está en Google Health.} other{{count} sesiones locales aún no están en Google Health.}}",
+  "@localSessionsNotInHealth": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sync": "Sincronizar",
+  "add": "Añadir",
+  "syncRecentSupport": "Envía la más reciente.",
+  "addAllSupport": "Envía todas las sesiones locales.",
+  "status": "Estado",
+  "connected": "Conectado",
+  "connectedPending": "{count, plural, =1{Conectado · 1 pendiente} other{Conectado · {count} pendientes}}",
+  "@connectedPending": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "connectedLastSync": "Conectado · Última sincronización {time}",
+  "@connectedLastSync": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "permissionNeeded": "Permiso necesario",
+  "notAvailable": "No disponible",
+  "updateRequired": "Actualización necesaria",
+  "checking": "Comprobando…",
+  "connect": "Conectar",
+  "connectSupport": "Permite que Sleepy3 lea y escriba datos de sueño.",
+  "install": "Instalar",
+  "installSupport": "Obtén o actualiza Health Connect.",
+  "syncSupport": "Envía la sesión local más reciente.",
+  "addSupport": "Envía las sesiones locales que no estén en Google Health.",
+  "healthPermissionReadWrite": "Google Health necesita permiso para leer y escribir datos de sueño.",
+  "sleepAction": "Dormir",
+  "wakeAction": "Despertar",
+  "dayStatus": "Día · listo para despertar",
+  "nightStatus": "Noche · hora de descansar",
+  "dayStatusSpoken": "Día, listo para despertar",
+  "nightStatusSpoken": "Noche, hora de descansar",
+  "currentTime": "Hora actual {time}",
+  "@currentTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "sleepingSince": "Durmiendo desde las {time}",
+  "@sleepingSince": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "lastSession": "Última sesión: {duration}",
+  "@lastSession": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "noActiveSession": "No hay sesión activa",
+  "tapSleepAtNight": "Toca Dormir cuando apagues la luz",
+  "sleepTooShortTitle": "Sueño demasiado corto",
+  "sleepTooShortBody": "Las sesiones de menos de 10 minutos no se registran. ¿Seguro que quieres descartar esta sesión?",
+  "keepSleeping": "Seguir durmiendo",
+  "discardSession": "Descartar sesión",
+  "sleepTooLongTitle": "Sueño demasiado largo",
+  "sleepTooLongBody": "Las sesiones de más de 24 horas no se registran. Edita la hora de inicio para conservar esta sesión o descártala.",
+  "editStartTime": "Editar hora de inicio",
+  "startTimeNotSaved": "No se guardó la hora de inicio",
+  "selectSleepDate": "Selecciona la fecha de dormir",
+  "selectSleepTime": "Selecciona la hora de dormir",
+  "selectWakeDate": "Selecciona la fecha de despertar",
+  "selectWakeTime": "Selecciona la hora de despertar",
+  "last3Days": "Últimos 3 días",
+  "last3DaysAverage": "Últimos 3 días · {average} de media",
+  "@last3DaysAverage": {
+    "placeholders": {
+      "average": {
+        "type": "String"
+      }
+    }
+  },
+  "last3DaysNoAverage": "Últimos 3 días · sin media",
+  "today": "Hoy",
+  "yesterday": "Ayer",
+  "daysAgo": "{count, plural, =1{Hace 1 día} other{Hace {count} días}}",
+  "@daysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noAverageSpoken": ", sin media",
+  "averageSpoken": ", media {duration}",
+  "@averageSpoken": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "noSessionSpoken": "sin sesión",
+  "loadingSleepHistorySemantic": "Cargando el historial de sueño",
+  "loadingSleepHistory": "Cargando el historial de sueño…",
+  "historyLoadError": "No se pudo cargar el historial de sueño",
+  "historyLoadErrorSupport": "Tus sesiones están a salvo. Inténtalo de nuevo.",
+  "statsTitle": "Estadísticas",
+  "statsSupport": "Tu sueño, noche a noche.",
+  "statsSupportingSleeping": "Durmiendo desde las {time} · aparecerá cuando despiertes.",
+  "@statsSupportingSleeping": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "history": "Historial",
+  "timeRange": "Rango de tiempo",
+  "range7Days": "7 días",
+  "range30Days": "30 días",
+  "rangeAll": "Todo",
+  "averageSleep": "Sueño medio",
+  "noNightsInRange": "No hay noches en este rango",
+  "summarySupporting": "Durante {nights, plural, =1{1 noche} other{{nights} noches}} · {total} en total",
+  "@summarySupporting": {
+    "placeholders": {
+      "nights": {
+        "type": "int"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "showAll": "Mostrar todo",
+  "summarySpoken": "Sueño medio {average}, durante {nights, plural, =1{1 noche} other{{nights} noches}}, {total} en total",
+  "@summarySpoken": {
+    "placeholders": {
+      "average": {
+        "type": "String"
+      },
+      "nights": {
+        "type": "int"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "summarySpokenNoNights": "Sueño medio, no hay noches en este rango",
+  "noSleepHistoryHealth": "No hay historial de sueño en Google Health",
+  "noSleepHistory": "Aún no hay historial de sueño",
+  "noSleepHistoryHealthSupport": "Las sesiones de sueño de Health Connect aparecerán aquí.",
+  "noSleepHistorySleepingSupport": "Tu primera noche aparecerá aquí cuando te despiertes.",
+  "noSleepHistorySupport": "Tus noches aparecerán aquí después de despertarte.",
+  "refreshSleepHistory": "Actualizar el historial de sueño",
+  "refreshingSleepHistory": "Actualizando el historial de sueño",
+  "refreshFailed": "No se pudo actualizar el historial de sueño. Inténtalo de nuevo.",
+  "sessionSavedPendingSync": "Guardado. Google Health se actualizará cuando pueda.",
+  "sessionDeleted": "Sesión eliminada.",
+  "sessionSavedLocallyPermission": "Guardado localmente. Permite la escritura en Google Health para sincronizarlo.",
+  "sessionAddedHealth": "Sesión añadida a Google Health.",
+  "sessionAdded": "Sesión añadida.",
+  "sessionSavedLocally": "Sesión guardada localmente. Google Health se actualizará cuando pueda.",
+  "addSleepSession": "Añadir una sesión de sueño",
+  "opensSession": "Abre la sesión",
+  "anotherApp": "Otra app",
+  "anotherAppLower": "otra app",
+  "readOnlyFrom": "Solo lectura, de {app}",
+  "@readOnlyFrom": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "readOnlySession": "Sesión de solo lectura",
+  "otherSleepy3Build": "otra compilación de Sleepy3",
+  "goalMetLower": "objetivo cumplido",
+  "sessionTitle": "Sesión",
+  "newSessionTitle": "Nueva sesión",
+  "addAction": "Añadir",
+  "fellAsleep": "Me dormí",
+  "wokeUp": "Me desperté",
+  "wokeOn": "Me desperté el {date}",
+  "@wokeOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionHeroSpoken": "{duration}, {goal}, me desperté el {date}",
+  "@sessionHeroSpoken": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "goalDefault": "Tu objetivo de 8 h",
+  "goalMet": "Objetivo cumplido",
+  "goalOver": "Objetivo cumplido · {delta} por encima del objetivo de 8 h",
+  "@goalOver": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "goalUnder": "A {delta} del objetivo de 8 h",
+  "@goalUnder": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "spokenGoalDefault": "objetivo de 8 horas",
+  "spokenGoalMet": "objetivo cumplido",
+  "spokenGoalOver": "objetivo cumplido, {delta} por encima del objetivo de 8 horas",
+  "@spokenGoalOver": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "spokenGoalUnder": "{delta} por debajo del objetivo de 8 horas",
+  "@spokenGoalUnder": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "sessionDateTimeSemantics": "{title}: fecha y hora",
+  "@sessionDateTimeSemantics": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "discardChangesTitle": "¿Descartar los cambios sin guardar?",
+  "keepEditing": "Seguir editando",
+  "discard": "Descartar",
+  "deleteSessionTitle": "¿Eliminar la sesión?",
+  "deleteSessionAction": "Eliminar sesión",
+  "deleteMessageHealth": "Esta noche se eliminará de Google Health. También se eliminará su copia local si existe.",
+  "deleteMessageHealthAndLocal": "Esta noche se eliminará de Sleepy3 y Google Health.",
+  "deleteMessageLocal": "Esta noche se eliminará de Sleepy3.",
+  "healthNeedsPermissionTitle": "Google Health necesita permiso",
+  "allowWriteHealth": "Permite que Sleepy3 escriba datos de sueño en Google Health e inténtalo de nuevo.",
+  "allowDeleteHealth": "Permite que Sleepy3 elimine esta sesión de Google Health e inténtalo de nuevo.",
+  "allowDeleteHealthShort": "Permite que Sleepy3 elimine esta sesión de Google Health.",
+  "couldNotSave": "No se pudo guardar",
+  "couldNotSaveBody": "No se pudo guardar la sesión. Inténtalo de nuevo.",
+  "couldNotAdd": "No se pudo añadir la sesión",
+  "couldNotAddBody": "No se pudo añadir la sesión. Inténtalo de nuevo.",
+  "couldNotDelete": "No se pudo eliminar",
+  "couldNotDeleteBody": "No se pudo eliminar la sesión. Inténtalo de nuevo.",
+  "healthNoticeStored": "Esta noche se guarda en Google Health. Al guardar se actualiza el registro de Health Connect.",
+  "healthNoticeBoth": "Esta noche también está en Google Health. Al guardar se actualizan ambas copias.",
+  "healthNoticeAdded": "Esta noche se añadirá a Google Health.",
+  "readOnlyOtherBuild": "Esta sesión se creó en {app}, así que no se puede editar desde esta compilación.",
+  "@readOnlyOtherBuild": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "readOnlySleepy3": "Esta sesión no se puede editar desde Sleepy3.",
+  "readOnlyOtherApp": "Esta sesión se creó en {app}, así que no se puede editar desde Sleepy3.",
+  "@readOnlyOtherApp": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "readOnlyDownloadedOtherBuild": "Esta sesión se creó en {app}. Las copias descargadas no se pueden editar desde esta compilación.",
+  "@readOnlyDownloadedOtherBuild": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "readOnlyDownloadedSleepy3": "Esta sesión se descargó de Google Health. Cambia a Google Health para editarla.",
+  "readOnlyDownloadedOtherApp": "Esta sesión se creó en {app}. Las copias descargadas no se pueden editar en Local.",
+  "@readOnlyDownloadedOtherApp": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "readOnlyDownloadedUnknown": "Esta sesión se descargó de Google Health. Las copias descargadas no se pueden editar en Local.",
+  "errorEndNotAfterStart": "La hora de despertar debe ser posterior a la hora de dormir.",
+  "errorTooShort": "Una sesión de sueño debe durar al menos 10 minutos.",
+  "errorTooLong": "Una sesión de sueño no puede durar 24 horas o más.",
+  "errorStartInTheFuture": "La hora de dormir no puede estar en el futuro.",
+  "errorEndInTheFuture": "La hora de despertar no puede estar en el futuro.",
+  "errorOverlapsClosedSession": "Esta sesión se solapa con otra sesión de sueño.",
+  "errorOverlapsOpenSession": "Esta sesión se solapa con la sesión en curso.",
+  "copySyncLastTitle": "¿Sincronizar la última sesión?",
+  "copyAddAllTitle": "¿Añadir todas las sesiones anteriores?",
+  "copyDownloadTitle": "¿Descargar desde Google Health?",
+  "copySyncLastBody": "Envía la sesión local más reciente a Google Health.",
+  "copyAddAllBody": "Envía todas las sesiones locales que aún no estén en Google Health. Las sesiones que ya añadiste manualmente a Google Health pueden aparecer dos veces.",
+  "copyDownloadBody": "Añade todas las sesiones de sueño de Google Health a la copia local. Las sesiones locales no cambian. Google Health también pedirá acceso a tu historial completo; si no lo concedes, solo se descargarán los últimos 30 días.",
+  "copySyncAction": "Sincronizar",
+  "copyAddAllAction": "Añadir todo",
+  "copyDownloadAction": "Descargar todo",
+  "copySyncingSession": "Sincronizando la sesión.",
+  "copySyncingSessions": "Sincronizando sesiones.",
+  "copyDownloadingSessions": "Descargando sesiones.",
+  "copyPleaseWait": "Esto puede tardar un momento.",
+  "copyCouldNotDownload": "No se pudo descargar",
+  "copyCouldNotSync": "No se pudo sincronizar",
+  "copySomeFailed": "Algunas sesiones no se copiaron",
+  "copyDownloadComplete": "Descarga completada",
+  "copySyncComplete": "Sincronización completada",
+  "copyNoSessions30Days": "No hay sesiones de sueño en los últimos 30 días de Google Health.",
+  "copyNoSessionsHealth": "No hay sesiones de sueño en Google Health.",
+  "copyNoLocalSessions": "No hay sesiones locales para sincronizar.",
+  "copySessionsSent": "{count, plural, =1{1 sesión enviada a Google Health} other{{count} sesiones enviadas a Google Health}}",
+  "@copySessionsSent": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "copySessionsSkipped": "{count, plural, =1{1 sesión omitida} other{{count} sesiones omitidas}}",
+  "@copySessionsSkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "copySessionsFailed": "{count, plural, =1{1 sesión fallida} other{{count} sesiones fallidas}}",
+  "@copySessionsFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "copySessionsAdded": "{count, plural, =1{1 sesión añadida} other{{count} sesiones añadidas}}",
+  "@copySessionsAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "copySessionsUpdated": "{count, plural, =1{1 sesión actualizada} other{{count} sesiones actualizadas}}",
+  "@copySessionsUpdated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "copySessionsUpToDate": "{count, plural, =1{1 sesión ya actualizada} other{{count} sesiones ya actualizadas}}",
+  "@copySessionsUpToDate": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "copyHistoryLimited": "{summary}. Solo se descargaron los últimos 30 días. Permite el historial completo en Google Health para copiar sesiones anteriores.",
+  "@copyHistoryLimited": {
+    "placeholders": {
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
+  "healthUnavailable": "Google Health no está disponible en este dispositivo.",
+  "healthUpdateRequired": "Actualiza Health Connect para usar Google Health.",
+  "healthPermissionRead": "Google Health necesita permiso para leer datos de sueño.",
+  "healthPermissionWrite": "Google Health necesita permiso para escribir datos de sueño.",
+  "copyFailed": "Algo salió mal. Inténtalo de nuevo.",
+  "historyLast30Days": "Solo están disponibles los últimos 30 días",
+  "historyAllowFullSupport": "Permite el historial completo en Google Health para ver sesiones anteriores.",
+  "historyAllowFullAction": "Permitir historial completo",
+  "historyPermissionDenied": "Google Health necesita permiso para leer sesiones de sueño anteriores.",
+  "syncBannerWaiting": "{count, plural, =1{1 sesión pendiente de sincronizar} other{{count} sesiones pendientes de sincronizar}}",
+  "@syncBannerWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sleepDataSourceSaveFailed": "No se pudo guardar la fuente de datos de sueño.",
+  "timeRangeSeparator": "{from} – {to}",
+  "@timeRangeSeparator": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "timeRangeSpoken": "{from} a {to}",
+  "@timeRangeSpoken": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "durationMinutes": "{minutes} min",
+  "@durationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "durationHours": "{hours} h",
+  "@durationHours": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "durationHoursMinutes": "{hours} h {minutes} min",
+  "@durationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "spokenDurationMinutes": "{minutes, plural, =1{1 minuto} other{{minutes} minutos}}",
+  "@spokenDurationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "spokenDurationHoursMinutes": "{hours, plural, =1{1 hora} other{{hours} horas}} {minutes, plural, =1{1 minuto} other{{minutes} minutos}}",
+  "@spokenDurationHoursMinutes": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      }
+    }
+  }
+}

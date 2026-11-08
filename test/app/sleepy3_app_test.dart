@@ -7,8 +7,10 @@ import 'package:sleepy3/app/sleepy3_shell.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
 import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
 import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
+import 'package:sleepy3/features/settings/application/language_controller.dart';
 import 'package:sleepy3/features/settings/application/theme_mode_controller.dart';
 import 'package:sleepy3/features/settings/application/time_format_controller.dart';
+import 'package:sleepy3/features/settings/domain/app_language.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
@@ -23,6 +25,7 @@ void main() {
     required AppThemeMode mode,
     required Brightness platformBrightness,
     AppTimeFormat timeFormat = AppTimeFormat.twelveHour,
+    AppLanguage language = AppLanguage.english,
   }) async {
     tester.view.physicalSize = const Size(360, 800) * 3;
     tester.view.devicePixelRatio = 3;
@@ -47,6 +50,7 @@ void main() {
           settingsStoreProvider.overrideWithValue(settingsStore),
           initialThemeModeProvider.overrideWithValue(mode),
           initialTimeFormatProvider.overrideWithValue(timeFormat),
+          initialLanguageProvider.overrideWithValue(language),
         ],
         child: Sleepy3App(splashStartSignal: Future<void>.value()),
       ),
@@ -160,6 +164,42 @@ void main() {
 
     expect(appBrightness(tester), Brightness.light);
     expect(store.saves, [AppThemeMode.light]);
+  });
+
+  testWidgets('renders the pinned Spanish language', (tester) async {
+    await pumpApp(
+      tester,
+      mode: AppThemeMode.light,
+      platformBrightness: Brightness.light,
+      language: AppLanguage.spanish,
+    );
+
+    expect(find.text('Dormir'), findsOneWidget);
+    expect(find.text('Inicio'), findsOneWidget);
+    expect(find.text('Estadísticas'), findsOneWidget);
+    expect(find.text('Ajustes'), findsOneWidget);
+  });
+
+  testWidgets('changing the language rebuilds the app and persists it', (
+    tester,
+  ) async {
+    final store = await pumpApp(
+      tester,
+      mode: AppThemeMode.light,
+      platformBrightness: Brightness.light,
+    );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(Sleepy3Shell)),
+    );
+
+    await container
+        .read(languageControllerProvider.notifier)
+        .setLanguage(AppLanguage.spanish);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dormir'), findsOneWidget);
+    expect(find.text('Ajustes'), findsOneWidget);
+    expect(store.languageSaves, [AppLanguage.spanish]);
   });
 
   testWidgets('applies the saved 24-hour format to the app', (tester) async {

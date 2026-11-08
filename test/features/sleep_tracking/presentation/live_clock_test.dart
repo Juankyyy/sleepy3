@@ -13,8 +13,9 @@ void main() {
         child: MaterialApp(
           home: Scaffold(
             body: LiveClock(
-              builder: (context, now) =>
-                  Text(formatClockLabel(now, use24HourFormat: true)),
+              builder: (context, now) => Text(
+                formatClockLabel(now, use24HourFormat: true, localeName: 'en'),
+              ),
             ),
           ),
         ),

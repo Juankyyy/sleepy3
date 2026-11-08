@@ -6,6 +6,7 @@ import 'package:sleepy3/core/theme/sleepy3_theme.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/recent_sleep_summary.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/presentation/widgets/recent_sleep_summary.dart';
+import 'package:sleepy3/l10n/l10n.dart';
 
 void main() {
   final now = DateTime(2026, 10, 21, 10);
@@ -47,6 +48,9 @@ void main() {
       M3EMaterialApp(
         data: data,
         theme: data.toThemeData(),
+        locale: const Locale('en'),
+        localizationsDelegates: appLocalizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Scaffold(
           body: Padding(
             padding: const EdgeInsets.all(16),

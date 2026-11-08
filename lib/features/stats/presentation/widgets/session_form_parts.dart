@@ -2,9 +2,10 @@ import 'package:intl/intl.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../sleep_tracking/domain/session_edit.dart';
-import '../../../sleep_tracking/domain/sleep_duration.dart';
 import '../../../sleep_tracking/domain/sleep_goal.dart';
+import '../session_edit_error_text.dart';
 import 'sleep_goal_mark.dart';
 
 /// The session's identity: duration, goal comparison and wake day.
@@ -79,14 +80,18 @@ class _SessionHeroState extends State<SessionHero>
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final motionEnabled = _motionEnabled;
-    final spokenDate = _spokenDate.format(widget.endedAt);
+    final spokenDate = DateFormat.yMMMMEEEEd(l10n.localeName)
+        .format(widget.endedAt.toLocal());
 
     return Semantics(
       container: true,
-      label:
-          '${formatSpokenSleepDuration(widget.duration)}, '
-          '${_spokenGoal(widget.duration)}, woke $spokenDate',
+      label: l10n.sessionHeroSpoken(
+        l10n.formatSpokenSleepDuration(widget.duration),
+        _spokenGoal(l10n, widget.duration),
+        spokenDate,
+      ),
       child: ExcludeSemantics(
         child: M3ECard(
           variant: M3ECardVariant.filled,
@@ -113,7 +118,7 @@ class _SessionHeroState extends State<SessionHero>
                   const SizedBox(width: 16),
                   Expanded(
                     child: Text(
-                      formatSleepDuration(widget.duration),
+                      l10n.formatSleepDuration(widget.duration),
                       style: theme.typography.emphasized.headlineMedium
                           .copyWith(
                             color: scheme.onPrimaryContainer,
@@ -125,14 +130,16 @@ class _SessionHeroState extends State<SessionHero>
               ),
               const SizedBox(height: 8),
               Text(
-                _goalLabel(widget.duration),
+                _goalLabel(l10n, widget.duration),
                 style: theme.typography.baseline.bodyMedium.copyWith(
                   color: scheme.onPrimaryContainer,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
-                'Woke ${formatSessionEditorDate(widget.endedAt)}',
+                l10n.wokeOn(
+                  formatSessionEditorDate(widget.endedAt, l10n.localeName),
+                ),
                 style: theme.typography.baseline.bodySmall.copyWith(
                   color: scheme.onPrimaryContainer,
                 ),
@@ -147,37 +154,27 @@ class _SessionHeroState extends State<SessionHero>
 
 /// The goal line under the duration, for example `Goal met · 13m over the
 /// 8h goal` or `58m short of the 8h goal`.
-String _goalLabel(Duration duration) {
-  if (duration <= Duration.zero) return 'Your 8h goal';
+String _goalLabel(AppLocalizations l10n, Duration duration) {
+  if (duration <= Duration.zero) return l10n.goalDefault;
 
   final difference = duration - dailySleepGoal;
   if (difference >= Duration.zero) {
-    if (difference == Duration.zero) return 'Goal met';
-    return 'Goal met · ${_goalDelta(difference)} over the 8h goal';
+    if (difference == Duration.zero) return l10n.goalMet;
+    return l10n.goalOver(l10n.formatGoalDelta(difference));
   }
-  return '${_goalDelta(-difference)} short of the 8h goal';
+  return l10n.goalUnder(l10n.formatGoalDelta(-difference));
 }
 
 /// The same comparison for screen readers.
-String _spokenGoal(Duration duration) {
-  if (duration <= Duration.zero) return '8-hour goal';
+String _spokenGoal(AppLocalizations l10n, Duration duration) {
+  if (duration <= Duration.zero) return l10n.spokenGoalDefault;
 
   final difference = duration - dailySleepGoal;
-  if (difference == Duration.zero) return 'goal met';
+  if (difference == Duration.zero) return l10n.spokenGoalMet;
   if (difference > Duration.zero) {
-    return 'goal met, ${formatSpokenSleepDuration(difference)} over the '
-        '8-hour goal';
+    return l10n.spokenGoalOver(l10n.formatSpokenSleepDuration(difference));
   }
-  return '${formatSpokenSleepDuration(-difference)} short of the 8-hour goal';
-}
-
-/// A goal delta without a zero minute part: `13m`, `1h`, `1h 12m`.
-String _goalDelta(Duration duration) {
-  final hours = duration.inHours;
-  final minutes = duration.inMinutes.remainder(60);
-  if (hours == 0) return '${minutes}m';
-  if (minutes == 0) return '${hours}h';
-  return '${hours}h ${minutes}m';
+  return l10n.spokenGoalUnder(l10n.formatSpokenSleepDuration(-difference));
 }
 
 /// One labelled date and time pair.
@@ -209,6 +206,7 @@ class SessionTimeSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -229,7 +227,7 @@ class SessionTimeSection extends StatelessWidget {
           outerRadius: 16,
           innerRadius: 4,
           gap: 2,
-          semanticsLabel: '$title date and time',
+          semanticsLabel: l10n.sessionDateTimeSemantics(title),
           onTap: enabled
               ? (index) => index == 0 ? onPickDate() : onPickTime()
               : null,
@@ -292,6 +290,7 @@ class SessionErrors extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -300,7 +299,7 @@ class SessionErrors extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 4),
             child: Text(
-              error.message,
+              l10n.sessionEditError(error),
               style: theme.typography.baseline.bodySmall.copyWith(
                 color: scheme.error,
               ),
@@ -311,24 +310,24 @@ class SessionErrors extends StatelessWidget {
   }
 }
 
-final _editorDate = DateFormat('EEE, MMM d, y', 'en_US');
-final _editorDateNoYear = DateFormat('EEE, MMM d', 'en_US');
-final _editorDateNoWeekday = DateFormat('MMM d, y', 'en_US');
-final _spokenDate = DateFormat('EEEE, MMMM d, y', 'en_US');
-
-String formatSessionEditorDate(DateTime value) =>
-    _editorDate.format(value.toLocal());
+String formatSessionEditorDate(DateTime value, String localeName) =>
+    DateFormat.yMMMEd(localeName).format(value.toLocal());
 
 /// The compact date in a fact row.
 ///
 /// The row's headline is a single line, so the year only appears when it is not
 /// the current one; otherwise the weekday, month and day are enough and still
 /// fit at 200 % text.
-String formatSessionEditorDateRow(DateTime value, DateTime now) {
+String formatSessionEditorDateRow(
+  DateTime value,
+  DateTime now,
+  String localeName,
+) {
   final local = value.toLocal();
-  return local.year == now.toLocal().year
-      ? _editorDateNoYear.format(local)
-      : _editorDateNoWeekday.format(local);
+  final format = local.year == now.toLocal().year
+      ? DateFormat.MMMEd(localeName)
+      : DateFormat.yMMMd(localeName);
+  return format.format(local);
 }
 
 DateTime withSessionDate(DateTime value, DateTime date) =>

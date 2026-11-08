@@ -17,6 +17,7 @@ import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart'
 import 'package:sleepy3/features/stats/presentation/stats_screen.dart';
 import 'package:sleepy3/features/stats/presentation/widgets/sleep_history_list.dart';
 import 'package:sleepy3/features/stats/presentation/widgets/stats_summary_card.dart';
+import 'package:sleepy3/l10n/l10n.dart';
 
 import '../../health/fakes.dart';
 import '../../sleep_tracking/fakes.dart';
@@ -39,6 +40,7 @@ void main() {
     bool use24HourFormat = false,
     Size size = const Size(360, 800),
     double textScale = 1,
+    Locale locale = const Locale('en'),
     FakeSleepSessionStore? store,
     SleepDataSource source = SleepDataSource.local,
     FakeHealthConnectGateway? gateway,
@@ -84,9 +86,9 @@ void main() {
                 title: 'Sleepy3',
                 data: data,
                 theme: data.toThemeData(),
-                locale: const Locale('en', 'US'),
-                localizationsDelegates: GlobalMaterialLocalizations.delegates,
-                supportedLocales: const [Locale('en', 'US')],
+                locale: locale,
+                localizationsDelegates: appLocalizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
                 home: const Scaffold(body: StatsScreen()),
               ),
             ),
@@ -1217,5 +1219,20 @@ void main() {
       expect(find.text('Only the last 30 days are available'), findsNothing);
       expect(find.text('Wed, Sep 2'), findsOneWidget);
     });
+  });
+
+  testWidgets('renders the history and summary in Spanish', (tester) async {
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: sessions),
+      locale: const Locale('es'),
+    );
+
+    expect(find.text('Estadísticas'), findsOneWidget);
+    expect(find.text('Historial'), findsOneWidget);
+    expect(find.text('Sueño medio'), findsOneWidget);
+    expect(find.text('7 días'), findsOneWidget);
+    expect(find.text('Hoy'), findsOneWidget);
   });
 }

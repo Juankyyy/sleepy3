@@ -1,4 +1,5 @@
 import '../../health/domain/sleep_data_source.dart';
+import 'app_language.dart';
 import 'app_theme_mode.dart';
 import 'app_time_format.dart';
 
@@ -12,6 +13,11 @@ abstract interface class SettingsStore {
   Future<AppTimeFormat?> loadTimeFormat();
 
   Future<void> saveTimeFormat(AppTimeFormat format);
+
+  /// The saved interface language, or null when the user has never chosen one.
+  Future<AppLanguage?> loadLanguage();
+
+  Future<void> saveLanguage(AppLanguage language);
 
   /// The source Home and Stats read, defaulting to [SleepDataSource.local].
   Future<SleepDataSource> loadSleepDataSource();

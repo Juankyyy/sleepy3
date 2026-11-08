@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../l10n/l10n.dart';
 import 'sleepy3_destination.dart';
 
 const double _navInnerPadding = 8;
@@ -165,6 +166,10 @@ class _PillNavigationBarState extends State<PillNavigationBar> {
       theme.typography.baseline,
       selected: true,
     );
+    final l10n = AppLocalizations.of(context);
+    final labels = [
+      for (final destination in widget.destinations) destination.label(l10n),
+    ];
     final textScaler = MediaQuery.textScalerOf(context);
     final screenWidth = MediaQuery.sizeOf(context).width;
     final outerMargin = screenWidth < 360
@@ -189,6 +194,7 @@ class _PillNavigationBarState extends State<PillNavigationBar> {
         );
         final metrics = _measureDestinations(
           context: context,
+          labels: labels,
           labelStyle: labelStyle,
           textScaler: textScaler,
           iconSize: iconSize,
@@ -201,6 +207,7 @@ class _PillNavigationBarState extends State<PillNavigationBar> {
             _PillNavigationItem(
               key: ValueKey(widget.destinations[i]),
               destination: widget.destinations[i],
+              label: labels[i],
               selected: i == _selectedIndex,
               targetWidth: metrics.targetWidths[i],
               maxWidth: math.min(
@@ -288,6 +295,7 @@ class _PillNavigationBarState extends State<PillNavigationBar> {
 
   _DestinationMetrics _measureDestinations({
     required BuildContext context,
+    required List<String> labels,
     required TextStyle labelStyle,
     required TextScaler textScaler,
     required double iconSize,
@@ -304,9 +312,10 @@ class _PillNavigationBarState extends State<PillNavigationBar> {
     final labelBoxWidths = <double>[];
     final selectedWidths = <double>[];
     var maxLabelHeight = 0.0;
-    for (final destination in widget.destinations) {
+    for (var index = 0; index < widget.destinations.length; index++) {
+      final label = labels[index];
       final naturalPainter = TextPainter(
-        text: TextSpan(text: destination.label, style: labelStyle),
+        text: TextSpan(text: label, style: labelStyle),
         textScaler: textScaler,
         textDirection: Directionality.of(context),
         maxLines: 1,
@@ -326,7 +335,7 @@ class _PillNavigationBarState extends State<PillNavigationBar> {
       labelBoxWidths.add(labelBoxWidth);
 
       final heightPainter = TextPainter(
-        text: TextSpan(text: destination.label, style: labelStyle),
+        text: TextSpan(text: label, style: labelStyle),
         textScaler: textScaler,
         textDirection: Directionality.of(context),
         maxLines: 2,
@@ -377,6 +386,7 @@ class _PillNavigationItem extends StatefulWidget {
   const _PillNavigationItem({
     super.key,
     required this.destination,
+    required this.label,
     required this.selected,
     required this.targetWidth,
     required this.maxWidth,
@@ -390,6 +400,7 @@ class _PillNavigationItem extends StatefulWidget {
   });
 
   final Sleepy3Destination destination;
+  final String label;
   final bool selected;
   final double targetWidth;
   final double maxWidth;
@@ -475,7 +486,7 @@ class _PillNavigationItemState extends State<_PillNavigationItem>
       key: ValueKey('nav-${widget.destination.name}'),
       role: SemanticsRole.tab,
       selected: widget.selected,
-      label: widget.destination.label,
+      label: widget.label,
       onTap: widget.onTap,
       child: M3ETappable(
         focusNode: widget.focusNode,
@@ -551,7 +562,7 @@ class _PillNavigationItemState extends State<_PillNavigationItem>
                                   SizedBox(
                                     width: widget.labelWidth,
                                     child: Text(
-                                      widget.destination.label,
+                                      widget.label,
                                       maxLines: 2,
                                       softWrap: true,
                                       textAlign: TextAlign.start,

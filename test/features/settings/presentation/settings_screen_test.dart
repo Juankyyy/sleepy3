@@ -1,4 +1,5 @@
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
@@ -12,24 +13,36 @@ import 'package:sleepy3/features/health/domain/health_connect_gateway.dart';
 import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/settings/application/app_version_provider.dart';
-import 'package:sleepy3/features/settings/application/theme_mode_controller.dart';
-import 'package:sleepy3/features/settings/application/time_format_controller.dart';
+import 'package:sleepy3/features/settings/application/language_controller.dart';
+import 'package:sleepy3/features/settings/domain/app_language.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/settings/domain/app_version.dart';
 import 'package:sleepy3/features/settings/presentation/settings_screen.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_providers.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
+import 'package:sleepy3/l10n/l10n.dart';
 
 import '../../health/fakes.dart';
 import '../fakes.dart';
 import '../../sleep_tracking/fakes.dart';
 
 void main() {
+  setUpAll(() async {
+    // Render with the bundled font so the 360dp/200% checks use production
+    // metrics instead of the test font's square glyphs.
+    final loader = FontLoader('SpaceGrotesk');
+    loader.addFont(
+      rootBundle.load('assets/fonts/SpaceGrotesk-VariableFont.ttf'),
+    );
+    await loader.load();
+  });
+
   Future<FakeSettingsStore> pumpSettings(
     WidgetTester tester, {
     AppThemeMode initial = AppThemeMode.system,
     AppTimeFormat initialTimeFormat = AppTimeFormat.twelveHour,
+    AppLanguage initialLanguage = AppLanguage.english,
     SleepDataSource source = SleepDataSource.local,
     AppVersion? version,
     FakeSettingsStore? store,
@@ -54,6 +67,7 @@ void main() {
           settingsStoreProvider.overrideWithValue(settingsStore),
           initialThemeModeProvider.overrideWithValue(initial),
           initialTimeFormatProvider.overrideWithValue(initialTimeFormat),
+          initialLanguageProvider.overrideWithValue(initialLanguage),
           initialSleepDataSourceProvider.overrideWithValue(source),
           healthConnectGatewayProvider.overrideWithValue(
             gateway ?? FakeHealthConnectGateway(),
@@ -67,14 +81,19 @@ void main() {
           ),
           appVersionProvider.overrideWithValue(version),
         ],
-        child: M3EMaterialApp(
-          title: 'Sleepy3',
-          data: data,
-          theme: data.toThemeData(),
-          locale: const Locale('en', 'US'),
-          localizationsDelegates: GlobalMaterialLocalizations.delegates,
-          supportedLocales: const [Locale('en', 'US')],
-          home: const Scaffold(body: SettingsScreen()),
+        child: Consumer(
+          builder: (context, ref, child) {
+            final language = ref.watch(languageControllerProvider);
+            return M3EMaterialApp(
+              title: 'Sleepy3',
+              data: data,
+              theme: data.toThemeData(),
+              locale: language.locale,
+              localizationsDelegates: appLocalizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              home: const Scaffold(body: SettingsScreen()),
+            );
+          },
         ),
       ),
     );
@@ -158,6 +177,8 @@ void main() {
     expect(find.text('System'), findsOneWidget);
     expect(find.text('Time format'), findsOneWidget);
     expect(find.text('12-hour'), findsOneWidget);
+    expect(find.text('Language'), findsOneWidget);
+    expect(find.text('English'), findsOneWidget);
     expect(find.text('Sleep data'), findsOneWidget);
     expect(find.text('Source'), findsOneWidget);
     expect(find.text('Local'), findsOneWidget);
@@ -738,6 +759,93 @@ void main() {
     expect(find.text('12-hour'), findsNothing);
   });
 
+  testWidgets('language dialog offers only English and Español', (
+    tester,
+  ) async {
+    await pumpSettings(tester);
+
+    await tapLabel(tester, 'Language');
+
+    expect(find.text('English'), findsNWidgets(2));
+    expect(find.text('Español'), findsOneWidget);
+    expect(find.text('Cancel'), findsOneWidget);
+    expect(find.text('Apply'), findsOneWidget);
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.text('Español'), findsNothing);
+  });
+
+  testWidgets('applying a language updates the screen and saves it', (
+    tester,
+  ) async {
+    final store = await pumpSettings(tester);
+
+    await tapLabel(tester, 'Language');
+    await tapLabel(tester, 'Español');
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+
+    expect(store.languageSaves, [AppLanguage.spanish]);
+    expect(find.text('Apariencia'), findsOneWidget);
+    expect(find.text('Idioma'), findsOneWidget);
+    expect(find.text('Español'), findsOneWidget);
+    expect(find.text('English'), findsNothing);
+  });
+
+  testWidgets('Spanish settings fit at 200% text', (tester) async {
+    await pumpSettings(
+      tester,
+      initialLanguage: AppLanguage.spanish,
+      version: const AppVersion(version: '0.1.0', buildNumber: '1'),
+      textScale: 2,
+    );
+
+    expect(tester.takeException(), isNull);
+
+    for (final label in [
+      'Ajustes',
+      'Apariencia',
+      'Tema',
+      'Sistema',
+      'Formato de hora',
+      '12 horas',
+      'Idioma',
+      'Español',
+      'Datos de sueño',
+      'Fuente',
+      'Local',
+      'Importar',
+      'Google Health',
+      'Estado',
+      'Sincronizar',
+      'Añadir',
+      'Acerca de',
+      'Privacidad',
+      'Solo en este dispositivo.',
+      'Versión',
+      '0.1.0 (1)',
+      'Licencias',
+    ]) {
+      final finder = find.text(label);
+      if (finder.evaluate().isEmpty) {
+        await tester.scrollUntilVisible(
+          finder,
+          160,
+          scrollable: find.byType(Scrollable),
+        );
+        await tester.pumpAndSettle();
+      }
+      final paragraph = tester.renderObject<RenderParagraph>(finder);
+      expect(
+        paragraph.didExceedMaxLines,
+        isFalse,
+        reason: '$label is truncated at 200% text',
+      );
+    }
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('hides the version row when the version is unknown', (
     tester,
   ) async {
@@ -813,6 +921,8 @@ void main() {
       'Appearance',
       'Theme',
       'System',
+      'Language',
+      'English',
       'Sleep data',
       'Source',
       'Local',

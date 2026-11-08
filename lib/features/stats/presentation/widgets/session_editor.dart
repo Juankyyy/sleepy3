@@ -5,6 +5,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../../core/time/clock_format.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../health/application/app_info_provider.dart';
 import '../../../health/application/current_app_package_provider.dart';
 import '../../../health/application/health_connect_gateway_provider.dart';
@@ -31,13 +32,20 @@ Future<SleepSessionEditResult?> showSessionEditor(
     return _showReadOnlySession(context, session: session, source: source);
   }
 
-  final dialogController = M3EDialogController();
+  final l10n = context.l10n;
+  final dialogController = M3EDialogController(
+    discardLabels: M3EDialogDiscardLabels(
+      title: l10n.discardChangesTitle,
+      keepLabel: l10n.keepEditing,
+      discardLabel: l10n.discard,
+    ),
+  );
   final editorKey = GlobalKey<SessionEditorState>();
 
   try {
     return await M3EDialog.showAdaptive<SleepSessionEditResult>(
       context,
-      title: 'Session',
+      title: l10n.sessionTitle,
       content: SessionEditor(
         key: editorKey,
         session: session,
@@ -45,7 +53,8 @@ Future<SleepSessionEditResult?> showSessionEditor(
         access: access,
         dialogController: dialogController,
       ),
-      confirmLabel: 'Save',
+      confirmLabel: l10n.save,
+      dismissLabel: l10n.cancel,
       onConfirm: () =>
           unawaited(editorKey.currentState?.save() ?? Future<void>.value()),
       controller: dialogController,
@@ -70,13 +79,14 @@ Future<SleepSessionEditResult?> _showReadOnlySession(
     access: SessionEditAccess.readOnly,
   );
   final theme = M3ETheme.of(context);
+  final l10n = context.l10n;
   final isCompact =
       MediaQuery.sizeOf(context).width < theme.dialogTheme.compactBreakpoint;
 
   if (isCompact) {
     return M3EDialog.showFullScreen<SleepSessionEditResult>(
       context,
-      title: 'Session',
+      title: l10n.sessionTitle,
       body: SingleChildScrollView(child: content),
     );
   }
@@ -84,13 +94,13 @@ Future<SleepSessionEditResult?> _showReadOnlySession(
   return M3EDialog.show<SleepSessionEditResult>(
     context,
     dialog: M3EDialog(
-      title: 'Session',
+      title: l10n.sessionTitle,
       content: content,
       actions: [
         M3EButton(
           style: M3EButtonStyle.text,
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
+          child: Text(l10n.close),
         ),
       ],
     ),
@@ -181,16 +191,15 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
       return;
     }
 
+    final l10n = context.l10n;
     if (result.status == SleepSessionEditStatus.permissionNeeded) {
       if (result.hasLocalChange) {
         // The local copy is already saved; Stats explains the pending sync.
         _close(result);
       } else {
         await _showError(
-          title: 'Google Health needs permission',
-          message:
-              'Allow Sleepy3 to write sleep data in Google Health, then try '
-              'again.',
+          title: l10n.healthNeedsPermissionTitle,
+          message: l10n.allowWriteHealth,
         );
       }
       return;
@@ -202,10 +211,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
       return;
     }
 
-    await _showError(
-      title: "Couldn't save",
-      message: 'The session could not be saved. Try again.',
-    );
+    await _showError(title: l10n.couldNotSave, message: l10n.couldNotSaveBody);
   }
 
   List<SessionEditError> _validate() {
@@ -233,7 +239,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
       firstDate: DateTime(1970),
       lastDate: _lastPickableDate,
       currentDate: ref.read(sleepClockProvider)(),
-      helpText: 'Select sleep date',
+      helpText: context.l10n.selectSleepDate,
     );
     if (picked == null || !mounted) return;
 
@@ -248,7 +254,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
       firstDate: DateTime(1970),
       lastDate: _lastPickableDate,
       currentDate: ref.read(sleepClockProvider)(),
-      helpText: 'Select wake date',
+      helpText: context.l10n.selectWakeDate,
     );
     if (picked == null || !mounted) return;
 
@@ -261,7 +267,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
       context,
       initialTime: M3ETime(hour: _startedAt.hour, minute: _startedAt.minute),
       alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
-      helpText: 'Select sleep time',
+      helpText: context.l10n.selectSleepTime,
     );
     if (picked == null || !mounted) return;
 
@@ -274,7 +280,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
       context,
       initialTime: M3ETime(hour: _endedAt.hour, minute: _endedAt.minute),
       alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
-      helpText: 'Select wake time',
+      helpText: context.l10n.selectWakeTime,
     );
     if (picked == null || !mounted) return;
 
@@ -302,21 +308,22 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
   Future<void> _confirmDelete() async {
     if (!_canEdit || _saving || _deleting) return;
 
+    final l10n = context.l10n;
     final confirmed = await M3EDialog.show<bool>(
       context,
       dialog: M3EDialog(
-        title: 'Delete session?',
-        content: Text(_deleteMessage),
+        title: l10n.deleteSessionTitle,
+        content: Text(_deleteMessage(l10n)),
         actions: [
           M3EButton(
             style: M3EButtonStyle.text,
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           M3EButton(
             style: M3EButtonStyle.text,
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -335,11 +342,10 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
       final granted = await _requestWriteAccess();
       if (!mounted) return;
       if (!granted) {
+        final messageL10n = context.l10n;
         await _showError(
-          title: 'Google Health needs permission',
-          message:
-              'Allow Sleepy3 to write sleep data in Google Health, then try '
-              'again.',
+          title: messageL10n.healthNeedsPermissionTitle,
+          message: messageL10n.allowWriteHealth,
         );
         return;
       }
@@ -356,14 +362,14 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
       return;
     }
 
+    final errorL10n = context.l10n;
     await _showError(
       title: result.status == SleepSessionEditStatus.permissionNeeded
-          ? 'Google Health needs permission'
-          : "Couldn't delete",
+          ? errorL10n.healthNeedsPermissionTitle
+          : errorL10n.couldNotDelete,
       message: result.status == SleepSessionEditStatus.permissionNeeded
-          ? 'Allow Sleepy3 to delete this session from Google Health, then '
-                'try again.'
-          : 'The session could not be deleted. Try again.',
+          ? errorL10n.allowDeleteHealth
+          : errorL10n.couldNotDeleteBody,
     );
   }
 
@@ -374,23 +380,22 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
   }
 
   Future<bool?> _askToAllowDelete() {
+    final l10n = context.l10n;
     return M3EDialog.show<bool>(
       context,
       dialog: M3EDialog(
-        title: 'Google Health needs permission',
-        content: const Text(
-          'Allow Sleepy3 to delete this session from Google Health.',
-        ),
+        title: l10n.healthNeedsPermissionTitle,
+        content: Text(l10n.allowDeleteHealthShort),
         actions: [
           M3EButton(
             style: M3EButtonStyle.text,
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Close'),
+            child: Text(l10n.close),
           ),
           M3EButton(
             style: M3EButtonStyle.text,
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Allow'),
+            child: Text(l10n.allow),
           ),
         ],
       ),
@@ -411,15 +416,14 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
     }
   }
 
-  String get _deleteMessage {
+  String _deleteMessage(AppLocalizations l10n) {
     if (widget.source == SleepDataSource.healthConnect) {
-      return 'This night will be deleted from Google Health. Its local copy '
-          'is removed too when there is one.';
+      return l10n.deleteMessageHealth;
     }
     if (widget.session.healthRecordId != null) {
-      return 'This night will be deleted from Sleepy3 and Google Health.';
+      return l10n.deleteMessageHealthAndLocal;
     }
-    return 'This night will be deleted from Sleepy3.';
+    return l10n.deleteMessageLocal;
   }
 
   void _close(SleepSessionEditResult result) {
@@ -442,7 +446,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
           M3EButton(
             style: M3EButtonStyle.text,
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text(context.l10n.close),
           ),
         ],
       ),
@@ -452,6 +456,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
   @override
   Widget build(BuildContext context) {
     final scheme = M3ETheme.of(context).colorScheme;
+    final l10n = context.l10n;
     final use24HourFormat = MediaQuery.alwaysUse24HourFormatOf(context);
     final duration = _endedAt.difference(_startedAt);
     final canEdit = _canEdit;
@@ -463,23 +468,31 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
         SessionHero(duration: duration, endedAt: _endedAt),
         if (!canEdit) ...[
           const SizedBox(height: 24),
-          _ReadOnlyCard(message: _readOnlyMessage()),
+          _ReadOnlyCard(message: _readOnlyMessage(l10n)),
         ],
         const SizedBox(height: 24),
         SessionTimeSection(
-          title: 'Fell asleep',
+          title: l10n.fellAsleep,
           enabled: canEdit,
-          date: formatSessionEditorDateRow(_startedAt, now),
-          time: formatSessionTime(_startedAt, use24HourFormat: use24HourFormat),
+          date: formatSessionEditorDateRow(_startedAt, now, l10n.localeName),
+          time: formatSessionTime(
+            _startedAt,
+            use24HourFormat: use24HourFormat,
+            localeName: l10n.localeName,
+          ),
           onPickDate: _pickStartDate,
           onPickTime: _pickStartTime,
         ),
         const SizedBox(height: 24),
         SessionTimeSection(
-          title: 'Woke up',
+          title: l10n.wokeUp,
           enabled: canEdit,
-          date: formatSessionEditorDateRow(_endedAt, now),
-          time: formatSessionTime(_endedAt, use24HourFormat: use24HourFormat),
+          date: formatSessionEditorDateRow(_endedAt, now, l10n.localeName),
+          time: formatSessionTime(
+            _endedAt,
+            use24HourFormat: use24HourFormat,
+            localeName: l10n.localeName,
+          ),
           onPickDate: _pickEndDate,
           onPickTime: _pickEndTime,
         ),
@@ -487,10 +500,8 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
           const SizedBox(height: 16),
           SessionHealthNotice(
             message: widget.source == SleepDataSource.healthConnect
-                ? 'This night is stored in Google Health. Saving updates the '
-                      'Health Connect record.'
-                : 'This night is also in Google Health. Saving updates both '
-                      'copies.',
+                ? l10n.healthNoticeStored
+                : l10n.healthNoticeBoth,
           ),
         ],
         if (canEdit && _errors.isNotEmpty) ...[
@@ -508,7 +519,7 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
               decoration: M3EButtonDecoration(
                 foregroundColor: WidgetStatePropertyAll<Color?>(scheme.error),
               ),
-              child: const Text('Delete session'),
+              child: Text(l10n.deleteSessionAction),
             ),
           ),
         ],
@@ -518,53 +529,50 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
 
   /// Why the session is read-only, using the source app when Android can
   /// resolve its label.
-  String _readOnlyMessage() {
+  String _readOnlyMessage(AppLocalizations l10n) {
     final session = widget.session;
     final currentPackage = ref.read(currentAppPackageProvider);
     final otherBuild = isOtherSleepy3Build(session.sourceId, currentPackage);
 
     if (widget.source == SleepDataSource.healthConnect) {
       if (otherBuild) {
-        return 'This session was created in ${_otherBuildName()}, so it '
-            "can't be edited from this build.";
+        return l10n.readOnlyOtherBuild(_otherBuildName(l10n));
       }
       if (isSleepy3HealthRecord(session.sourceId)) {
-        return "This session can't be edited from Sleepy3.";
+        return l10n.readOnlySleepy3;
       }
-      return 'This session was created in ${_sourceAppLabel()}, so it '
-          "can't be edited from Sleepy3.";
+      return l10n.readOnlyOtherApp(_sourceAppLabel(l10n));
     }
 
     if (widget.source == SleepDataSource.local && session.isDownloaded) {
       if (otherBuild) {
-        return 'This session was created in ${_otherBuildName()}. Downloaded '
-            "copies can't be edited from this build.";
+        return l10n.readOnlyDownloadedOtherBuild(_otherBuildName(l10n));
       }
       if (isSleepy3HealthRecord(session.sourceId)) {
-        return 'This session was downloaded from Google Health. Switch to '
-            'Google Health to edit it.';
+        return l10n.readOnlyDownloadedSleepy3;
       }
       if (session.sourceId != null) {
-        return 'This session was created in ${_sourceAppLabel()}. Downloaded '
-            "copies can't be edited in Local.";
+        return l10n.readOnlyDownloadedOtherApp(_sourceAppLabel(l10n));
       }
-      return "This session was downloaded from Google Health. Downloaded "
-          "copies can't be edited in Local.";
+      return l10n.readOnlyDownloadedUnknown;
     }
 
-    return "This session can't be edited from Sleepy3.";
+    return l10n.readOnlySleepy3;
   }
 
-  String _otherBuildName() {
-    final label = _sourceAppLabel();
-    return label == 'another app' ? 'another Sleepy3 build' : label;
-  }
-
-  String _sourceAppLabel() {
+  String _otherBuildName(AppLocalizations l10n) {
     final sourceId = widget.session.sourceId;
-    if (sourceId == null) return 'another app';
+    final label = sourceId == null
+        ? null
+        : ref.watch(appLabelProvider(sourceId)).asData?.value;
+    return label ?? l10n.otherSleepy3Build;
+  }
+
+  String _sourceAppLabel(AppLocalizations l10n) {
+    final sourceId = widget.session.sourceId;
+    if (sourceId == null) return l10n.anotherAppLower;
     final label = ref.watch(appLabelProvider(sourceId)).asData?.value;
-    return label ?? 'another app';
+    return label ?? l10n.anotherAppLower;
   }
 }
 
@@ -614,7 +622,7 @@ class _ReadOnlyCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Read-only session',
+                  context.l10n.readOnlySession,
                   style: theme.typography.emphasized.titleMedium.copyWith(
                     color: scheme.onSurface,
                   ),

@@ -17,6 +17,7 @@ import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart'
 import 'package:sleepy3/features/stats/presentation/stats_screen.dart';
 import 'package:sleepy3/features/stats/presentation/widgets/session_editor.dart';
 import 'package:sleepy3/features/stats/presentation/widgets/sleep_goal_mark.dart';
+import 'package:sleepy3/l10n/l10n.dart';
 
 import '../../health/fakes.dart';
 import '../../sleep_tracking/fakes.dart';
@@ -50,6 +51,7 @@ void main() {
     bool use24HourFormat = false,
     Size size = const Size(360, 800),
     double textScale = 1,
+    Locale locale = const Locale('en'),
     bool disableAnimations = true,
   }) async {
     tester.view.physicalSize = size * 3;
@@ -104,9 +106,9 @@ void main() {
                 title: 'Sleepy3',
                 data: data,
                 theme: data.toThemeData(),
-                locale: const Locale('en', 'US'),
-                localizationsDelegates: GlobalMaterialLocalizations.delegates,
-                supportedLocales: const [Locale('en', 'US')],
+                locale: locale,
+                localizationsDelegates: appLocalizationsDelegates,
+                supportedLocales: AppLocalizations.supportedLocales,
                 home: const Scaffold(body: StatsScreen()),
               ),
             ),
@@ -129,6 +131,24 @@ void main() {
     await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();
   }
+
+  testWidgets('renders the editor in Spanish', (tester) async {
+    await pumpStats(
+      tester,
+      sessions: [localSession()],
+      use24HourFormat: true,
+      locale: const Locale('es'),
+    );
+
+    await tester.tap(find.text('22:32 – 06:45'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sesión'), findsOneWidget);
+    expect(find.text('Me dormí'), findsOneWidget);
+    expect(find.text('Me desperté'), findsOneWidget);
+    expect(find.text('Guardar'), findsOneWidget);
+    expect(find.text('Eliminar sesión'), findsOneWidget);
+  });
 
   testWidgets(
     'opens the editor from an editable row and saves without changes',

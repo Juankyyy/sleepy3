@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../../core/theme/sleepy3_theme.dart';
 import '../../../../core/time/clock_format.dart';
+import '../../../../l10n/l10n.dart';
 
 /// The hero block of Home: the live clock, the date and the session line.
 class HomeClock extends StatelessWidget {
@@ -15,6 +16,7 @@ class HomeClock extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final use24HourFormat = MediaQuery.alwaysUse24HourFormatOf(context);
 
     return Column(
@@ -23,6 +25,7 @@ class HomeClock extends StatelessWidget {
         _ClockLine(
           now: now,
           use24HourFormat: use24HourFormat,
+          localeName: l10n.localeName,
           clockStyle: Sleepy3Theme.clock(
             theme.typography.emphasized.displayLarge,
           ).copyWith(color: scheme.onSurface),
@@ -32,7 +35,7 @@ class HomeClock extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          formatClockDate(now),
+          formatClockDate(now, localeName: l10n.localeName),
           textAlign: TextAlign.center,
           style: theme.typography.baseline.bodyMedium.copyWith(
             color: scheme.onSurfaceVariant,
@@ -59,24 +62,31 @@ class _ClockLine extends StatelessWidget {
   const _ClockLine({
     required this.now,
     required this.use24HourFormat,
+    required this.localeName,
     required this.clockStyle,
     required this.periodStyle,
   });
 
   final DateTime now;
   final bool use24HourFormat;
+  final String localeName;
   final TextStyle clockStyle;
   final TextStyle periodStyle;
 
   @override
   Widget build(BuildContext context) {
     final clock = formatClockTime(now, use24HourFormat: use24HourFormat);
-    final period = formatDayPeriod(now);
+    final period = formatDayPeriod(now, localeName: localeName);
+    final l10n = context.l10n;
 
     return Semantics(
-      label:
-          'Current time '
-          '${formatClockLabel(now, use24HourFormat: use24HourFormat)}',
+      label: l10n.currentTime(
+        formatClockLabel(
+          now,
+          use24HourFormat: use24HourFormat,
+          localeName: localeName,
+        ),
+      ),
       child: ExcludeSemantics(
         child: LayoutBuilder(
           builder: (context, constraints) {

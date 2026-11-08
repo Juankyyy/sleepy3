@@ -17,12 +17,13 @@ Health Connect as an optional data source.
   single contextual Sleep/Wake action on Home, the sleep state machine, Drift persistence,
   Stats history with tonal cards, pull-to-refresh, goal marks and their animation, the
   session panel, manual session entry from the Stats FAB, session editing/deleting and
-  read-only details for other apps' records, Settings, Health Connect (Local/Google Health,
-  pending uploads, copy actions, full history access and per-build record ownership), the
-  glass dock, the Space Grotesk / Google Sans Flex type, the branded launcher icon and
-  splash, and the manual release workflow (`minor`, `patch`, `exact`) work. The Glance
-  widget is the next milestone (0.3.0). Sessions, preferences and Health Connect metadata
-  live in `sleepy3.sqlite` (schema v5); generated Drift code is committed.
+  read-only details for other apps' records, Settings (theme, 12/24-hour time and English /
+  Español language), Health Connect (Local/Google Health, pending uploads, copy actions,
+  full history access and per-build record ownership), the glass dock, the Space Grotesk /
+  Google Sans Flex type, the branded launcher icon and splash, and the manual release
+  workflow (`minor`, `patch`, `exact`) work. The Glance widget is the next milestone
+  (0.3.0). Sessions, preferences and Health Connect metadata live in `sleepy3.sqlite`
+  (schema v5); generated Drift and localization code is committed.
 
 ## Commands
 
@@ -30,6 +31,7 @@ Run from the repository root:
 
 ```bash
 flutter pub get
+flutter gen-l10n
 flutter analyze
 flutter test
 flutter run
@@ -51,6 +53,7 @@ lib/
 ├── main.dart
 ├── app/                 # MaterialApp, routing, dependency wiring
 ├── core/theme/          # Material 3 theme and design tokens
+├── l10n/                # ARB files, generated AppLocalizations and helpers
 └── features/
     ├── sleep_tracking/  # domain, data, application, presentation
     ├── stats/           # presentation
@@ -88,6 +91,15 @@ lib/
   `.g.dart` file is committed. Bump `schemaVersion` and add a migration before
   changing an existing column. Settings use the same database through the
   `preferences` key/value table; do not add `shared_preferences`.
+- Localization: all user-facing copy lives in `lib/l10n/app_en.arb` (template) and
+  `lib/l10n/app_es.arb`. Generated files under `lib/l10n/generated/` are committed;
+  regenerate with `flutter gen-l10n` (also runs on `flutter pub get`). UI code reads
+  `context.l10n` from `lib/l10n/l10n.dart`. Do not hardcode user-facing strings,
+  semantics labels, tooltips, snackbars or dialog copy in widgets. Dates and times use
+  `l10n.localeName` with `intl`; durations and plurals use the ARB messages. The app
+  language is stored in `preferences` under `language`; there is no visible `System`
+  option: on first launch the device language is resolved and stored, matching the
+  12/24-hour preference.
 - Sleep data source: `Local` (default) reads only Drift; `Google Health` reads all
   `SLEEP_SESSION` records from Health Connect. Never mix the two lists. The open
   session and every finished session are always written locally first as a safety copy.
@@ -179,7 +191,9 @@ rather than presenting it as spec.
 
 ## Convenciones
 
-- **Idioma**: código, comentarios, mensajes de commit, la UI y notas de release en **inglés**
+- **Idioma**: código, comentarios, mensajes de commit y notas de release en **inglés**.
+  La UI está en **inglés y español**; todo el copy vive en `lib/l10n/app_en.arb` y
+  `lib/l10n/app_es.arb`, nunca en los widgets.
 - **Commits**: convencionales, en inglés, con scope (`feat(ui): …`, `fix(core): …`,
   `docs(spec): …`, `chore`, `ci`, `refactor`).
 

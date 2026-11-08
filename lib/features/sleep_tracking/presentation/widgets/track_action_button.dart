@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../../l10n/l10n.dart';
+
 /// The single primary action on Home.
 ///
 /// Home shows only the action that fits the current state: "Sleep" while
@@ -85,8 +87,9 @@ class _TrackActionButtonState extends State<TrackActionButton> {
         ? Duration.zero
         : TrackActionButton.swapDuration;
 
+    final l10n = context.l10n;
     final isSleeping = widget.isSleeping;
-    final label = isSleeping ? 'Wake' : 'Sleep';
+    final label = isSleeping ? l10n.wakeAction : l10n.sleepAction;
     final icon = isSleeping
         ? M3EIcons.wb_sunny_rounded
         : M3EIcons.bedtime_rounded;

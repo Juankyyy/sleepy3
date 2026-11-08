@@ -13,6 +13,12 @@ import '../features/health/fakes.dart';
 import '../features/sleep_tracking/fakes.dart';
 
 void main() {
+  const labels = {
+    Sleepy3Destination.home: 'Home',
+    Sleepy3Destination.stats: 'Stats',
+    Sleepy3Destination.settings: 'Settings',
+  };
+
   Future<void> pumpApp(
     WidgetTester tester, {
     Size size = const Size(360, 800),
@@ -65,7 +71,7 @@ void main() {
     await pumpApp(tester);
 
     final bar = navigationBar(tester);
-    expect(bar.destinations.map((destination) => destination.label), [
+    expect(bar.destinations.map((destination) => labels[destination]), [
       'Home',
       'Stats',
       'Settings',
@@ -90,7 +96,7 @@ void main() {
       final semantics = tester.widget<Semantics>(
         find.byKey(navKey(destination)),
       );
-      expect(semantics.properties.label, destination.label);
+      expect(semantics.properties.label, labels[destination]);
       expect(
         semantics.properties.selected,
         destination == Sleepy3Destination.home,
@@ -187,28 +193,27 @@ void main() {
       await tester.pumpAndSettle();
 
       final itemRect = tester.getRect(find.byKey(navKey(destination)));
-      final labelRect = tester.getRect(
-        inNavigationBar(find.text(destination.label)),
-      );
+      final label = labels[destination]!;
+      final labelRect = tester.getRect(inNavigationBar(find.text(label)));
       expect(
         labelRect.left,
         greaterThanOrEqualTo(itemRect.left),
-        reason: '${destination.label} starts outside its pill',
+        reason: '$label starts outside its pill',
       );
       expect(
         labelRect.right,
         lessThanOrEqualTo(itemRect.right - 10),
-        reason: '${destination.label} is clipped at 200% text',
+        reason: '$label is clipped at 200% text',
       );
       expect(
         labelRect.top,
         greaterThanOrEqualTo(itemRect.top),
-        reason: '${destination.label} overflows its pill vertically',
+        reason: '$label overflows its pill vertically',
       );
       expect(
         labelRect.bottom,
         lessThanOrEqualTo(itemRect.bottom),
-        reason: '${destination.label} overflows its pill vertically',
+        reason: '$label overflows its pill vertically',
       );
     }
 

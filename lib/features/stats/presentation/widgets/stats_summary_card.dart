@@ -1,7 +1,7 @@
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../../sleep_tracking/domain/sleep_duration.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../sleep_tracking/domain/sleep_history.dart';
 
 /// The range summary on Stats: average, nights recorded and total sleep.
@@ -20,6 +20,7 @@ class StatsSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final average = history.average;
 
     final labelStyle = theme.typography.baseline.labelMedium.copyWith(
@@ -40,19 +41,19 @@ class StatsSummaryCard extends StatelessWidget {
         children: [
           Semantics(
             container: true,
-            label: _spokenSummary(history),
+            label: _spokenSummary(l10n, history),
             child: ExcludeSemantics(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Average sleep', style: labelStyle),
+                  Text(l10n.averageSleep, style: labelStyle),
                   const SizedBox(height: 4),
                   Text(
-                    average == null ? '—' : formatSleepDuration(average),
+                    average == null ? '—' : l10n.formatSleepDuration(average),
                     style: valueStyle,
                   ),
                   const SizedBox(height: 4),
-                  Text(_supportingLabel(history), style: supportStyle),
+                  Text(_supportingLabel(l10n, history), style: supportStyle),
                 ],
               ),
             ),
@@ -63,7 +64,7 @@ class StatsSummaryCard extends StatelessWidget {
               style: M3EButtonStyle.text,
               size: M3EButtonSize.sm,
               onPressed: onShowAll,
-              child: const Text('Show all'),
+              child: Text(l10n.showAll),
             ),
           ],
         ],
@@ -71,23 +72,23 @@ class StatsSummaryCard extends StatelessWidget {
     );
   }
 
-  String _supportingLabel(SleepHistory history) {
-    if (!history.hasData) return 'No nights in this range';
-    final nights = history.nights;
-    final nightLabel = nights == 1 ? 'night' : 'nights';
-    return 'Across $nights $nightLabel · '
-        '${formatSleepDuration(history.total)} total';
+  String _supportingLabel(AppLocalizations l10n, SleepHistory history) {
+    if (!history.hasData) return l10n.noNightsInRange;
+    return l10n.summarySupporting(
+      history.nights,
+      l10n.formatSleepDuration(history.total),
+    );
   }
 
-  String _spokenSummary(SleepHistory history) {
+  String _spokenSummary(AppLocalizations l10n, SleepHistory history) {
     final average = history.average;
     if (average == null) {
-      return 'Average sleep, no nights in this range';
+      return l10n.summarySpokenNoNights;
     }
-    final nights = history.nights;
-    final nightLabel = nights == 1 ? 'night' : 'nights';
-    return 'Average sleep ${formatSpokenSleepDuration(average)}, '
-        'across $nights $nightLabel, '
-        '${formatSpokenSleepDuration(history.total)} total';
+    return l10n.summarySpoken(
+      l10n.formatSpokenSleepDuration(average),
+      history.nights,
+      l10n.formatSpokenSleepDuration(history.total),
+    );
   }
 }

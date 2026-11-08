@@ -1,8 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:sleepy3/core/time/clock_format.dart';
 import 'package:sleepy3/core/time/day_phase.dart';
 
 void main() {
+  setUpAll(() async {
+    await initializeDateFormatting();
+  });
+
   group('dayPhaseFor', () {
     test('day runs from 07:00 to 18:59', () {
       expect(dayPhaseFor(DateTime(2026, 10, 20, 6, 59, 59)), DayPhase.night);
@@ -63,10 +68,30 @@ void main() {
 
   group('formatDayPeriod', () {
     test('changes at noon and midnight', () {
-      expect(formatDayPeriod(DateTime(2026, 10, 20)), 'AM');
-      expect(formatDayPeriod(DateTime(2026, 10, 20, 11, 59)), 'AM');
-      expect(formatDayPeriod(DateTime(2026, 10, 20, 12)), 'PM');
-      expect(formatDayPeriod(DateTime(2026, 10, 20, 23, 59)), 'PM');
+      expect(formatDayPeriod(DateTime(2026, 10, 20), localeName: 'en'), 'AM');
+      expect(
+        formatDayPeriod(DateTime(2026, 10, 20, 11, 59), localeName: 'en'),
+        'AM',
+      );
+      expect(
+        formatDayPeriod(DateTime(2026, 10, 20, 12), localeName: 'en'),
+        'PM',
+      );
+      expect(
+        formatDayPeriod(DateTime(2026, 10, 20, 23, 59), localeName: 'en'),
+        'PM',
+      );
+    });
+
+    test('uses the Spanish periods', () {
+      expect(
+        formatDayPeriod(DateTime(2026, 10, 20, 9), localeName: 'es'),
+        'a.\u202Fm.',
+      );
+      expect(
+        formatDayPeriod(DateTime(2026, 10, 20, 22), localeName: 'es'),
+        'p.\u202Fm.',
+      );
     });
   });
 
@@ -74,31 +99,80 @@ void main() {
     test('keeps minutes and drops seconds', () {
       final time = DateTime(2026, 10, 20, 22, 30, 59);
 
-      expect(formatSessionTime(time, use24HourFormat: true), '22:30');
-      expect(formatSessionTime(time, use24HourFormat: false), '10:30 PM');
       expect(
-        formatSessionTime(DateTime(2026, 10, 20, 9, 5), use24HourFormat: false),
+        formatSessionTime(time, use24HourFormat: true, localeName: 'en'),
+        '22:30',
+      );
+      expect(
+        formatSessionTime(time, use24HourFormat: false, localeName: 'en'),
+        '10:30 PM',
+      );
+      expect(
+        formatSessionTime(
+          DateTime(2026, 10, 20, 9, 5),
+          use24HourFormat: false,
+          localeName: 'en',
+        ),
         '9:05 AM',
       );
       expect(
-        formatSessionTime(DateTime(2026, 10, 20), use24HourFormat: false),
+        formatSessionTime(
+          DateTime(2026, 10, 20),
+          use24HourFormat: false,
+          localeName: 'en',
+        ),
         '12:00 AM',
       );
       expect(
-        formatSessionTime(DateTime(2026, 10, 20, 12), use24HourFormat: false),
+        formatSessionTime(
+          DateTime(2026, 10, 20, 12),
+          use24HourFormat: false,
+          localeName: 'en',
+        ),
         '12:00 PM',
+      );
+    });
+
+    test('localizes the period in Spanish', () {
+      expect(
+        formatSessionTime(
+          DateTime(2026, 10, 20, 22, 30),
+          use24HourFormat: false,
+          localeName: 'es',
+        ),
+        '10:30 p.\u202Fm.',
+      );
+      expect(
+        formatSessionTime(
+          DateTime(2026, 10, 20, 9, 5),
+          use24HourFormat: false,
+          localeName: 'es',
+        ),
+        '9:05 a.\u202Fm.',
       );
     });
   });
 
-  test('formatClockDate is English and omits the year', () {
-    expect(formatClockDate(DateTime(2026, 10, 20)), 'Tuesday, October 20');
+  test('formatClockDate follows the locale and omits the year', () {
+    final date = DateTime(2026, 10, 20);
+    expect(formatClockDate(date, localeName: 'en'), 'Tuesday, October 20');
+    expect(formatClockDate(date, localeName: 'es'), 'martes, 20 de octubre');
   });
 
   test('formatClockLabel includes the period only in 12-hour mode', () {
     final time = DateTime(2026, 10, 20, 22, 30, 5);
 
-    expect(formatClockLabel(time, use24HourFormat: true), '22:30:05');
-    expect(formatClockLabel(time, use24HourFormat: false), '10:30:05 PM');
+    expect(
+      formatClockLabel(time, use24HourFormat: true, localeName: 'en'),
+      '22:30:05',
+    );
+    expect(
+      formatClockLabel(time, use24HourFormat: false, localeName: 'en'),
+      '10:30:05 PM',
+    );
+    expect(
+      formatClockLabel(time, use24HourFormat: false, localeName: 'es'),
+      '10:30:05 p.\u202Fm.',
+    );
   });
 }

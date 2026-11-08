@@ -7,10 +7,11 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../core/time/clock_format.dart';
 import '../../../core/time/day_phase.dart';
+import '../../../l10n/l10n.dart';
 import '../../health/presentation/health_sync_banner.dart';
+import '../../stats/presentation/session_edit_error_text.dart';
 import '../application/sleep_tracking_controller.dart';
 import '../domain/recent_sleep_summary.dart';
-import '../domain/sleep_duration.dart';
 import '../domain/sleep_session.dart';
 import 'widgets/home_clock.dart';
 import 'widgets/home_header.dart';
@@ -135,19 +136,17 @@ class SleepHomeScreen extends ConsumerWidget {
 
   Future<bool?> _confirmShortSleepDiscard(BuildContext context) {
     final scheme = M3ETheme.of(context).colorScheme;
+    final l10n = context.l10n;
     return M3EDialog.show<bool>(
       context,
       dialog: M3EDialog(
-        title: 'Sleep too short',
-        content: const Text(
-          'Sleeps shorter than 10 minutes are not recorded. Are you sure '
-          'you want to discard this session?',
-        ),
+        title: l10n.sleepTooShortTitle,
+        content: Text(l10n.sleepTooShortBody),
         actions: [
           M3EButton(
             style: M3EButtonStyle.text,
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Keep sleeping'),
+            child: Text(l10n.keepSleeping),
           ),
           M3EButton(
             style: M3EButtonStyle.text,
@@ -155,7 +154,7 @@ class SleepHomeScreen extends ConsumerWidget {
             decoration: M3EButtonDecoration(
               foregroundColor: WidgetStatePropertyAll<Color?>(scheme.error),
             ),
-            child: const Text('Discard session'),
+            child: Text(l10n.discardSession),
           ),
         ],
       ),
@@ -168,14 +167,12 @@ class SleepHomeScreen extends ConsumerWidget {
   /// "keep sleeping" action: M3 dialogs take at most two.
   Future<_LongSleepAction?> _resolveLongSleep(BuildContext context) {
     final scheme = M3ETheme.of(context).colorScheme;
+    final l10n = context.l10n;
     return M3EDialog.show<_LongSleepAction>(
       context,
       dialog: M3EDialog(
-        title: 'Sleep too long',
-        content: const Text(
-          'Sleeps longer than 24 hours are not recorded. Edit the start time '
-          'to keep this session, or discard it.',
-        ),
+        title: l10n.sleepTooLongTitle,
+        content: Text(l10n.sleepTooLongBody),
         actions: [
           M3EButton(
             style: M3EButtonStyle.text,
@@ -183,12 +180,12 @@ class SleepHomeScreen extends ConsumerWidget {
             decoration: M3EButtonDecoration(
               foregroundColor: WidgetStatePropertyAll<Color?>(scheme.error),
             ),
-            child: const Text('Discard session'),
+            child: Text(l10n.discardSession),
           ),
           M3EButton(
             style: M3EButtonStyle.text,
             onPressed: () => Navigator.pop(context, _LongSleepAction.editStart),
-            child: const Text('Edit start time'),
+            child: Text(l10n.editStartTime),
           ),
         ],
       ),
@@ -212,7 +209,7 @@ class SleepHomeScreen extends ConsumerWidget {
       firstDate: DateTime(1970),
       lastDate: _dateOnly(now),
       currentDate: now,
-      helpText: 'Select sleep date',
+      helpText: context.l10n.selectSleepDate,
     );
     if (date == null || !context.mounted) return false;
 
@@ -223,7 +220,7 @@ class SleepHomeScreen extends ConsumerWidget {
         minute: open.startedAt.minute,
       ),
       alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
-      helpText: 'Select sleep time',
+      helpText: context.l10n.selectSleepTime,
     );
     if (time == null || !context.mounted) return false;
 
@@ -240,16 +237,17 @@ class SleepHomeScreen extends ConsumerWidget {
     if (error == null) return true;
     if (!context.mounted) return false;
 
+    final l10n = context.l10n;
     await M3EDialog.show<void>(
       context,
       dialog: M3EDialog(
-        title: 'Start time not saved',
-        content: Text(error.message),
+        title: l10n.startTimeNotSaved,
+        content: Text(l10n.sessionEditError(error)),
         actions: [
           M3EButton(
             style: M3EButtonStyle.text,
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text(l10n.close),
           ),
         ],
       ),
@@ -262,6 +260,7 @@ class SleepHomeScreen extends ConsumerWidget {
     SleepTrackingState state,
     DateTime now,
   ) {
+    final l10n = context.l10n;
     final use24HourFormat = MediaQuery.alwaysUse24HourFormatOf(context);
 
     final open = state.openSession;
@@ -269,18 +268,19 @@ class SleepHomeScreen extends ConsumerWidget {
       final time = formatSessionTime(
         open.startedAt,
         use24HourFormat: use24HourFormat,
+        localeName: l10n.localeName,
       );
-      return 'Sleeping since $time';
+      return l10n.sleepingSince(time);
     }
 
     final last = state.lastSession;
     if (last != null) {
-      return 'Last session: ${formatSleepDuration(last.duration)}';
+      return l10n.lastSession(l10n.formatSleepDuration(last.duration));
     }
 
     return switch (dayPhaseFor(now)) {
-      DayPhase.day => 'No active session',
-      DayPhase.night => 'Tap Sleep when you turn off the lights',
+      DayPhase.day => l10n.noActiveSession,
+      DayPhase.night => l10n.tapSleepAtNight,
     };
   }
 }

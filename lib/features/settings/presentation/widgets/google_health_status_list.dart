@@ -3,6 +3,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../../core/time/clock_format.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../health/application/health_sync_controller.dart';
 import '../../../health/application/sleep_copy_controller.dart';
 import '../../../health/presentation/sleep_copy_dialogs.dart';
@@ -26,6 +27,8 @@ class _GoogleHealthStatusListState
     extends ConsumerState<GoogleHealthStatusList> {
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final showLeading = showSettingsLeadingIcons(context);
     final state = ref.watch(healthSyncControllerProvider);
     final action = _actionFor(state.connection);
 
@@ -35,8 +38,8 @@ class _GoogleHealthStatusListState
         SettingsList(
           children: [
             M3EListItem(
-              leading: Icon(_iconFor(state.connection)),
-              headline: 'Status',
+              leading: showLeading ? Icon(_iconFor(state.connection)) : null,
+              headline: l10n.status,
               supportingText: _statusText(context, state),
             ),
           ],
@@ -48,8 +51,8 @@ class _GoogleHealthStatusListState
             onTap: (_) => _run(action, context),
             children: [
               M3EListItem(
-                headline: action.label,
-                supportingText: action.supportingText,
+                headline: _actionLabel(l10n, action),
+                supportingText: _actionSupport(l10n, action),
                 trailing: const Icon(M3EIcons.chevron_right),
               ),
             ],
@@ -63,19 +66,22 @@ class _GoogleHealthStatusListState
             index == 0 ? SleepCopyAction.syncLast : SleepCopyAction.uploadAll,
             context,
           ),
-          children: const [
+          children: [
             M3EListItem(
-              leading: Icon(M3EIcons.cloud_upload_outlined),
-              headline: 'Sync',
-              supportingText: 'Send the most recent local session.',
-              trailing: Icon(M3EIcons.chevron_right),
+              leading: showLeading
+                  ? const Icon(M3EIcons.cloud_upload_outlined)
+                  : null,
+              headline: l10n.sync,
+              supportingText: l10n.syncSupport,
+              trailing: const Icon(M3EIcons.chevron_right),
             ),
             M3EListItem(
-              leading: Icon(M3EIcons.library_add_outlined),
-              headline: 'Add',
-              supportingText:
-                  "Send local sessions that aren't in Google Health.",
-              trailing: Icon(M3EIcons.chevron_right),
+              leading: showLeading
+                  ? const Icon(M3EIcons.library_add_outlined)
+                  : null,
+              headline: l10n.add,
+              supportingText: l10n.addSupport,
+              trailing: const Icon(M3EIcons.chevron_right),
             ),
           ],
         ),
@@ -84,14 +90,14 @@ class _GoogleHealthStatusListState
   }
 
   String _statusText(BuildContext context, HealthSyncState state) {
+    final l10n = context.l10n;
     final connection = state.connection;
     if (connection != HealthConnectConnectionStatus.connected) {
-      return _connectionLabel(connection);
+      return _connectionLabel(l10n, connection);
     }
 
     if (state.pendingCount > 0) {
-      final count = state.pendingCount;
-      return 'Connected · $count pending';
+      return l10n.connectedPending(state.pendingCount);
     }
 
     final lastSyncedAt = state.lastSyncedAt;
@@ -99,27 +105,24 @@ class _GoogleHealthStatusListState
       final time = formatSessionTime(
         lastSyncedAt,
         use24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+        localeName: l10n.localeName,
       );
-      return 'Connected · Last sync $time';
+      return l10n.connectedLastSync(time);
     }
 
-    return 'Connected';
+    return l10n.connected;
   }
 
   Future<void> _run(_StatusAction action, BuildContext context) async {
     final controller = ref.read(healthSyncControllerProvider.notifier);
-    switch (action.kind) {
-      case _StatusActionKind.reconnect:
+    switch (action) {
+      case _StatusAction.reconnect:
         final granted = await controller.reconnect();
         if (!context.mounted || granted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Google Health needs permission to read and write sleep.',
-            ),
-          ),
+          SnackBar(content: Text(context.l10n.healthPermissionReadWrite)),
         );
-      case _StatusActionKind.install:
+      case _StatusAction.install:
         await controller.install();
     }
   }
@@ -137,45 +140,42 @@ class _GoogleHealthStatusListState
     };
   }
 
-  static String _connectionLabel(HealthConnectConnectionStatus status) {
+  static String _connectionLabel(
+    AppLocalizations l10n,
+    HealthConnectConnectionStatus status,
+  ) {
     return switch (status) {
-      HealthConnectConnectionStatus.connected => 'Connected',
-      HealthConnectConnectionStatus.permissionNeeded => 'Permission needed',
-      HealthConnectConnectionStatus.notAvailable => 'Not available',
-      HealthConnectConnectionStatus.updateRequired => 'Update required',
-      HealthConnectConnectionStatus.checking => 'Checking…',
+      HealthConnectConnectionStatus.connected => l10n.connected,
+      HealthConnectConnectionStatus.permissionNeeded => l10n.permissionNeeded,
+      HealthConnectConnectionStatus.notAvailable => l10n.notAvailable,
+      HealthConnectConnectionStatus.updateRequired => l10n.updateRequired,
+      HealthConnectConnectionStatus.checking => l10n.checking,
     };
   }
 
   static _StatusAction? _actionFor(HealthConnectConnectionStatus status) {
     return switch (status) {
-      HealthConnectConnectionStatus.permissionNeeded => const _StatusAction(
-        kind: _StatusActionKind.reconnect,
-        label: 'Connect',
-        supportingText: 'Allow Sleepy3 to read and write sleep.',
-      ),
+      HealthConnectConnectionStatus.permissionNeeded => _StatusAction.reconnect,
       HealthConnectConnectionStatus.notAvailable ||
-      HealthConnectConnectionStatus.updateRequired => const _StatusAction(
-        kind: _StatusActionKind.install,
-        label: 'Install',
-        supportingText: 'Get or update Health Connect.',
-      ),
+      HealthConnectConnectionStatus.updateRequired => _StatusAction.install,
       HealthConnectConnectionStatus.connected ||
       HealthConnectConnectionStatus.checking => null,
     };
   }
+
+  static String _actionLabel(AppLocalizations l10n, _StatusAction action) {
+    return switch (action) {
+      _StatusAction.reconnect => l10n.connect,
+      _StatusAction.install => l10n.install,
+    };
+  }
+
+  static String _actionSupport(AppLocalizations l10n, _StatusAction action) {
+    return switch (action) {
+      _StatusAction.reconnect => l10n.connectSupport,
+      _StatusAction.install => l10n.installSupport,
+    };
+  }
 }
 
-enum _StatusActionKind { reconnect, install }
-
-class _StatusAction {
-  const _StatusAction({
-    required this.kind,
-    required this.label,
-    required this.supportingText,
-  });
-
-  final _StatusActionKind kind;
-  final String label;
-  final String supportingText;
-}
+enum _StatusAction { reconnect, install }

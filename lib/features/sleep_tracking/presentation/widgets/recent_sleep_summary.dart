@@ -1,8 +1,8 @@
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../domain/recent_sleep_summary.dart';
-import '../../domain/sleep_duration.dart';
 import '../../domain/sleep_goal.dart';
 
 /// The Home summary of closed sleep for the last three local days.
@@ -22,6 +22,7 @@ class RecentSleepSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final labelStyle = theme.typography.baseline.labelMedium.copyWith(
       color: scheme.onSurfaceVariant,
     );
@@ -29,18 +30,21 @@ class RecentSleepSummaryCard extends StatelessWidget {
       color: scheme.onSurface,
       fontFeatures: const [FontFeature.tabularFigures()],
     );
+    final average = summary.average;
 
     return M3ECard(
       variant: M3ECardVariant.outlined,
       child: Semantics(
         container: true,
-        label: _spokenSummary(summary),
+        label: _spokenSummary(l10n, summary),
         child: ExcludeSemantics(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Last 3 days · ${_averageLabel(summary)} avg',
+                average == null
+                    ? l10n.last3DaysNoAverage
+                    : l10n.last3DaysAverage(l10n.formatSleepDuration(average)),
                 style: theme.typography.emphasized.titleMedium.copyWith(
                   color: scheme.onSurface,
                 ),
@@ -54,7 +58,7 @@ class RecentSleepSummaryCard extends StatelessWidget {
                     daysAgo < summary.days.length;
                     daysAgo++
                   )
-                    Text(_dayLabel(daysAgo), style: labelStyle),
+                    Text(_dayLabel(l10n, daysAgo), style: labelStyle),
                 ],
               ),
               const SizedBox(height: 2),
@@ -66,7 +70,7 @@ class RecentSleepSummaryCard extends StatelessWidget {
                     daysAgo++
                   )
                     Text(
-                      _durationLabel(summary.dayBefore(daysAgo).duration),
+                      _durationLabel(l10n, summary.dayBefore(daysAgo).duration),
                       style: valueStyle,
                     ),
                 ],
@@ -147,20 +151,15 @@ class _SleepBar extends StatelessWidget {
   }
 }
 
-String _averageLabel(RecentSleepSummary summary) {
-  final average = summary.average;
-  return average == null ? '—' : formatSleepDuration(average);
+String _durationLabel(AppLocalizations l10n, Duration? duration) {
+  return duration == null ? '—' : l10n.formatSleepDuration(duration);
 }
 
-String _durationLabel(Duration? duration) {
-  return duration == null ? '—' : formatSleepDuration(duration);
-}
-
-String _dayLabel(int daysAgo) {
+String _dayLabel(AppLocalizations l10n, int daysAgo) {
   return switch (daysAgo) {
-    0 => 'Today',
-    1 => 'Yesterday',
-    _ => '$daysAgo days ago',
+    0 => l10n.today,
+    1 => l10n.yesterday,
+    _ => l10n.daysAgo(daysAgo),
   };
 }
 
@@ -170,20 +169,22 @@ double _barFraction(Duration? duration) {
   return ratio >= 1 ? 1 : ratio;
 }
 
-String _spokenSummary(RecentSleepSummary summary) {
-  final buffer = StringBuffer('Last 3 days');
+String _spokenSummary(AppLocalizations l10n, RecentSleepSummary summary) {
+  final buffer = StringBuffer(l10n.last3Days);
   final average = summary.average;
   buffer.write(
     average == null
-        ? ', no average'
-        : ', average ${formatSpokenSleepDuration(average)}',
+        ? l10n.noAverageSpoken
+        : l10n.averageSpoken(l10n.formatSpokenSleepDuration(average)),
   );
 
   for (var daysAgo = 0; daysAgo < summary.days.length; daysAgo++) {
     final duration = summary.dayBefore(daysAgo).duration;
-    buffer.write('. ${_dayLabel(daysAgo)}: ');
+    buffer.write('. ${_dayLabel(l10n, daysAgo)}: ');
     buffer.write(
-      duration == null ? 'no session' : formatSpokenSleepDuration(duration),
+      duration == null
+          ? l10n.noSessionSpoken
+          : l10n.formatSpokenSleepDuration(duration),
     );
   }
   return buffer.toString();

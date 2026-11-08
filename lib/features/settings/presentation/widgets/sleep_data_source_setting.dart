@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../health/application/health_sync_controller.dart';
 import '../../../health/application/health_sync_store_provider.dart';
 import '../../../health/application/sleep_copy_controller.dart';
@@ -19,6 +20,9 @@ class SleepDataSourceSetting extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = context.l10n;
+    final showLeading = showSettingsLeadingIcons(context);
+
     return SettingsList(
       onTap: (index) {
         if (index == 0) {
@@ -29,16 +33,18 @@ class SleepDataSourceSetting extends ConsumerWidget {
       },
       children: [
         M3EListItem(
-          leading: const Icon(M3EIcons.storage_outlined),
-          headline: 'Source',
-          supportingText: sleepDataSourceLabel(source),
+          leading: showLeading ? const Icon(M3EIcons.storage_outlined) : null,
+          headline: l10n.source,
+          supportingText: l10n.sleepDataSourceLabel(source),
           trailing: const Icon(M3EIcons.chevron_right),
         ),
-        const M3EListItem(
-          leading: Icon(M3EIcons.cloud_download_outlined),
-          headline: 'Import',
-          supportingText: 'Download from Google Health to the local copy.',
-          trailing: Icon(M3EIcons.chevron_right),
+        M3EListItem(
+          leading: showLeading
+              ? const Icon(M3EIcons.cloud_download_outlined)
+              : null,
+          headline: l10n.import,
+          supportingText: l10n.importSupport,
+          trailing: const Icon(M3EIcons.chevron_right),
         ),
       ],
     );
@@ -57,9 +63,9 @@ class SleepDataSourceSetting extends ConsumerWidget {
     if (!context.mounted) return;
 
     if (!result.succeeded) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(_failureMessage(result.failure!))));
+      final message = _failureMessage(context.l10n, result.failure!);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
       return;
     }
 
@@ -96,16 +102,16 @@ class SleepDataSourceSetting extends ConsumerWidget {
     await showSleepCopyFlow(context, ref, action, confirm: false);
   }
 
-  String _failureMessage(SleepDataSourceChangeFailure failure) {
+  String _failureMessage(
+    AppLocalizations l10n,
+    SleepDataSourceChangeFailure failure,
+  ) {
     return switch (failure) {
-      SleepDataSourceChangeFailure.unavailable =>
-        'Google Health is not available on this device.',
-      SleepDataSourceChangeFailure.updateRequired =>
-        'Update Health Connect to use Google Health.',
+      SleepDataSourceChangeFailure.unavailable => l10n.healthUnavailable,
+      SleepDataSourceChangeFailure.updateRequired => l10n.healthUpdateRequired,
       SleepDataSourceChangeFailure.permissionDenied =>
-        'Google Health needs permission to read and write sleep.',
-      SleepDataSourceChangeFailure.saveFailed =>
-        "Couldn't save the sleep data source.",
+        l10n.healthPermissionReadWrite,
+      SleepDataSourceChangeFailure.saveFailed => l10n.sleepDataSourceSaveFailed,
     };
   }
 }
@@ -129,8 +135,10 @@ class _SourceDialogState extends State<_SourceDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return M3EDialog(
-      title: 'Sleep data source',
+      title: l10n.sleepDataSourceDialogTitle,
       content: SettingsList(
         onTap: (index) {
           setState(() => _selected = SleepDataSource.values[index]);
@@ -143,7 +151,7 @@ class _SourceDialogState extends State<_SourceDialog> {
                     ? M3EIcons.radio_button_checked
                     : M3EIcons.radio_button_unchecked,
               ),
-              headline: sleepDataSourceLabel(option),
+              headline: l10n.sleepDataSourceLabel(option),
             ),
         ],
       ),
@@ -151,12 +159,12 @@ class _SourceDialogState extends State<_SourceDialog> {
         M3EButton(
           style: M3EButtonStyle.text,
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(l10n.cancel),
         ),
         M3EButton(
           style: M3EButtonStyle.text,
           onPressed: () => Navigator.pop(context, _selected),
-          child: const Text('Apply'),
+          child: Text(l10n.apply),
         ),
       ],
     );
@@ -171,17 +179,16 @@ class _LocalCopyDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final showLeading = showSettingsLeadingIcons(context);
+
     return M3EDialog(
-      title: 'Copy local sessions?',
+      title: l10n.copyLocalSessionsTitle,
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            count == 1
-                ? '1 local session is not in Google Health yet.'
-                : '$count local sessions are not in Google Health yet.',
-          ),
+          Text(l10n.localSessionsNotInHealth(count)),
           // 8dp separates the explanation from the choices.
           const SizedBox(height: 8),
           SettingsList(
@@ -193,16 +200,20 @@ class _LocalCopyDialog extends StatelessWidget {
                     : SleepCopyAction.uploadAll,
               );
             },
-            children: const [
+            children: [
               M3EListItem(
-                leading: Icon(M3EIcons.cloud_upload_outlined),
-                headline: 'Sync',
-                supportingText: 'Send the most recent one.',
+                leading: showLeading
+                    ? const Icon(M3EIcons.cloud_upload_outlined)
+                    : null,
+                headline: l10n.sync,
+                supportingText: l10n.syncRecentSupport,
               ),
               M3EListItem(
-                leading: Icon(M3EIcons.library_add_outlined),
-                headline: 'Add',
-                supportingText: 'Send every local session.',
+                leading: showLeading
+                    ? const Icon(M3EIcons.library_add_outlined)
+                    : null,
+                headline: l10n.add,
+                supportingText: l10n.addAllSupport,
               ),
             ],
           ),
@@ -212,7 +223,7 @@ class _LocalCopyDialog extends StatelessWidget {
         M3EButton(
           style: M3EButtonStyle.text,
           onPressed: () => Navigator.pop(context),
-          child: const Text('Not now'),
+          child: Text(l10n.notNow),
         ),
       ],
     );

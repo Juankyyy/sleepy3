@@ -5,6 +5,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../../core/time/clock_format.dart';
+import '../../../../l10n/l10n.dart';
 import '../../../health/domain/sleep_data_source.dart';
 import '../../../sleep_tracking/application/sleep_session_edit_service.dart';
 import '../../../sleep_tracking/application/sleep_tracking_controller.dart';
@@ -21,19 +22,27 @@ Future<SleepSessionEditResult?> showNewSessionEditor(
   BuildContext context, {
   required SleepDataSource source,
 }) async {
-  final dialogController = M3EDialogController();
+  final l10n = context.l10n;
+  final dialogController = M3EDialogController(
+    discardLabels: M3EDialogDiscardLabels(
+      title: l10n.discardChangesTitle,
+      keepLabel: l10n.keepEditing,
+      discardLabel: l10n.discard,
+    ),
+  );
   final editorKey = GlobalKey<NewSessionEditorState>();
 
   try {
     return await M3EDialog.showAdaptive<SleepSessionEditResult>(
       context,
-      title: 'New session',
+      title: l10n.newSessionTitle,
       content: NewSessionEditor(
         key: editorKey,
         source: source,
         dialogController: dialogController,
       ),
-      confirmLabel: 'Add',
+      confirmLabel: l10n.addAction,
+      dismissLabel: l10n.cancel,
       onConfirm: () =>
           unawaited(editorKey.currentState?.save() ?? Future<void>.value()),
       controller: dialogController,
@@ -119,11 +128,10 @@ class NewSessionEditorState extends ConsumerState<NewSessionEditor> {
           // sync. This path is defensive because creation saves locally first.
           _close(result);
         } else {
+          final l10n = context.l10n;
           await _showError(
-            title: 'Google Health needs permission',
-            message:
-                'Allow Sleepy3 to write sleep data in Google Health, then try '
-                'again.',
+            title: l10n.healthNeedsPermissionTitle,
+            message: l10n.allowWriteHealth,
           );
         }
       case SleepSessionEditStatus.deleted:
@@ -133,9 +141,10 @@ class NewSessionEditorState extends ConsumerState<NewSessionEditor> {
           setState(() => _errors = [error]);
           return;
         }
+        final l10n = context.l10n;
         await _showError(
-          title: "Couldn't add session",
-          message: 'The session could not be added. Try again.',
+          title: l10n.couldNotAdd,
+          message: l10n.couldNotAddBody,
         );
     }
   }
@@ -159,7 +168,7 @@ class NewSessionEditorState extends ConsumerState<NewSessionEditor> {
       firstDate: DateTime(1970),
       lastDate: dateOnly(now),
       currentDate: now,
-      helpText: 'Select sleep date',
+      helpText: context.l10n.selectSleepDate,
     );
     if (picked == null || !mounted) return;
 
@@ -175,7 +184,7 @@ class NewSessionEditorState extends ConsumerState<NewSessionEditor> {
       firstDate: DateTime(1970),
       lastDate: dateOnly(now),
       currentDate: now,
-      helpText: 'Select wake date',
+      helpText: context.l10n.selectWakeDate,
     );
     if (picked == null || !mounted) return;
 
@@ -188,7 +197,7 @@ class NewSessionEditorState extends ConsumerState<NewSessionEditor> {
       context,
       initialTime: M3ETime(hour: _startedAt.hour, minute: _startedAt.minute),
       alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
-      helpText: 'Select sleep time',
+      helpText: context.l10n.selectSleepTime,
     );
     if (picked == null || !mounted) return;
 
@@ -201,7 +210,7 @@ class NewSessionEditorState extends ConsumerState<NewSessionEditor> {
       context,
       initialTime: M3ETime(hour: _endedAt.hour, minute: _endedAt.minute),
       alwaysUse24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
-      helpText: 'Select wake time',
+      helpText: context.l10n.selectWakeTime,
     );
     if (picked == null || !mounted) return;
 
@@ -240,7 +249,7 @@ class NewSessionEditorState extends ConsumerState<NewSessionEditor> {
           M3EButton(
             style: M3EButtonStyle.text,
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text(context.l10n.close),
           ),
         ],
       ),
@@ -249,6 +258,7 @@ class NewSessionEditorState extends ConsumerState<NewSessionEditor> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
     final use24HourFormat = MediaQuery.alwaysUse24HourFormatOf(context);
     final duration = _endedAt.difference(_startedAt);
     final now = ref.read(sleepClockProvider)();
@@ -259,27 +269,33 @@ class NewSessionEditorState extends ConsumerState<NewSessionEditor> {
         SessionHero(duration: duration, endedAt: _endedAt),
         const SizedBox(height: 24),
         SessionTimeSection(
-          title: 'Fell asleep',
+          title: l10n.fellAsleep,
           enabled: !_saving,
-          date: formatSessionEditorDateRow(_startedAt, now),
-          time: formatSessionTime(_startedAt, use24HourFormat: use24HourFormat),
+          date: formatSessionEditorDateRow(_startedAt, now, l10n.localeName),
+          time: formatSessionTime(
+            _startedAt,
+            use24HourFormat: use24HourFormat,
+            localeName: l10n.localeName,
+          ),
           onPickDate: _pickStartDate,
           onPickTime: _pickStartTime,
         ),
         const SizedBox(height: 24),
         SessionTimeSection(
-          title: 'Woke up',
+          title: l10n.wokeUp,
           enabled: !_saving,
-          date: formatSessionEditorDateRow(_endedAt, now),
-          time: formatSessionTime(_endedAt, use24HourFormat: use24HourFormat),
+          date: formatSessionEditorDateRow(_endedAt, now, l10n.localeName),
+          time: formatSessionTime(
+            _endedAt,
+            use24HourFormat: use24HourFormat,
+            localeName: l10n.localeName,
+          ),
           onPickDate: _pickEndDate,
           onPickTime: _pickEndTime,
         ),
         if (widget.source == SleepDataSource.healthConnect) ...[
           const SizedBox(height: 16),
-          const SessionHealthNotice(
-            message: 'This night will be added to Google Health.',
-          ),
+          SessionHealthNotice(message: l10n.healthNoticeAdded),
         ],
         if (_errors.isNotEmpty) ...[
           const SizedBox(height: 16),

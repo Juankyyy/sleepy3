@@ -227,12 +227,6 @@ void main() {
         isEmpty,
       );
     });
-
-    test('exposes English messages for every rule', () {
-      for (final error in SessionEditError.values) {
-        expect(error.message, isNotEmpty);
-      }
-    });
   });
 
   group('sessionEditAccess', () {

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../sleep_tracking/application/sleep_tracking_controller.dart';
 import '../application/health_history_permission_controller.dart';
 import '../application/sleep_copy_controller.dart';
@@ -19,22 +20,24 @@ Future<CopyResult?> showSleepCopyFlow(
   SleepCopyAction action, {
   bool confirm = true,
 }) async {
+  final l10n = context.l10n;
+
   if (confirm) {
     final confirmed = await M3EDialog.show<bool>(
       context,
       dialog: M3EDialog(
-        title: _confirmTitle(action),
-        content: Text(_confirmBody(action)),
+        title: _confirmTitle(l10n, action),
+        content: Text(_confirmBody(l10n, action)),
         actions: [
           M3EButton(
             style: M3EButtonStyle.text,
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           M3EButton(
             style: M3EButtonStyle.text,
             onPressed: () => Navigator.pop(context, true),
-            child: Text(_confirmLabel(action)),
+            child: Text(_confirmLabel(l10n, action)),
           ),
         ],
       ),
@@ -56,13 +59,16 @@ Future<CopyResult?> showSleepCopyFlow(
     autofocusFirst: false,
     onDismissRequest: () async => false,
     dialog: M3EDialog(
-      title: _progressTitle(action),
+      title: _progressTitle(l10n, action),
       content: Row(
         children: [
-          M3ELoadingIndicator(size: 24, semanticLabel: _progressTitle(action)),
+          M3ELoadingIndicator(
+            size: 24,
+            semanticLabel: _progressTitle(l10n, action),
+          ),
           // 16dp separates the loading indicator from its message.
           const SizedBox(width: 16),
-          const Expanded(child: Text('This may take a moment.')),
+          Expanded(child: Text(l10n.copyPleaseWait)),
         ],
       ),
     ),
@@ -88,16 +94,17 @@ Future<CopyResult?> showSleepCopyFlow(
   }
   if (!context.mounted) return result;
 
+  final resultL10n = context.l10n;
   await M3EDialog.show<void>(
     context,
     dialog: M3EDialog(
-      title: _resultTitle(action, result),
-      content: Text(_resultMessage(action, result)),
+      title: _resultTitle(resultL10n, action, result),
+      content: Text(_resultMessage(resultL10n, action, result)),
       actions: [
         M3EButton(
           style: M3EButtonStyle.text,
           onPressed: () => Navigator.pop(context),
-          child: const Text('Close'),
+          child: Text(resultL10n.close),
         ),
       ],
     ),
@@ -106,69 +113,69 @@ Future<CopyResult?> showSleepCopyFlow(
   return result;
 }
 
-String _confirmTitle(SleepCopyAction action) {
+String _confirmTitle(AppLocalizations l10n, SleepCopyAction action) {
   return switch (action) {
-    SleepCopyAction.syncLast => 'Sync last session?',
-    SleepCopyAction.uploadAll => 'Add all previous sessions?',
-    SleepCopyAction.downloadAll => 'Download from Google Health?',
+    SleepCopyAction.syncLast => l10n.copySyncLastTitle,
+    SleepCopyAction.uploadAll => l10n.copyAddAllTitle,
+    SleepCopyAction.downloadAll => l10n.copyDownloadTitle,
   };
 }
 
-String _confirmBody(SleepCopyAction action) {
+String _confirmBody(AppLocalizations l10n, SleepCopyAction action) {
   return switch (action) {
-    SleepCopyAction.syncLast =>
-      'Send the most recent local session to Google Health.',
-    SleepCopyAction.uploadAll =>
-      'Send every local session that is not in Google Health yet. '
-          'Sessions you already added to Google Health manually may appear '
-          'twice.',
-    SleepCopyAction.downloadAll =>
-      'Add every sleep session from Google Health to the local copy. '
-          'Local sessions are not changed. Google Health also asks for access '
-          'to your full history; without it, only the last 30 days are '
-          'downloaded.',
+    SleepCopyAction.syncLast => l10n.copySyncLastBody,
+    SleepCopyAction.uploadAll => l10n.copyAddAllBody,
+    SleepCopyAction.downloadAll => l10n.copyDownloadBody,
   };
 }
 
-String _confirmLabel(SleepCopyAction action) {
+String _confirmLabel(AppLocalizations l10n, SleepCopyAction action) {
   return switch (action) {
-    SleepCopyAction.syncLast => 'Sync',
-    SleepCopyAction.uploadAll => 'Add all',
-    SleepCopyAction.downloadAll => 'Download all',
+    SleepCopyAction.syncLast => l10n.copySyncAction,
+    SleepCopyAction.uploadAll => l10n.copyAddAllAction,
+    SleepCopyAction.downloadAll => l10n.copyDownloadAction,
   };
 }
 
-String _progressTitle(SleepCopyAction action) {
+String _progressTitle(AppLocalizations l10n, SleepCopyAction action) {
   return switch (action) {
-    SleepCopyAction.syncLast => 'Syncing session…',
-    SleepCopyAction.uploadAll => 'Syncing sessions…',
-    SleepCopyAction.downloadAll => 'Downloading sessions…',
+    SleepCopyAction.syncLast => l10n.copySyncingSession,
+    SleepCopyAction.uploadAll => l10n.copySyncingSessions,
+    SleepCopyAction.downloadAll => l10n.copyDownloadingSessions,
   };
 }
 
-String _resultTitle(SleepCopyAction action, CopyResult result) {
+String _resultTitle(
+  AppLocalizations l10n,
+  SleepCopyAction action,
+  CopyResult result,
+) {
   if (result.failure != null) {
     return action == SleepCopyAction.downloadAll
-        ? "Couldn't download"
-        : "Couldn't sync";
+        ? l10n.copyCouldNotDownload
+        : l10n.copyCouldNotSync;
   }
-  if (result.failed > 0) return "Some sessions weren't copied";
+  if (result.failed > 0) return l10n.copySomeFailed;
   return action == SleepCopyAction.downloadAll
-      ? 'Download complete'
-      : 'Sync complete';
+      ? l10n.copyDownloadComplete
+      : l10n.copySyncComplete;
 }
 
-String _resultMessage(SleepCopyAction action, CopyResult result) {
+String _resultMessage(
+  AppLocalizations l10n,
+  SleepCopyAction action,
+  CopyResult result,
+) {
   final failure = result.failure;
-  if (failure != null) return _failureMessage(action, failure);
+  if (failure != null) return _failureMessage(l10n, action, failure);
 
   if (result.total == 0) {
     if (action == SleepCopyAction.downloadAll) {
       return result.historyLimited
-          ? 'There are no sleep sessions in the last 30 days of Google Health.'
-          : 'There are no sleep sessions in Google Health.';
+          ? l10n.copyNoSessions30Days
+          : l10n.copyNoSessionsHealth;
     }
-    return 'There are no local sessions to sync.';
+    return l10n.copyNoLocalSessions;
   }
 
   final parts = <String>[];
@@ -176,66 +183,48 @@ String _resultMessage(SleepCopyAction action, CopyResult result) {
     case SleepCopyAction.syncLast:
     case SleepCopyAction.uploadAll:
       if (result.added > 0) {
-        parts.add(
-          _count(
-            result.added,
-            'session sent to Google Health',
-            'sessions sent to Google Health',
-          ),
-        );
+        parts.add(l10n.copySessionsSent(result.added));
       }
       if (result.skipped > 0) {
-        parts.add(
-          _count(result.skipped, 'session skipped', 'sessions skipped'),
-        );
+        parts.add(l10n.copySessionsSkipped(result.skipped));
       }
       if (result.failed > 0) {
-        parts.add(_count(result.failed, 'session failed', 'sessions failed'));
+        parts.add(l10n.copySessionsFailed(result.failed));
       }
     case SleepCopyAction.downloadAll:
       if (result.added > 0) {
-        parts.add(_count(result.added, 'session added', 'sessions added'));
+        parts.add(l10n.copySessionsAdded(result.added));
       }
       if (result.updated > 0) {
-        parts.add(
-          _count(result.updated, 'session updated', 'sessions updated'),
-        );
+        parts.add(l10n.copySessionsUpdated(result.updated));
       }
       if (result.skipped > 0) {
-        parts.add(
-          _count(
-            result.skipped,
-            'session already up to date',
-            'sessions already up to date',
-          ),
-        );
+        parts.add(l10n.copySessionsUpToDate(result.skipped));
       }
       if (result.failed > 0) {
-        parts.add(_count(result.failed, 'session failed', 'sessions failed'));
+        parts.add(l10n.copySessionsFailed(result.failed));
       }
   }
 
   final summary = parts.join(' · ');
   if (action == SleepCopyAction.downloadAll && result.historyLimited) {
-    return '$summary. Only the last 30 days were downloaded. '
-        'Allow full history in Google Health to copy older sessions.';
+    return l10n.copyHistoryLimited(summary);
   }
   return summary;
 }
 
-String _failureMessage(SleepCopyAction action, SleepCopyFailure failure) {
+String _failureMessage(
+  AppLocalizations l10n,
+  SleepCopyAction action,
+  SleepCopyFailure failure,
+) {
   return switch (failure) {
-    SleepCopyFailure.unavailable =>
-      'Google Health is not available on this device.',
-    SleepCopyFailure.updateRequired =>
-      'Update Health Connect to use Google Health.',
+    SleepCopyFailure.unavailable => l10n.healthUnavailable,
+    SleepCopyFailure.updateRequired => l10n.healthUpdateRequired,
     SleepCopyFailure.permissionDenied =>
       action == SleepCopyAction.downloadAll
-          ? 'Google Health needs permission to read sleep.'
-          : 'Google Health needs permission to write sleep.',
-    SleepCopyFailure.failed => 'Something went wrong. Try again.',
+          ? l10n.healthPermissionRead
+          : l10n.healthPermissionWrite,
+    SleepCopyFailure.failed => l10n.copyFailed,
   };
 }
-
-String _count(int count, String singular, String plural) =>
-    count == 1 ? '1 $singular' : '$count $plural';

@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/app/navigation/pill_navigation_bar.dart';
 import 'package:sleepy3/app/navigation/sleepy3_destination.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
+import 'package:sleepy3/l10n/l10n.dart';
 
 void main() {
   Future<void> pumpBar(WidgetTester tester, {double textScale = 1}) async {
@@ -22,6 +23,9 @@ void main() {
       M3EMaterialApp(
         data: data,
         theme: data.toThemeData(),
+        locale: const Locale('en'),
+        localizationsDelegates: appLocalizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: StatefulBuilder(
           builder: (context, setState) {
             return Scaffold(

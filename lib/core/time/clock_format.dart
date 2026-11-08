@@ -13,33 +13,45 @@ String formatClockTime(DateTime time, {required bool use24HourFormat}) {
   return '${_hour12(time.hour)}:$minute:$second';
 }
 
-/// The period next to a 12-hour clock: `AM` or `PM`.
-String formatDayPeriod(DateTime time) => time.hour < 12 ? 'AM' : 'PM';
+/// The period next to a 12-hour clock, localized: `AM`/`PM` or `a. m.`/`p. m.`.
+String formatDayPeriod(DateTime time, {required String localeName}) {
+  final period = DateFormat('a', localeName).format(time);
+  return period;
+}
 
 /// The time used in the session line, for example `22:30` or `10:30 PM`.
 ///
 /// Seconds are left out here: the exact second is noise in a sentence.
-String formatSessionTime(DateTime time, {required bool use24HourFormat}) {
+String formatSessionTime(
+  DateTime time, {
+  required bool use24HourFormat,
+  required String localeName,
+}) {
   final minute = _twoDigits(time.minute);
   if (use24HourFormat) {
     return '${_twoDigits(time.hour)}:$minute';
   }
-  return '${_hour12(time.hour)}:$minute ${formatDayPeriod(time)}';
+  final period = formatDayPeriod(time, localeName: localeName);
+  return '${_hour12(time.hour)}:$minute $period';
 }
 
-/// The date under the clock, for example `Tuesday, October 20`.
-///
-/// The app is English-only, so the format is fixed to `en_US` instead of
-/// following the device locale.
-String formatClockDate(DateTime time) => _dateFormat.format(time);
+/// The date under the clock, for example `Tuesday, October 20` or
+/// `martes, 20 de octubre`.
+String formatClockDate(DateTime time, {required String localeName}) {
+  return DateFormat.MMMMEEEEd(localeName).format(time);
+}
 
 /// A single spoken string for the clock, including the period in 12-hour mode.
-String formatClockLabel(DateTime time, {required bool use24HourFormat}) {
+String formatClockLabel(
+  DateTime time, {
+  required bool use24HourFormat,
+  required String localeName,
+}) {
   final clock = formatClockTime(time, use24HourFormat: use24HourFormat);
-  return use24HourFormat ? clock : '$clock ${formatDayPeriod(time)}';
+  if (use24HourFormat) return clock;
+  final period = formatDayPeriod(time, localeName: localeName);
+  return '$clock $period';
 }
-
-final _dateFormat = DateFormat('EEEE, MMMM d', 'en_US');
 
 int _hour12(int hour) {
   final value = hour % 12;

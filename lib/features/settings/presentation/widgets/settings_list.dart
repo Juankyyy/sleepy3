@@ -1,6 +1,15 @@
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+/// Whether Settings rows should show their decorative leading icons.
+///
+/// At 200% text the icon slot leaves too little room for longer translated
+/// labels such as `Importar` or `Privacidad`. Dropping the icon at large text
+/// scales keeps the whole label visible; selection controls such as the radio
+/// buttons in the source dialog are not affected.
+bool showSettingsLeadingIcons(BuildContext context) =>
+    MediaQuery.textScalerOf(context).scale(1) < 1.5;
+
 /// A grouped Settings list with the same expressive radii and gaps as Stats.
 ///
 /// From M3: a contained list uses rounded corners and gaps instead of

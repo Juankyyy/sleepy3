@@ -2,9 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../health/application/app_info_provider.dart';
 import '../../../health/domain/sleep_data_source.dart';
-import '../../../sleep_tracking/domain/sleep_duration.dart';
 import '../../../sleep_tracking/domain/sleep_goal.dart';
 import '../../../sleep_tracking/domain/sleep_history.dart';
 import '../../../sleep_tracking/domain/sleep_session.dart';
@@ -127,6 +127,7 @@ class _HistoryCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final fill = Color.lerp(
       scheme.surfaceContainerHighest,
       scheme.primaryContainer,
@@ -147,8 +148,8 @@ class _HistoryCard extends ConsumerWidget {
     return Semantics(
       container: true,
       button: true,
-      label: _spokenLabel(appLabel: appLabel),
-      hint: 'Opens the session',
+      label: _spokenLabel(l10n, appLabel: appLabel),
+      hint: l10n.opensSession,
       onTap: onTap,
       child: ExcludeSemantics(
         child: M3ECard(
@@ -173,15 +174,15 @@ class _HistoryCard extends ConsumerWidget {
               SizedBox(width: compact ? 8 : 10),
               Expanded(
                 child: _HistoryCardContent(
-                  day: formatHistoryDay(entry.date, today),
-                  duration: formatSleepDuration(entry.session.duration),
-                  range: formatHistoryTimeRange(
+                  day: l10n.formatHistoryDay(entry.date, today),
+                  duration: l10n.formatSleepDuration(entry.session.duration),
+                  range: l10n.formatHistoryTimeRange(
                     entry.session.startedAt,
                     end,
                     use24HourFormat: use24HourFormat,
                   ),
                   externalLabel: external
-                      ? formatExternalSessionLabel(appLabel)
+                      ? l10n.formatExternalSessionLabel(appLabel)
                       : null,
                   onColor: onColor,
                   compact: compact,
@@ -200,18 +201,20 @@ class _HistoryCard extends ConsumerWidget {
     );
   }
 
-  String _spokenLabel({required String? appLabel}) {
+  String _spokenLabel(AppLocalizations l10n, {required String? appLabel}) {
     final session = entry.session;
-    final day = formatHistoryDaySpoken(entry.date, today);
-    final duration = formatSpokenSleepDuration(session.duration);
-    final goal = session.duration >= dailySleepGoal ? ', goal met' : '';
-    final range = formatHistoryTimeRangeSpoken(
+    final day = l10n.formatHistoryDaySpoken(entry.date, today);
+    final duration = l10n.formatSpokenSleepDuration(session.duration);
+    final goal = session.duration >= dailySleepGoal
+        ? ', ${l10n.goalMetLower}'
+        : '';
+    final range = l10n.formatHistoryTimeRangeSpoken(
       session.startedAt,
       session.endedAt!,
       use24HourFormat: use24HourFormat,
     );
     final prefix = external
-        ? '${formatExternalSessionSpokenLabel(appLabel)}, '
+        ? '${l10n.formatExternalSessionSpokenLabel(appLabel)}, '
         : '';
     return '$prefix$day, $duration$goal, $range';
   }

@@ -2,6 +2,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/settings/data/drift_settings_store.dart';
+import 'package:sleepy3/features/settings/domain/app_language.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/sleep_tracking/data/drift_sleep_session_store.dart';
@@ -87,6 +88,39 @@ void main() {
           );
 
       expect(await store.loadTimeFormat(), isNull);
+    });
+
+    test('has no saved language on an empty database', () async {
+      expect(await store.loadLanguage(), isNull);
+    });
+
+    test('round-trips every language', () async {
+      for (final language in AppLanguage.values) {
+        await store.saveLanguage(language);
+        expect(await store.loadLanguage(), language);
+      }
+    });
+
+    test('stores the language under language', () async {
+      await store.saveLanguage(AppLanguage.spanish);
+
+      final rows = await database.select(database.preferences).get();
+      expect(rows, hasLength(1));
+      expect(rows.single.settingKey, 'language');
+      expect(rows.single.settingValue, 'spanish');
+    });
+
+    test('returns null for an unknown stored language', () async {
+      await database
+          .into(database.preferences)
+          .insert(
+            PreferencesCompanion.insert(
+              settingKey: 'language',
+              settingValue: 'french',
+            ),
+          );
+
+      expect(await store.loadLanguage(), isNull);
     });
 
     test('defaults to Local on an empty database', () async {

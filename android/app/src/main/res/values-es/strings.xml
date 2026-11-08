@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="health_connect_rationale_title">Sleepy3 y Health Connect</string>
+    <string name="health_connect_rationale_body">Sleepy3 lee y escribe sesiones de sueño en Health Connect cuando eliges Google Health como fuente de datos de sueño. Tus datos de sueño permanecen en Health Connect y nunca se envían a un servidor de Sleepy3. Sleepy3 también guarda una copia de seguridad en este dispositivo.</string>
+    <string name="health_connect_rationale_close">Cerrar</string>
+</resources>

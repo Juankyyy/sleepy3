@@ -54,21 +54,15 @@ class SessionEditDraft {
 
 /// One problem that prevents saving a [SessionEditDraft].
 ///
-/// The message is shared by the editor and the controller so both explain the
-/// same rule with the same words.
+/// The presentation layer maps each value to a localized message.
 enum SessionEditError {
-  endNotAfterStart('The wake time must be after the sleep time.'),
-  tooShort('A sleep session must be at least 10 minutes.'),
-  tooLong('A sleep session cannot last 24 hours or longer.'),
-  startInTheFuture('The sleep time cannot be in the future.'),
-  endInTheFuture('The wake time cannot be in the future.'),
-  overlapsClosedSession('This session overlaps another sleep session.'),
-  overlapsOpenSession('This session overlaps the session in progress.');
-
-  const SessionEditError(this.message);
-
-  /// User-facing text in English.
-  final String message;
+  endNotAfterStart,
+  tooShort,
+  tooLong,
+  startInTheFuture,
+  endInTheFuture,
+  overlapsClosedSession,
+  overlapsOpenSession,
 }
 
 /// Every rule a closed-session draft must satisfy, in a stable order.

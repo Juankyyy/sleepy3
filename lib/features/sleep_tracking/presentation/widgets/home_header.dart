@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../../core/theme/sleepy3_theme.dart';
 import '../../../../core/time/day_phase.dart';
+import '../../../../l10n/l10n.dart';
 
 /// The centered brand and the day/night status at the top of Home.
 class HomeHeader extends StatelessWidget {
@@ -51,13 +52,14 @@ class _DayNightStatus extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final label = switch (phase) {
-      DayPhase.day => 'Day · ready to wake',
-      DayPhase.night => 'Night · time to rest',
+      DayPhase.day => l10n.dayStatus,
+      DayPhase.night => l10n.nightStatus,
     };
     final spokenLabel = switch (phase) {
-      DayPhase.day => 'Day, ready to wake',
-      DayPhase.night => 'Night, time to rest',
+      DayPhase.day => l10n.dayStatusSpoken,
+      DayPhase.night => l10n.nightStatusSpoken,
     };
 
     return Semantics(

@@ -1,6 +1,7 @@
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../../l10n/l10n.dart';
 import '../../../health/domain/sleep_data_source.dart';
 import '../../../health/presentation/sleep_data_source_text.dart';
 import '../../domain/app_version.dart';
@@ -20,20 +21,25 @@ class AboutList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final appVersion = version;
+    final l10n = context.l10n;
+    final showLeading = showSettingsLeadingIcons(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SettingsList(
           children: [
             M3EListItem(
-              leading: const Icon(M3EIcons.shield_outlined),
-              headline: 'Privacy',
-              supportingText: sleepDataSourcePrivacy(dataSource),
+              leading: showLeading
+                  ? const Icon(M3EIcons.shield_outlined)
+                  : null,
+              headline: l10n.privacy,
+              supportingText: l10n.sleepDataSourcePrivacy(dataSource),
             ),
             if (appVersion != null)
               M3EListItem(
-                leading: const Icon(M3EIcons.info_outline),
-                headline: 'Version',
+                leading: showLeading ? const Icon(M3EIcons.info_outline) : null,
+                headline: l10n.version,
                 supportingText: appVersion.display,
               ),
           ],
@@ -43,9 +49,11 @@ class AboutList extends StatelessWidget {
         SettingsList(
           onTap: (_) => _showLicenses(context, appVersion),
           children: [
-            const M3EListItem(
-              leading: Icon(M3EIcons.description_outlined),
-              headline: 'Licenses',
+            M3EListItem(
+              leading: showLeading
+                  ? const Icon(M3EIcons.description_outlined)
+                  : null,
+              headline: l10n.licenses,
             ),
           ],
         ),

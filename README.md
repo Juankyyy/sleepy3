@@ -33,11 +33,11 @@ Sleepy3 runs on **Android 9 or newer**. Version **0.2.0** is the latest stable r
 
 1. Tap **Sleep** when you go to bed. The button becomes **Wake**, the header switches to a sleeping state and the clock keeps running.
 2. Tap **Wake** when you get up. Sleepy3 saves the night, the button returns to **Sleep** and shows how long you slept.
-3. Open **Stats** to review or fix your history, use the plus button to add a night you forgot to track, and **Settings** for the theme, the 12/24-hour clock and Health Connect.
+3. Open **Stats** to review or fix your history, use the plus button to add a night you forgot to track, and **Settings** for the theme, the 12/24-hour clock, the language and Health Connect.
 
 Use the floating glass dock at the bottom to move between **Home**, **Stats** and **Settings**; the selected destination shows its label, and the content stays visible behind the dock.
 
-Settings is split into **Appearance** (theme and 12/24-hour clock), **Sleep data** (Local or Google Health, and Import), **Google Health** (connection status, Sync and Add) and **About** (privacy, version and open-source licenses).
+Settings is split into **Appearance** (theme, 12/24-hour clock and language), **Sleep data** (Local or Google Health, and Import), **Google Health** (connection status, Sync and Add) and **About** (privacy, version and open-source licenses). The interface is available in **English** and **Spanish**; there is no separate “System” option, so the first launch resolves and stores the phone's language and you can change it later in **Appearance → Language**.
 
 The header always tells you what is happening:
 
@@ -89,7 +89,7 @@ Health Connect hides records older than 30 days unless you give Sleepy3 the hist
 
 ## Your data
 
-- Sessions, the theme, the 12/24-hour clock and the data source are stored in a local database on your phone.
+- Sessions, the theme, the 12/24-hour clock, the language and the data source are stored in a local database on your phone.
 - There is no account, no backend and no analytics. Nothing is sent to us.
 - Local mode works completely offline. Health Connect is optional, and denying permission never blocks local tracking.
 - Uninstalling Sleepy3 deletes the local database. If Android backup is enabled, the system may restore it when you reinstall.
@@ -133,6 +133,7 @@ Health Connect hides records older than 30 days unless you give Sleepy3 the hist
 
 ```bash
 flutter pub get
+flutter gen-l10n
 flutter analyze
 flutter test
 flutter run
@@ -155,6 +156,7 @@ lib/
 ├── core/
 │   ├── theme/         # Material 3 Expressive theme and tokens
 │   └── time/          # clock formatting, day/night rule and LocalDayBuilder
+├── l10n/              # app_en.arb, app_es.arb and generated AppLocalizations
 └── features/
     ├── sleep_tracking/
     │   ├── domain/        # sessions, durations, history, edit draft, store contract
@@ -169,9 +171,9 @@ lib/
     │   ├── application/   # source, history, history permission, sync, upload and copy
     │   └── presentation/  # copy dialogs, sync and history banners, source text
     └── settings/
-        ├── domain/        # theme mode, time format, app version and store contract
+        ├── domain/        # theme, time format, language, app version and store contract
         ├── data/          # Drift settings store
-        ├── application/   # theme and time format controllers, providers
+        ├── application/   # theme, time format and language controllers, providers
         └── presentation/  # settings screen, appearance dialogs and about list
 assets/
 ├── brand/             # logo sources, splash mark and launcher icon sources
@@ -181,7 +183,7 @@ android/
     └── MainActivity.kt    # native widget and platform bridges land here
 ```
 
-On launch, Sleepy3 opens the database, loads the open session, the saved theme, the 12/24-hour clock format, the selected data source and the installed version, then injects them into the Riverpod scope before the first frame. The closed history loads asynchronously from the selected source; a failed read falls back to an empty/default value instead of blocking startup.
+On launch, Sleepy3 opens the database, loads the open session, the saved theme, the 12/24-hour clock format, the language, the selected data source and the installed version, then injects them into the Riverpod scope before the first frame. The first launch resolves the clock format and language from the phone and stores them. The closed history loads asynchronously from the selected source; a failed read falls back to an empty/default value instead of blocking startup.
 
 The controller is a Riverpod `Notifier`: it updates in-memory state first so the buttons answer instantly, then serializes the disk write behind it. The UI never reads the database directly, and the clock is injected, which keeps the domain logic testable.
 
@@ -192,6 +194,7 @@ The controller is a Riverpod `Notifier`: it updates in-memory state first so the
 | UI | Flutter 3.47 + Material 3 Expressive (`material_3_expressive` 1.1.7) |
 | Type | Space Grotesk for the M3 scale; instanced Google Sans Flex for the page titles (both OFL) |
 | State | Riverpod (`flutter_riverpod` 3.x) |
+| Localization | Flutter `gen-l10n` + ARB (`app_en.arb`, `app_es.arb`) |
 | Persistence | Drift over SQLite (`drift`, `drift_flutter`) |
 | App info | `package_info_plus` |
 | Widget | `home_widget` + native Kotlin / Jetpack Glance (planned) |
@@ -203,6 +206,7 @@ The controller is a Riverpod `Notifier`: it updates in-memory state first so the
 - UI code imports `package:material_ui/material_ui.dart` and `package:material_3_expressive/material_3_expressive.dart`; never `package:flutter/material.dart`.
 - `material_ui` is pinned to **1.7.0**. Version 1.8.0 adds a `RoundedPolygon` symbol that conflicts with `material_new_shapes`, used by `material_3_expressive` 1.1.7. Do not bump it until the packages are compatible.
 - Drift generated code is committed. After changing the schema, bump `schemaVersion`, add a migration, then run `dart run build_runner build`.
+- All user-facing copy lives in `lib/l10n/app_en.arb` and `app_es.arb`; run `flutter gen-l10n` after editing them and use `context.l10n` in widgets. The generated `lib/l10n/generated/` files are committed.
 - Domain logic never calls `DateTime.now()`; the clock is injected through `sleepClockProvider`.
 - Health Connect internals (stable client record ids, versions and deduplication) are documented in `SPEC.md §9`.
 - `SPEC.md` holds the detailed behavior, data model and roadmap.

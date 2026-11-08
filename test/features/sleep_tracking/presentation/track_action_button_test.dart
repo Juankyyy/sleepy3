@@ -7,6 +7,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
 import 'package:sleepy3/features/sleep_tracking/presentation/widgets/track_action_button.dart';
+import 'package:sleepy3/l10n/l10n.dart';
 
 void main() {
   setUpAll(() async {
@@ -42,6 +43,9 @@ void main() {
       M3EMaterialApp(
         data: data,
         theme: data.toThemeData(),
+        locale: const Locale('en'),
+        localizationsDelegates: appLocalizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
         home: Builder(
           builder: (context) => MediaQuery(
             data: MediaQuery.of(context)

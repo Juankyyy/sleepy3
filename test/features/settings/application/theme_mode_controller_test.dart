@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/settings/application/theme_mode_controller.dart';
+import 'package:sleepy3/features/settings/domain/app_language.dart';
 import 'package:sleepy3/features/settings/domain/app_night_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_time_format.dart';
@@ -138,6 +139,12 @@ class _ControlledSettingsStore implements SettingsStore {
 
   @override
   Future<void> saveTimeFormat(AppTimeFormat format) async {}
+
+  @override
+  Future<AppLanguage?> loadLanguage() async => null;
+
+  @override
+  Future<void> saveLanguage(AppLanguage language) async {}
 
   @override
   Future<SleepDataSource> loadSleepDataSource() async => SleepDataSource.local;

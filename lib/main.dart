@@ -11,10 +11,12 @@ import 'features/health/data/drift_health_sync_store.dart';
 import 'features/health/data/health_connect_gateway_impl.dart';
 import 'features/health/domain/sleep_data_source.dart';
 import 'features/settings/application/app_version_provider.dart';
+import 'features/settings/application/language_controller.dart';
 import 'features/settings/application/theme_mode_controller.dart';
 import 'features/settings/application/time_format_controller.dart';
 import 'features/settings/data/android_app_night_mode.dart';
 import 'features/settings/data/drift_settings_store.dart';
+import 'features/settings/domain/app_language.dart';
 import 'features/settings/domain/app_theme_mode.dart';
 import 'features/settings/domain/app_time_format.dart';
 import 'features/settings/domain/app_version.dart';
@@ -38,6 +40,7 @@ Future<void> main() async {
   final themeMode = await _loadThemeMode(settingsStore);
   await const AndroidAppNightMode().setMode(themeMode);
   final timeFormat = await _loadTimeFormat(settingsStore);
+  final language = await _loadLanguage(settingsStore);
   final dataSource = await _loadSleepDataSource(settingsStore);
   final packageInfo = await _loadPackageInfo();
   final appVersion = _appVersionFrom(packageInfo);
@@ -52,6 +55,7 @@ Future<void> main() async {
         settingsStoreProvider.overrideWithValue(settingsStore),
         initialThemeModeProvider.overrideWithValue(themeMode),
         initialTimeFormatProvider.overrideWithValue(timeFormat),
+        initialLanguageProvider.overrideWithValue(language),
         healthConnectGatewayProvider.overrideWithValue(healthGateway),
         healthSyncStoreProvider.overrideWithValue(healthSyncStore),
         initialSleepDataSourceProvider.overrideWithValue(dataSource),
@@ -124,6 +128,30 @@ Future<AppTimeFormat> _loadTimeFormat(SettingsStore store) async {
   } catch (error, stackTrace) {
     debugPrint(
       'Sleepy3: could not persist the initial time format: '
+      '$error\n$stackTrace',
+    );
+  }
+  return fallback;
+}
+
+Future<AppLanguage> _loadLanguage(SettingsStore store) async {
+  try {
+    final saved = await store.loadLanguage();
+    if (saved != null) return saved;
+  } catch (error, stackTrace) {
+    debugPrint('Sleepy3: could not load the language: $error\n$stackTrace');
+  }
+
+  // The setting has no System option: fix the phone's current language on the
+  // first launch, matching the time format.
+  final fallback = AppLanguage.forSystem(
+    WidgetsBinding.instance.platformDispatcher.locales,
+  );
+  try {
+    await store.saveLanguage(fallback);
+  } catch (error, stackTrace) {
+    debugPrint(
+      'Sleepy3: could not persist the initial language: '
       '$error\n$stackTrace',
     );
   }

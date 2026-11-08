@@ -38,7 +38,10 @@ widget de pantalla de inicio es el siguiente bloque (0.3.0).
 
 ### Idioma
 
-- Código, comentarios, UI, mensajes de commit y notas de release: **inglés**.
+- Código, comentarios, mensajes de commit y notas de release: **inglés**.
+- La UI está en **inglés y español**. Todo el copy vive en `lib/l10n/app_en.arb`
+  (plantilla) y `lib/l10n/app_es.arb`; los widgets no contienen strings de usuario,
+  etiquetas de semántica, tooltips ni textos de diálogos.
 - Documentación de trabajo (`SPEC.md`, `AGENTS.md`, `README.md`): puede estar en español,
   salvo que el usuario pida lo contrario.
 
@@ -478,6 +481,10 @@ Reglas:
     el mismo diálogo de selección con `Cancel` / `Apply`. El formato se aplica al reloj, a
     las horas de sesión, al historial y a los selectores de hora. Si no hay preferencia
     guardada, el primer arranque toma el formato del teléfono y lo persiste.
+  - `Language`, cuyo supporting text muestra `English` o `Español`. El diálogo solo
+    ofrece esos dos idiomas, sin `System`. Si no hay preferencia guardada, el primer
+    arranque resuelve el idioma del teléfono (`es` → Español; cualquier otro → English),
+    lo persiste en `preferences` (`language`) y lo aplica a toda la app.
 - `Sleep data` contiene:
   - `Source`, cuyo supporting text muestra `Local` o `Google Health`. Al tocarla se abre
     el diálogo `Sleep data source` con una fila de radio por fuente y `Cancel` / `Apply`.
@@ -618,6 +625,10 @@ Reglas:
   `preferences` (`time_format`). Sin preferencia, el primer arranque fija el formato del
   teléfono. `Sleepy3App` inyecta el valor en `MediaQuery.alwaysUse24HourFormat`, así que
   reloj, historial, editores y `M3ETimePicker` comparten la misma elección.
+- El idioma es `English` o `Español`; se elige en `Settings` y se guarda en
+  `preferences` (`language`). Sin preferencia, el primer arranque resuelve el idioma del
+  teléfono y lo persiste. No hay opción `System`. `Sleepy3App` pasa el `Locale` y los
+  delegates de `AppLocalizations`; fechas y horas usan el `localeName` resuelto.
 - Tipografía **Space Grotesk variable** empaquetada como asset (`assets/fonts/`, OFL) para
   toda la escala. Se usan los tamaños, pesos y tracking de la escala M3; no se usan
   pesos 850/950 en los tokens. La fuente solo tiene el eje `wght` (300–700).
@@ -763,6 +774,12 @@ Reglas:
   - La fila `Time format` usa el supporting text para `12-hour` o `24-hour` y reutiliza
     el mismo diálogo de selección. El formato elegido se aplica también a los selectores
     de hora.
+  - La fila `Language` usa el supporting text para el idioma actual y abre un diálogo con
+    `English` / `Español`, `Cancel` y `Apply`. El cambio se aplica al instante; el idioma
+    elegido se persiste y no hay opción `System`.
+  - A partir del 150 % de texto se retiran los iconos decorativos de las filas de
+    `Settings` para que las etiquetas largas (`Importar`, `Privacidad`) no se recorten;
+    los controles de selección (radio del diálogo de fuente) se mantienen.
   - `Sleep data` muestra `Source` con el valor actual y `Import` para bajar todas las
     sesiones de Health Connect. El diálogo de fuente usa filas de radio a ancho completo
     para que `Google Health` no se recorte en pantallas angostas.
@@ -778,7 +795,8 @@ Reglas:
     M3E).
   - Al 200 % de texto las etiquetas y los supporting text caben sin elipsis; la pantalla
     se desplaza verticalmente.
-- Copy de la interfaz en inglés:
+- Copy de la interfaz en inglés (plantilla de `lib/l10n/app_en.arb`; la traducción vive en
+  `app_es.arb` y no se duplica en los widgets):
 
 | Elemento | Texto |
 |---|---|
@@ -833,6 +851,9 @@ Reglas:
 | Secciones de Settings | `Appearance`, `Sleep data`, `Google Health`, `About` |
 | Fila de tema | `Theme` |
 | Modos de tema | `System`, `Light`, `Dark` |
+| Fila de hora | `Time format` / `12-hour`, `24-hour` |
+| Fila de idioma | `Language` / `English`, `Español` |
+| Diálogo de idioma | `Language`, `English`, `Español`, `Cancel`, `Apply` |
 | Fila de fuente | `Source` |
 | Fuentes de datos | `Local`, `Google Health` |
 | Diálogo de fuente | `Sleep data source`, `Cancel`, `Apply` |
@@ -936,6 +957,7 @@ lib/
 │   ├── theme/
 │   ├── time/             # clock formatting, day/night rule and LocalDayBuilder
 │   └── widgets/
+├── l10n/                 # app_en.arb, app_es.arb, generated AppLocalizations and helpers
 └── features/
     ├── sleep_tracking/
     │   ├── domain/         # sessions, durations, history, edit draft and store contract
@@ -945,10 +967,10 @@ lib/
     ├── stats/
     │   └── presentation/   # screen, chips, summary, history list and session editor
     ├── settings/
-    │   ├── domain/         # theme mode, app version and settings store contract
+    │   ├── domain/         # theme, time format, language, app version and store contract
     │   ├── data/           # Drift-backed settings store
-    │   ├── application/    # theme controller and providers
-    │   └── presentation/   # settings screen, theme dialog and about list
+    │   ├── application/    # theme, time format and language controllers, providers
+    │   └── presentation/   # settings screen, appearance dialogs and about list
     ├── health/
     │   ├── domain/         # gateway, source, history access, sync store, stored session and own-source helper
     │   ├── data/           # Health Connect gateway and Drift sync store
@@ -969,19 +991,21 @@ assets/
    (`purgeUnrecordableSessions`); un fallo solo se registra y no bloquea el arranque.
 4. Carga un `SleepSnapshot` con la sesión abierta y todas las sesiones cerradas,
    ordenadas de más antigua a más reciente.
-5. Carga el modo de tema y la fuente de datos de `preferences`, y la versión instalada con
-   `package_info_plus`. Después replica el modo de tema en el modo nocturno por aplicación
-   de Android (API 31+), para que el próximo arranque en frío resuelva el splash con el
-   mismo modo.
-6. Inyecta los stores, el snapshot, el tema inicial, la fuente y la versión en
-   `ProviderScope`.
+5. Carga el modo de tema, el formato de hora, el idioma y la fuente de datos de
+   `preferences`, y la versión instalada con `package_info_plus`. Si no hay formato o
+   idioma guardado, resuelve el valor del teléfono y lo persiste. Después replica el modo
+   de tema en el modo nocturno por aplicación de Android (API 31+), para que el próximo
+   arranque en frío resuelva el splash con el mismo modo.
+6. Inyecta los stores, el snapshot, el tema inicial, el formato de hora, el idioma, la
+   fuente y la versión en `ProviderScope`.
 7. Muestra el shell envuelto por `SplashGate`; la intro espera al primer frame
    rasterizado, reproduce el zoom de marca y se retira sobre la app ya construida. El
    fondo de lanzamiento nativo ya usaba el color de cuerpo del tema, así que el handoff
    no muestra un frame negro.
 
 Si una lectura inicial falla, la app arranca con el valor por defecto (estado vacío,
-tema `System` o versión oculta) y registra el error; no debe quedar bloqueada en el
+tema `System`, formato del teléfono, idioma del teléfono o versión oculta) y registra el
+error; no debe quedar bloqueada en el
 splash.
 
 ### Estado
@@ -1133,6 +1157,10 @@ dart run build_runner build
 
 - Clave `theme_mode` con valores `system`, `light` o `dark`; un valor ausente o
   desconocido se interpreta como `system`.
+- Clave `time_format` con valores `twelveHour` o `twentyFourHour`; un valor ausente o
+  desconocido se resuelve con el formato del teléfono en el primer arranque.
+- Clave `language` con valores `english` o `spanish`; un valor ausente o desconocido se
+  resuelve con el idioma del teléfono en el primer arranque.
 - Clave `sleep_data_source` con valores `local` o `healthConnect`; un valor ausente o
   desconocido se interpreta como `local`.
 - La migración de v1 a v2 crea `preferences`; las sesiones existentes no se tocan.
@@ -1270,6 +1298,7 @@ dart run build_runner build
 
 ```bash
 flutter pub get
+flutter gen-l10n
 flutter analyze
 flutter test
 flutter build apk --debug
@@ -1319,15 +1348,19 @@ dart run tool/generate_brand_assets.dart
   el 200 % de texto.
 - Settings: tema por defecto y persistido, diálogo de selección con `Cancel`/`Apply`,
   resolución `System`/`Light`/`Dark`, formato `12-hour`/`24-hour` por defecto y persistido,
-  su aplicación a reloj, historial y selectores de hora, fuente `Local`/`Google Health`,
-  diálogo de fuente, estado de conexión, `Connect`/`Install`, `Import`/`Sync`/`Add`, primer
-  cambio con aviso de copia, permiso denegado, versión oculta si no está disponible,
-  página de licencias, semántica, migraciones v1→v2, v2→v3 y v3→v4, y layout a 360 dp con
-  texto al 200 %.
+  idioma `English`/`Español` sin opción `System` (el primer arranque resuelve y guarda el
+  del teléfono), su aplicación a reloj, historial y selectores de hora, fuente
+  `Local`/`Google Health`, diálogo de fuente, estado de conexión, `Connect`/`Install`,
+  `Import`/`Sync`/`Add`, primer cambio con aviso de copia, permiso denegado, versión
+  oculta si no está disponible, página de licencias, semántica, migraciones v1→v2, v2→v3 y
+  v3→v4, y layout a 360 dp con texto al 200 %.
 - Health Connect: disponibilidad, permisos de sueño e historial, lectura/escritura,
   cola de pendientes, reintento idempotente, banner, sesiones omitidas, acciones de copia,
   deduplicación por UUID y horas exactas, fallo parcial, protección de filas locales,
   límite de 30 días y recarga al conceder el historial.
+- Localización: paridad de claves ARB, resolución del idioma del sistema, cambio desde
+  `Settings`, pantallas y editor en español, fechas, horas y duraciones localizadas, y
+  layout a 360 dp con texto al 200 %.
 - Enriquecimiento del historial de Google Health con la copia local y fallo tolerado al
   leer esos metadatos.
 - Tema: paleta de marca fija (claro/oscuro), roles M3, contraste, tipografía Space
@@ -1369,8 +1402,9 @@ dart run tool/generate_brand_assets.dart
   solo lectura con la card de la app de origen. En `Google Health` solo se modifican los
   registros de Sleepy3.
 - Pantalla `Settings` con tema `System`/`Light`/`Dark` persistido, formato de hora
-  `12-hour`/`24-hour` persistido y aplicado a toda la app, fuente de datos
-  `Local`/`Google Health`, estado de Google Health, acciones de copia y `About` con
+  `12-hour`/`24-hour` persistido y aplicado a toda la app, idioma `English`/`Español`
+  persistido (resuelto del sistema en el primer arranque, sin opción `System`), fuente de
+  datos `Local`/`Google Health`, estado de Google Health, acciones de copia y `About` con
   privacidad, versión y licencias.
 - Health Connect: permisos de sueño e historial, lectura y escritura, cola de pendientes,
   reintento al abrir o volver a la app, banner de pendientes, acciones
@@ -1405,4 +1439,3 @@ dart run tool/generate_brand_assets.dart
   la app.
 - Si `Import` recordará una denegación del permiso de historial para no volver a pedirla
   en cada intento hasta que el usuario la reactive.
-- Si se agregará localización completa después de la primera release en inglés.

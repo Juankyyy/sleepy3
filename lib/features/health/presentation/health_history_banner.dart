@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../sleep_tracking/application/sleep_tracking_controller.dart';
 import '../application/health_history_permission_controller.dart';
 import '../application/sleep_data_source_controller.dart';
@@ -47,6 +48,7 @@ class HealthHistoryBanner extends ConsumerWidget {
 
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
 
     return Padding(
       padding: padding,
@@ -62,7 +64,7 @@ class HealthHistoryBanner extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Only the last 30 days are available',
+                    l10n.historyLast30Days,
                     style: theme.typography.emphasized.titleSmall.copyWith(
                       color: scheme.onSurface,
                     ),
@@ -73,7 +75,7 @@ class HealthHistoryBanner extends ConsumerWidget {
             // 8dp separates the message from its explanation.
             const SizedBox(height: 8),
             Text(
-              'Allow full history in Google Health to see older sessions.',
+              l10n.historyAllowFullSupport,
               style: theme.typography.baseline.bodyMedium.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
@@ -86,7 +88,7 @@ class HealthHistoryBanner extends ConsumerWidget {
                 style: M3EButtonStyle.text,
                 size: M3EButtonSize.sm,
                 onPressed: () => _allowFullHistory(context, ref),
-                child: const Text('Allow full history'),
+                child: Text(l10n.historyAllowFullAction),
               ),
             ),
           ],
@@ -103,11 +105,7 @@ class HealthHistoryBanner extends ConsumerWidget {
 
     if (!granted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Google Health needs permission to read older sleep sessions.',
-          ),
-        ),
+        SnackBar(content: Text(context.l10n.historyPermissionDenied)),
       );
       return;
     }

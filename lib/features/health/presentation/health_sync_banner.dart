@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../sleep_tracking/application/sleep_tracking_controller.dart';
 import '../application/health_sync_controller.dart';
 import '../application/sleep_data_source_controller.dart';
@@ -37,7 +38,7 @@ class HealthSyncBanner extends ConsumerWidget {
 
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
-    final count = state.pendingCount;
+    final l10n = context.l10n;
 
     return Padding(
       padding: padding,
@@ -56,9 +57,7 @@ class HealthSyncBanner extends ConsumerWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    count == 1
-                        ? '1 session waiting to sync'
-                        : '$count sessions waiting to sync',
+                    l10n.syncBannerWaiting(state.pendingCount),
                     style: theme.typography.emphasized.titleSmall.copyWith(
                       color: scheme.onSurface,
                     ),
@@ -75,7 +74,7 @@ class HealthSyncBanner extends ConsumerWidget {
                 size: M3EButtonSize.sm,
                 enabled: !state.syncing,
                 onPressed: state.syncing ? null : () => _retry(context, ref),
-                child: const Text('Retry'),
+                child: Text(l10n.retry),
               ),
             ),
           ],

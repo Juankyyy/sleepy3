@@ -9,6 +9,7 @@ import '../../../core/theme/sleepy3_theme.dart';
 import '../../../core/time/clock_format.dart';
 import '../../../core/time/local_day_builder.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../l10n/l10n.dart';
 import '../../health/application/current_app_package_provider.dart';
 import '../../health/application/health_history_permission_controller.dart';
 import '../../health/application/health_sync_controller.dart';
@@ -96,6 +97,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
     final state = ref.watch(sleepTrackingControllerProvider);
     final controller = ref.read(sleepTrackingControllerProvider.notifier);
     final source = ref.watch(sleepDataSourceProvider);
+    final l10n = context.l10n;
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
     final margin = MediaQuery.sizeOf(context).width >= 600 ? 24.0 : 16.0;
@@ -150,7 +152,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
             Positioned.fill(
               child: Semantics(
                 customSemanticsActions: {
-                  const CustomSemanticsAction(label: 'Refresh sleep history'):
+                  CustomSemanticsAction(label: l10n.refreshSleepHistory):
                       _refreshFromSemantics,
                 },
                 child: NotificationListener<ScrollNotification>(
@@ -204,7 +206,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                                     Semantics(
                                       header: true,
                                       child: Text(
-                                        'History',
+                                        l10n.history,
                                         style: theme
                                             .typography
                                             .emphasized
@@ -228,14 +230,14 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                                 icon: M3EIcons.analytics_rounded,
                                 headline:
                                     source == SleepDataSource.healthConnect
-                                    ? 'No sleep history in Google Health'
-                                    : 'No sleep history yet',
+                                    ? l10n.noSleepHistoryHealth
+                                    : l10n.noSleepHistory,
                                 supportingText:
                                     source == SleepDataSource.healthConnect
-                                    ? 'Sleep sessions in Health Connect will appear here.'
+                                    ? l10n.noSleepHistoryHealthSupport
                                     : state.isSleeping
-                                    ? 'Your first night will appear here when you wake up.'
-                                    : 'Your nights will appear here after you wake up.',
+                                    ? l10n.noSleepHistorySleepingSupport
+                                    : l10n.noSleepHistorySupport,
                               ),
                             ),
                           )
@@ -303,15 +305,13 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
     );
     if (!mounted || result == null) return;
 
+    final l10n = context.l10n;
     final message = switch (result.status) {
       SleepSessionEditStatus.saved => null,
-      SleepSessionEditStatus.savedPendingSync =>
-        'Saved. Google Health will update when it can.',
-      SleepSessionEditStatus.deleted => 'Session deleted.',
+      SleepSessionEditStatus.savedPendingSync => l10n.sessionSavedPendingSync,
+      SleepSessionEditStatus.deleted => l10n.sessionDeleted,
       SleepSessionEditStatus.permissionNeeded =>
-        result.hasLocalChange
-            ? 'Saved locally. Allow Google Health write access to sync it.'
-            : null,
+        result.hasLocalChange ? l10n.sessionSavedLocallyPermission : null,
       SleepSessionEditStatus.failed => null,
     };
     if (message != null) {
@@ -406,7 +406,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                         rotationTurns: _refreshing
                             ? null
                             : (pull / _maxPull) * 0.5,
-                        semanticLabel: 'Refreshing sleep history',
+                        semanticLabel: context.l10n.refreshingSleepHistory,
                       ),
                     ),
                   ),
@@ -526,10 +526,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
     if (!mounted) return;
 
     if (!refreshed) {
-      M3ESnackbar.show(
-        context,
-        message: "Couldn't refresh your sleep history. Try again.",
-      );
+      M3ESnackbar.show(context, message: context.l10n.refreshFailed);
     }
   }
 }
@@ -545,12 +542,17 @@ class _StatsHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
+    final l10n = context.l10n;
     final open = openSession;
     final supporting = open == null
-        ? 'Your sleep, night by night.'
-        : 'Sleeping since '
-              '${formatSessionTime(open.startedAt, use24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context))}'
-              ' · it will appear when you wake.';
+        ? l10n.statsSupport
+        : l10n.statsSupportingSleeping(
+            formatSessionTime(
+              open.startedAt,
+              use24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
+              localeName: l10n.localeName,
+            ),
+          );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -558,7 +560,7 @@ class _StatsHeader extends StatelessWidget {
         Semantics(
           header: true,
           child: Text(
-            'Stats',
+            l10n.statsTitle,
             style: Sleepy3Theme.brandTitle(
               theme.typography.emphasized.headlineMedium,
             ).copyWith(color: scheme.onSurface),
