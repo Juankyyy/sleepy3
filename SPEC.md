@@ -469,10 +469,15 @@ Reglas:
   seguida de cuatro secciones: `Appearance`, `Sleep data`, `Google Health` y `About`.
 - Cada sección usa un encabezado `titleMedium` emphasized y una lista agrupada
   `M3EList`/`M3EListItem` con radio exterior 16 dp, interior 4 dp y gap 2 dp.
-- `Appearance` contiene una fila `Theme` cuyo supporting text muestra el modo actual:
-  `System`, `Light` o `Dark`. Al tocarla se abre un diálogo M3 de selección con opciones
-  de radio y acciones `Cancel` / `Apply`. `Apply` aplica y persiste el modo; `Cancel`
-  no cambia nada. El valor por defecto es `System`.
+- `Appearance` contiene:
+  - `Theme`, cuyo supporting text muestra el modo actual: `System`, `Light` o `Dark`.
+    Al tocarla se abre un diálogo M3 de selección con opciones de radio y acciones
+    `Cancel` / `Apply`. `Apply` aplica y persiste el modo; `Cancel` no cambia nada. El
+    valor por defecto es `System`.
+  - `Time format`, cuyo supporting text muestra `12-hour` o `24-hour`. Al tocarla se abre
+    el mismo diálogo de selección con `Cancel` / `Apply`. El formato se aplica al reloj, a
+    las horas de sesión, al historial y a los selectores de hora. Si no hay preferencia
+    guardada, el primer arranque toma el formato del teléfono y lo persiste.
 - `Sleep data` contiene:
   - `Source`, cuyo supporting text muestra `Local` o `Google Health`. Al tocarla se abre
     el diálogo `Sleep data source` con una fila de radio por fuente y `Cancel` / `Apply`.
@@ -609,6 +614,10 @@ Reglas:
   texto mantienen al menos 4.5:1 y `outline` al menos 3:1.
 - El modo sigue al sistema por defecto. Desde `Settings` se puede fijar `System`,
   `Light` o `Dark`; la elección se aplica al instante y se conserva entre arranques.
+- El formato de hora es `12-hour` o `24-hour`; se elige en `Settings` y se guarda en
+  `preferences` (`time_format`). Sin preferencia, el primer arranque fija el formato del
+  teléfono. `Sleepy3App` inyecta el valor en `MediaQuery.alwaysUse24HourFormat`, así que
+  reloj, historial, editores y `M3ETimePicker` comparten la misma elección.
 - Tipografía **Space Grotesk variable** empaquetada como asset (`assets/fonts/`, OFL) para
   toda la escala. Se usan los tamaños, pesos y tracking de la escala M3; no se usan
   pesos 850/950 en los tokens. La fuente solo tiene el eje `wght` (300–700).
@@ -751,6 +760,9 @@ Reglas:
   - La fila `Theme` usa el supporting text para el valor actual (`System`, `Light` o
     `Dark`), de modo que el lector de pantalla lo anuncie como parte de la etiqueta. El
     diálogo de selección usa opciones cortas para caber al 200 % de texto.
+  - La fila `Time format` usa el supporting text para `12-hour` o `24-hour` y reutiliza
+    el mismo diálogo de selección. El formato elegido se aplica también a los selectores
+    de hora.
   - `Sleep data` muestra `Source` con el valor actual y `Import` para bajar todas las
     sesiones de Health Connect. El diálogo de fuente usa filas de radio a ancho completo
     para que `Google Health` no se recorte en pantallas angostas.
@@ -1004,8 +1016,13 @@ splash.
   estado al cargar el historial y al volver al primer plano.
 - `ThemeModeController` es un `Notifier<AppThemeMode>`. Actualiza el estado al instante,
   serializa las escrituras y conserva la elección visible si una escritura falla.
+- `TimeFormatController` es un `Notifier<AppTimeFormat>` con la misma actualización
+  inmediata y cola de escritura. `main` lo carga antes del primer frame; si no hay valor
+  guardado, resuelve el formato del teléfono y lo persiste para que quede fijo.
 - `Sleepy3App` resuelve el brillo con el modo de tema y el brillo del sistema; mantiene
   `M3EMaterialApp.autoTheming` desactivado para usar los esquemas claro/oscuro propios.
+  También envuelve la app en un `MediaQuery` con `alwaysUse24HourFormat` resuelto, de modo
+  que todas las horas y los selectores compartan el ajuste sin leerlo en cada pantalla.
   `Sleepy3Theme` construye la paleta fija: anclas exactas de fondo y acento, y roles
   neutrales derivados de los pasos tonales de superficie de M3.
 
@@ -1051,7 +1068,8 @@ splash.
   alimenta el enriquecimiento del historial de Google Health. `updateDownloadedSource`
   rellena el paquete de origen de una copia descargada sin tocar sus horas.
 - `SettingsStore` es la interfaz de preferencias y `DriftSettingsStore` su implementación.
-  Usa la tabla `preferences` de la misma base; no hay `shared_preferences`.
+  Usa la tabla `preferences` de la misma base; no hay `shared_preferences`. Guarda
+  `theme_mode`, `time_format` y `sleep_data_source`.
 - Los tests usan `FakeSleepSessionStore`, `FakeSettingsStore`, `FakeHealthConnectGateway`,
   `FakeHealthSyncStore` o una base Drift en memoria.
 
@@ -1300,10 +1318,12 @@ dart run tool/generate_brand_assets.dart
   las filas y muestra el snackbar, el empty state también se puede tirar y el layout aguanta
   el 200 % de texto.
 - Settings: tema por defecto y persistido, diálogo de selección con `Cancel`/`Apply`,
-  resolución `System`/`Light`/`Dark`, fuente `Local`/`Google Health`, diálogo de fuente,
-  estado de conexión, `Connect`/`Install`, `Import`/`Sync`/`Add`, primer cambio con aviso
-  de copia, permiso denegado, versión oculta si no está disponible, página de licencias,
-  semántica, migraciones v1→v2, v2→v3 y v3→v4, y layout a 360 dp con texto al 200 %.
+  resolución `System`/`Light`/`Dark`, formato `12-hour`/`24-hour` por defecto y persistido,
+  su aplicación a reloj, historial y selectores de hora, fuente `Local`/`Google Health`,
+  diálogo de fuente, estado de conexión, `Connect`/`Install`, `Import`/`Sync`/`Add`, primer
+  cambio con aviso de copia, permiso denegado, versión oculta si no está disponible,
+  página de licencias, semántica, migraciones v1→v2, v2→v3 y v3→v4, y layout a 360 dp con
+  texto al 200 %.
 - Health Connect: disponibilidad, permisos de sueño e historial, lectura/escritura,
   cola de pendientes, reintento idempotente, banner, sesiones omitidas, acciones de copia,
   deduplicación por UUID y horas exactas, fallo parcial, protección de filas locales,
@@ -1348,7 +1368,8 @@ dart run tool/generate_brand_assets.dart
   hora o borrar; las sesiones de otras apps y las copias descargadas abren una vista de
   solo lectura con la card de la app de origen. En `Google Health` solo se modifican los
   registros de Sleepy3.
-- Pantalla `Settings` con tema `System`/`Light`/`Dark` persistido, fuente de datos
+- Pantalla `Settings` con tema `System`/`Light`/`Dark` persistido, formato de hora
+  `12-hour`/`24-hour` persistido y aplicado a toda la app, fuente de datos
   `Local`/`Google Health`, estado de Google Health, acciones de copia y `About` con
   privacidad, versión y licencias.
 - Health Connect: permisos de sueño e historial, lectura y escritura, cola de pendientes,

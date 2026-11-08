@@ -8,7 +8,9 @@ import 'package:sleepy3/core/theme/sleepy3_theme.dart';
 import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
 import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
 import 'package:sleepy3/features/settings/application/theme_mode_controller.dart';
+import 'package:sleepy3/features/settings/application/time_format_controller.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
+import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
 
 import '../features/health/fakes.dart';
@@ -20,6 +22,7 @@ void main() {
     WidgetTester tester, {
     required AppThemeMode mode,
     required Brightness platformBrightness,
+    AppTimeFormat timeFormat = AppTimeFormat.twelveHour,
   }) async {
     tester.view.physicalSize = const Size(360, 800) * 3;
     tester.view.devicePixelRatio = 3;
@@ -43,6 +46,7 @@ void main() {
           healthSyncStoreProvider.overrideWithValue(FakeHealthSyncStore()),
           settingsStoreProvider.overrideWithValue(settingsStore),
           initialThemeModeProvider.overrideWithValue(mode),
+          initialTimeFormatProvider.overrideWithValue(timeFormat),
         ],
         child: Sleepy3App(splashStartSignal: Future<void>.value()),
       ),
@@ -54,6 +58,11 @@ void main() {
   Brightness appBrightness(WidgetTester tester) {
     final context = tester.element(find.byType(Sleepy3Shell));
     return Theme.of(context).brightness;
+  }
+
+  bool appUses24HourFormat(WidgetTester tester) {
+    final context = tester.element(find.byType(Sleepy3Shell));
+    return MediaQuery.alwaysUse24HourFormatOf(context);
   }
 
   testWidgets('system follows the platform brightness', (tester) async {
@@ -151,5 +160,39 @@ void main() {
 
     expect(appBrightness(tester), Brightness.light);
     expect(store.saves, [AppThemeMode.light]);
+  });
+
+  testWidgets('applies the saved 24-hour format to the app', (tester) async {
+    await pumpApp(
+      tester,
+      mode: AppThemeMode.light,
+      platformBrightness: Brightness.light,
+      timeFormat: AppTimeFormat.twentyFourHour,
+    );
+
+    expect(appUses24HourFormat(tester), isTrue);
+  });
+
+  testWidgets('changing the format rebuilds the app and persists it', (
+    tester,
+  ) async {
+    final store = await pumpApp(
+      tester,
+      mode: AppThemeMode.light,
+      platformBrightness: Brightness.light,
+    );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(Sleepy3Shell)),
+    );
+
+    expect(appUses24HourFormat(tester), isFalse);
+
+    await container
+        .read(timeFormatControllerProvider.notifier)
+        .setFormat(AppTimeFormat.twentyFourHour);
+    await tester.pumpAndSettle();
+
+    expect(appUses24HourFormat(tester), isTrue);
+    expect(store.timeFormatSaves, [AppTimeFormat.twentyFourHour]);
   });
 }

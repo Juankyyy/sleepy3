@@ -6,6 +6,7 @@ import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/settings/application/theme_mode_controller.dart';
 import 'package:sleepy3/features/settings/domain/app_night_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
+import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/settings/domain/settings_store.dart';
 
 import '../fakes.dart';
@@ -131,6 +132,12 @@ class _ControlledSettingsStore implements SettingsStore {
     pending.add(completer);
     return completer.future;
   }
+
+  @override
+  Future<AppTimeFormat?> loadTimeFormat() async => null;
+
+  @override
+  Future<void> saveTimeFormat(AppTimeFormat format) async {}
 
   @override
   Future<SleepDataSource> loadSleepDataSource() async => SleepDataSource.local;

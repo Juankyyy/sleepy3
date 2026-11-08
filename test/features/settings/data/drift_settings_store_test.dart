@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/settings/data/drift_settings_store.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
+import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/sleep_tracking/data/drift_sleep_session_store.dart';
 import 'package:sleepy3/features/sleep_tracking/data/sleepy3_database.dart';
 
@@ -53,6 +54,39 @@ void main() {
           );
 
       expect(await store.loadThemeMode(), AppThemeMode.system);
+    });
+
+    test('has no saved time format on an empty database', () async {
+      expect(await store.loadTimeFormat(), isNull);
+    });
+
+    test('round-trips every time format', () async {
+      for (final format in AppTimeFormat.values) {
+        await store.saveTimeFormat(format);
+        expect(await store.loadTimeFormat(), format);
+      }
+    });
+
+    test('stores the time format under time_format', () async {
+      await store.saveTimeFormat(AppTimeFormat.twentyFourHour);
+
+      final rows = await database.select(database.preferences).get();
+      expect(rows, hasLength(1));
+      expect(rows.single.settingKey, 'time_format');
+      expect(rows.single.settingValue, 'twentyFourHour');
+    });
+
+    test('returns null for an unknown stored time format', () async {
+      await database
+          .into(database.preferences)
+          .insert(
+            PreferencesCompanion.insert(
+              settingKey: 'time_format',
+              settingValue: 'military',
+            ),
+          );
+
+      expect(await store.loadTimeFormat(), isNull);
     });
 
     test('defaults to Local on an empty database', () async {

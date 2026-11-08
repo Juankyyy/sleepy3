@@ -1,6 +1,7 @@
 import '../../health/domain/sleep_data_source.dart';
 import '../../sleep_tracking/data/sleepy3_database.dart';
 import '../domain/app_theme_mode.dart';
+import '../domain/app_time_format.dart';
 import '../domain/settings_store.dart';
 
 /// Stores settings in the app's single Drift database.
@@ -10,6 +11,7 @@ class DriftSettingsStore implements SettingsStore {
   final Sleepy3Database _db;
 
   static const _themeModeKey = 'theme_mode';
+  static const _timeFormatKey = 'time_format';
   static const _sleepDataSourceKey = 'sleep_data_source';
 
   @override
@@ -20,6 +22,16 @@ class DriftSettingsStore implements SettingsStore {
   @override
   Future<void> saveThemeMode(AppThemeMode mode) {
     return _write(_themeModeKey, mode.name);
+  }
+
+  @override
+  Future<AppTimeFormat?> loadTimeFormat() async {
+    return AppTimeFormat.fromStorageValue(await _read(_timeFormatKey));
+  }
+
+  @override
+  Future<void> saveTimeFormat(AppTimeFormat format) {
+    return _write(_timeFormatKey, format.name);
   }
 
   @override

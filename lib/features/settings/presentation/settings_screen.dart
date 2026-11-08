@@ -6,11 +6,12 @@ import '../../../core/theme/sleepy3_theme.dart';
 import '../../health/application/sleep_data_source_controller.dart';
 import '../application/app_version_provider.dart';
 import '../application/theme_mode_controller.dart';
+import '../application/time_format_controller.dart';
 import 'widgets/about_list.dart';
+import 'widgets/appearance_settings.dart';
 import 'widgets/google_health_status_list.dart';
 import 'widgets/settings_section.dart';
 import 'widgets/sleep_data_source_setting.dart';
-import 'widgets/theme_setting.dart';
 
 /// The Settings destination: appearance, sleep data, Google Health and app info.
 class SettingsScreen extends ConsumerWidget {
@@ -23,6 +24,7 @@ class SettingsScreen extends ConsumerWidget {
     final margin = MediaQuery.sizeOf(context).width >= 600 ? 24.0 : 16.0;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final themeMode = ref.watch(themeModeControllerProvider);
+    final timeFormat = ref.watch(timeFormatControllerProvider);
     final dataSource = ref.watch(sleepDataSourceProvider);
     final appVersion = ref.watch(appVersionProvider);
 
@@ -48,7 +50,7 @@ class SettingsScreen extends ConsumerWidget {
         const SizedBox(height: 24),
         SettingsSection(
           title: 'Appearance',
-          child: ThemeSetting(mode: themeMode),
+          child: AppearanceSettings(mode: themeMode, timeFormat: timeFormat),
         ),
         const SizedBox(height: 24),
         SettingsSection(

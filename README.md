@@ -33,11 +33,11 @@ Sleepy3 runs on **Android 9 or newer**. Version **0.2.0** is the latest stable r
 
 1. Tap **Sleep** when you go to bed. The button becomes **Wake**, the header switches to a sleeping state and the clock keeps running.
 2. Tap **Wake** when you get up. Sleepy3 saves the night, the button returns to **Sleep** and shows how long you slept.
-3. Open **Stats** to review or fix your history, use the plus button to add a night you forgot to track, and **Settings** for the theme and Health Connect.
+3. Open **Stats** to review or fix your history, use the plus button to add a night you forgot to track, and **Settings** for the theme, the 12/24-hour clock and Health Connect.
 
 Use the floating glass dock at the bottom to move between **Home**, **Stats** and **Settings**; the selected destination shows its label, and the content stays visible behind the dock.
 
-Settings is split into **Appearance** (System, Light or Dark), **Sleep data** (Local or Google Health, and Import), **Google Health** (connection status, Sync and Add) and **About** (privacy, version and open-source licenses).
+Settings is split into **Appearance** (theme and 12/24-hour clock), **Sleep data** (Local or Google Health, and Import), **Google Health** (connection status, Sync and Add) and **About** (privacy, version and open-source licenses).
 
 The header always tells you what is happening:
 
@@ -48,7 +48,7 @@ The header always tells you what is happening:
 | Sleeping | `Sleeping since 10:30 PM` |
 | Just woke up | `Last session: 7h 45m` |
 
-Day is 07:00–18:59 and night is 19:00–06:59, in local time, and the clock follows your phone's 12- or 24-hour setting. Home shows only the action that matches your state: **Sleep** while you are awake and **Wake** while a night is open. After the action changes, Sleepy3 ignores taps for a moment so a double tap cannot close the session it just started.
+Day is 07:00–18:59 and night is 19:00–06:59, in local time. The clock, the session times and the time pickers use the `12-hour` or `24-hour` format chosen in Settings; until you choose one, Sleepy3 uses your phone's format and stores it. Home shows only the action that matches your state: **Sleep** while you are awake and **Wake** while a night is open. After the action changes, Sleepy3 ignores taps for a moment so a double tap cannot close the session it just started.
 
 Health Connect only accepts sleep sessions between 10 minutes and 24 hours. If a night falls outside that range, Sleepy3 asks first: you can keep sleeping, discard the session or move its start time.
 
@@ -89,7 +89,7 @@ Health Connect hides records older than 30 days unless you give Sleepy3 the hist
 
 ## Your data
 
-- Sessions, the theme and the data source are stored in a local database on your phone.
+- Sessions, the theme, the 12/24-hour clock and the data source are stored in a local database on your phone.
 - There is no account, no backend and no analytics. Nothing is sent to us.
 - Local mode works completely offline. Health Connect is optional, and denying permission never blocks local tracking.
 - Uninstalling Sleepy3 deletes the local database. If Android backup is enabled, the system may restore it when you reinstall.
@@ -169,10 +169,10 @@ lib/
     │   ├── application/   # source, history, history permission, sync, upload and copy
     │   └── presentation/  # copy dialogs, sync and history banners, source text
     └── settings/
-        ├── domain/        # theme mode, app version and store contract
+        ├── domain/        # theme mode, time format, app version and store contract
         ├── data/          # Drift settings store
-        ├── application/   # theme controller and providers
-        └── presentation/  # settings screen, theme dialog and about list
+        ├── application/   # theme and time format controllers, providers
+        └── presentation/  # settings screen, appearance dialogs and about list
 assets/
 ├── brand/             # logo sources, splash mark and launcher icon sources
 └── fonts/             # Space Grotesk, the instanced Google Sans Flex titles face, OFL licenses
@@ -181,7 +181,7 @@ android/
     └── MainActivity.kt    # native widget and platform bridges land here
 ```
 
-On launch, Sleepy3 opens the database, loads the open session, the saved theme, the selected data source and the installed version, then injects them into the Riverpod scope before the first frame. The closed history loads asynchronously from the selected source; a failed read falls back to an empty/default value instead of blocking startup.
+On launch, Sleepy3 opens the database, loads the open session, the saved theme, the 12/24-hour clock format, the selected data source and the installed version, then injects them into the Riverpod scope before the first frame. The closed history loads asynchronously from the selected source; a failed read falls back to an empty/default value instead of blocking startup.
 
 The controller is a Riverpod `Notifier`: it updates in-memory state first so the buttons answer instantly, then serializes the disk write behind it. The UI never reads the database directly, and the clock is injected, which keeps the domain logic testable.
 

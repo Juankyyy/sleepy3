@@ -12,9 +12,11 @@ import 'features/health/data/health_connect_gateway_impl.dart';
 import 'features/health/domain/sleep_data_source.dart';
 import 'features/settings/application/app_version_provider.dart';
 import 'features/settings/application/theme_mode_controller.dart';
+import 'features/settings/application/time_format_controller.dart';
 import 'features/settings/data/android_app_night_mode.dart';
 import 'features/settings/data/drift_settings_store.dart';
 import 'features/settings/domain/app_theme_mode.dart';
+import 'features/settings/domain/app_time_format.dart';
 import 'features/settings/domain/app_version.dart';
 import 'features/settings/domain/settings_store.dart';
 import 'features/sleep_tracking/application/sleep_tracking_controller.dart';
@@ -35,6 +37,7 @@ Future<void> main() async {
   final openSession = await _loadOpenSession(store);
   final themeMode = await _loadThemeMode(settingsStore);
   await const AndroidAppNightMode().setMode(themeMode);
+  final timeFormat = await _loadTimeFormat(settingsStore);
   final dataSource = await _loadSleepDataSource(settingsStore);
   final packageInfo = await _loadPackageInfo();
   final appVersion = _appVersionFrom(packageInfo);
@@ -48,6 +51,7 @@ Future<void> main() async {
         ),
         settingsStoreProvider.overrideWithValue(settingsStore),
         initialThemeModeProvider.overrideWithValue(themeMode),
+        initialTimeFormatProvider.overrideWithValue(timeFormat),
         healthConnectGatewayProvider.overrideWithValue(healthGateway),
         healthSyncStoreProvider.overrideWithValue(healthSyncStore),
         initialSleepDataSourceProvider.overrideWithValue(dataSource),
@@ -100,6 +104,30 @@ Future<AppThemeMode> _loadThemeMode(SettingsStore store) async {
     debugPrint('Sleepy3: could not load theme: $error\n$stackTrace');
     return AppThemeMode.system;
   }
+}
+
+Future<AppTimeFormat> _loadTimeFormat(SettingsStore store) async {
+  try {
+    final saved = await store.loadTimeFormat();
+    if (saved != null) return saved;
+  } catch (error, stackTrace) {
+    debugPrint('Sleepy3: could not load the time format: $error\n$stackTrace');
+  }
+
+  // The setting has no System option: fix the phone's current format on the
+  // first launch so later system changes do not silently alter the app.
+  final fallback = AppTimeFormat.forSystem(
+    WidgetsBinding.instance.platformDispatcher.alwaysUse24HourFormat,
+  );
+  try {
+    await store.saveTimeFormat(fallback);
+  } catch (error, stackTrace) {
+    debugPrint(
+      'Sleepy3: could not persist the initial time format: '
+      '$error\n$stackTrace',
+    );
+  }
+  return fallback;
 }
 
 Future<SleepDataSource> _loadSleepDataSource(SettingsStore store) async {

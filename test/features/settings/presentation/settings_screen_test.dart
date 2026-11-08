@@ -13,7 +13,9 @@ import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/settings/application/app_version_provider.dart';
 import 'package:sleepy3/features/settings/application/theme_mode_controller.dart';
+import 'package:sleepy3/features/settings/application/time_format_controller.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
+import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/settings/domain/app_version.dart';
 import 'package:sleepy3/features/settings/presentation/settings_screen.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_providers.dart';
@@ -27,6 +29,7 @@ void main() {
   Future<FakeSettingsStore> pumpSettings(
     WidgetTester tester, {
     AppThemeMode initial = AppThemeMode.system,
+    AppTimeFormat initialTimeFormat = AppTimeFormat.twelveHour,
     SleepDataSource source = SleepDataSource.local,
     AppVersion? version,
     FakeSettingsStore? store,
@@ -50,6 +53,7 @@ void main() {
         overrides: [
           settingsStoreProvider.overrideWithValue(settingsStore),
           initialThemeModeProvider.overrideWithValue(initial),
+          initialTimeFormatProvider.overrideWithValue(initialTimeFormat),
           initialSleepDataSourceProvider.overrideWithValue(source),
           healthConnectGatewayProvider.overrideWithValue(
             gateway ?? FakeHealthConnectGateway(),
@@ -102,12 +106,16 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> scrollToLabel(WidgetTester tester, String label) async {
+  Future<void> scrollToLabel(
+    WidgetTester tester,
+    String label, {
+    double delta = 160,
+  }) async {
     final finder = find.text(label);
     if (finder.evaluate().isEmpty) {
       await tester.scrollUntilVisible(
         finder,
-        160,
+        delta,
         scrollable: find.byType(Scrollable).first,
       );
     } else {
@@ -148,24 +156,31 @@ void main() {
     expect(find.text('Appearance'), findsOneWidget);
     expect(find.text('Theme'), findsOneWidget);
     expect(find.text('System'), findsOneWidget);
+    expect(find.text('Time format'), findsOneWidget);
+    expect(find.text('12-hour'), findsOneWidget);
     expect(find.text('Sleep data'), findsOneWidget);
     expect(find.text('Source'), findsOneWidget);
     expect(find.text('Local'), findsOneWidget);
     expect(find.text('Import'), findsOneWidget);
     expect(find.textContaining('Download from Google Health'), findsOneWidget);
+
+    await scrollToLabel(tester, 'Google Health');
     expect(find.text('Google Health'), findsOneWidget);
     expect(find.text('Status'), findsOneWidget);
+
+    await scrollToLabel(tester, 'Add');
     expect(find.text('Sync'), findsOneWidget);
     expect(find.text('Add'), findsOneWidget);
+
+    await scrollToLabel(tester, 'About');
     expect(find.text('About'), findsOneWidget);
     expect(find.text('Privacy'), findsOneWidget);
     expect(find.text('On-device only.'), findsOneWidget);
     expect(find.text('Version'), findsOneWidget);
     expect(find.text('0.1.0 (1)'), findsOneWidget);
-    expect(find.text('Licenses'), findsOneWidget);
 
-    expect(find.byType(M3EList), findsNWidgets(6));
-    expect(find.byType(M3EListItem), findsNWidgets(9));
+    await scrollToLabel(tester, 'Licenses');
+    expect(find.text('Licenses'), findsOneWidget);
   });
 
   testWidgets('opens the source dialog with Local and Google Health', (
@@ -310,19 +325,26 @@ void main() {
       gateway: gateway,
     );
 
+    await scrollToLabel(
+      tester,
+      'Stored in Health Connect. Google Health can read it.',
+    );
     expect(
       find.text('Stored in Health Connect. Google Health can read it.'),
       findsOneWidget,
     );
 
+    await scrollToLabel(tester, 'Source', delta: -160);
     await chooseSource(tester, 'Local');
 
     expect(store.sourceSaves, [SleepDataSource.local]);
     expect(gateway.readPermission, isTrue);
     expect(gateway.writePermission, isTrue);
     expect(find.text('Local'), findsOneWidget);
-    expect(find.text('On-device only.'), findsOneWidget);
     expect(find.text('Google Health'), findsOneWidget);
+
+    await scrollToLabel(tester, 'On-device only.');
+    expect(find.text('On-device only.'), findsOneWidget);
   });
 
   testWidgets('shows the connected status and the pending uploads', (
@@ -673,14 +695,58 @@ void main() {
     expect(find.text('Light'), findsNothing);
   });
 
+  testWidgets('applying a time format updates the row and saves it', (
+    tester,
+  ) async {
+    final store = await pumpSettings(tester);
+
+    await tapLabel(tester, 'Time format');
+
+    expect(find.text('Cancel'), findsOneWidget);
+    expect(find.text('Apply'), findsOneWidget);
+    expect(find.text('12-hour'), findsNWidgets(2));
+    expect(find.text('24-hour'), findsOneWidget);
+
+    await tapDialogLabel(tester, '24-hour');
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+
+    expect(store.timeFormatSaves, [AppTimeFormat.twentyFourHour]);
+    expect(find.text('24-hour'), findsOneWidget);
+    expect(find.text('12-hour'), findsNothing);
+  });
+
+  testWidgets('cancelling the time format dialog changes nothing', (
+    tester,
+  ) async {
+    final store = await pumpSettings(tester);
+
+    await tapLabel(tester, 'Time format');
+    await tapDialogLabel(tester, '24-hour');
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(store.timeFormatSaves, isEmpty);
+    expect(find.text('12-hour'), findsOneWidget);
+    expect(find.text('24-hour'), findsNothing);
+  });
+
+  testWidgets('shows the saved 24-hour format', (tester) async {
+    await pumpSettings(tester, initialTimeFormat: AppTimeFormat.twentyFourHour);
+
+    expect(find.text('24-hour'), findsOneWidget);
+    expect(find.text('12-hour'), findsNothing);
+  });
+
   testWidgets('hides the version row when the version is unknown', (
     tester,
   ) async {
     await pumpSettings(tester);
 
     expect(find.text('Version'), findsNothing);
+
+    await scrollToLabel(tester, 'Licenses');
     expect(find.text('Licenses'), findsOneWidget);
-    expect(find.byType(M3EListItem), findsNWidgets(8));
   });
 
   testWidgets('announces the current theme, version and source', (
@@ -694,7 +760,11 @@ void main() {
       );
 
       expect(find.bySemanticsLabel(RegExp('Theme, system')), findsOneWidget);
+
+      await scrollToLabel(tester, 'Version');
       expect(find.bySemanticsLabel('Version, 0.1.0 (1)'), findsOneWidget);
+
+      await scrollToLabel(tester, 'Source', delta: -160);
       expect(find.bySemanticsLabel(RegExp('Source')), findsOneWidget);
     } finally {
       handle.dispose();

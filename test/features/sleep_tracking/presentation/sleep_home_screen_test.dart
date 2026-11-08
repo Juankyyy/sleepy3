@@ -11,6 +11,8 @@ import 'package:sleepy3/features/health/application/health_sync_store_provider.d
 import 'package:sleepy3/features/health/application/sleep_data_source_controller.dart';
 import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
+import 'package:sleepy3/features/settings/application/settings_providers.dart';
+import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
@@ -34,32 +36,25 @@ void main() {
   }) async {
     final sleepStore = store ?? FakeSleepSessionStore(snapshot: initial);
     await tester.pumpWidget(
-      Builder(
-        builder: (context) {
-          // The View's MediaQuery does not rebuild when the test dispatcher's
-          // alwaysUse24HourFormatTestValue changes, so override it directly.
-          return MediaQuery(
-            data: MediaQuery.of(context)
-                .copyWith(alwaysUse24HourFormat: use24HourFormat),
-            child: ProviderScope(
-              overrides: [
-                sleepClockProvider.overrideWithValue(clock),
-                sleepSessionStoreProvider.overrideWithValue(sleepStore),
-                initialSleepSnapshotProvider.overrideWithValue(
-                  SleepSnapshot(openSession: initial.openSession),
-                ),
-                initialSleepDataSourceProvider.overrideWithValue(source),
-                healthConnectGatewayProvider.overrideWithValue(
-                  gateway ?? FakeHealthConnectGateway(),
-                ),
-                healthSyncStoreProvider.overrideWithValue(
-                  healthSyncStore ?? FakeHealthSyncStore(),
-                ),
-              ],
-              child: Sleepy3App(splashStartSignal: Future<void>.value()),
-            ),
-          );
-        },
+      ProviderScope(
+        overrides: [
+          sleepClockProvider.overrideWithValue(clock),
+          sleepSessionStoreProvider.overrideWithValue(sleepStore),
+          initialSleepSnapshotProvider.overrideWithValue(
+            SleepSnapshot(openSession: initial.openSession),
+          ),
+          initialTimeFormatProvider.overrideWithValue(
+            AppTimeFormat.forSystem(use24HourFormat),
+          ),
+          initialSleepDataSourceProvider.overrideWithValue(source),
+          healthConnectGatewayProvider.overrideWithValue(
+            gateway ?? FakeHealthConnectGateway(),
+          ),
+          healthSyncStoreProvider.overrideWithValue(
+            healthSyncStore ?? FakeHealthSyncStore(),
+          ),
+        ],
+        child: Sleepy3App(splashStartSignal: Future<void>.value()),
       ),
     );
     if (settle) {
@@ -357,7 +352,7 @@ void main() {
     expect(find.text('No active session'), findsOneWidget);
   });
 
-  testWidgets('uses the system 24-hour format', (tester) async {
+  testWidgets('uses the saved 24-hour format', (tester) async {
     await pumpHome(
       tester,
       clock: () => DateTime(2026, 10, 20, 22, 30),

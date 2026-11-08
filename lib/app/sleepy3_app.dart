@@ -10,6 +10,7 @@ import '../features/health/application/health_sync_controller.dart';
 import '../features/health/application/sleep_data_source_controller.dart';
 import '../features/health/domain/sleep_data_source.dart';
 import '../features/settings/application/theme_mode_controller.dart';
+import '../features/settings/application/time_format_controller.dart';
 import '../features/settings/domain/app_theme_mode.dart';
 import '../features/sleep_tracking/application/sleep_tracking_controller.dart';
 import 'sleepy3_shell.dart';
@@ -104,27 +105,35 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
   @override
   Widget build(BuildContext context) {
     final mode = ref.watch(themeModeControllerProvider);
+    final timeFormat = ref.watch(timeFormatControllerProvider);
     final platformBrightness =
         WidgetsBinding.instance.platformDispatcher.platformBrightness;
     final data = Sleepy3Theme.forBrightness(
       mode.resolveBrightness(platformBrightness),
     );
 
-    return M3EMaterialApp(
-      title: 'Sleepy3',
-      data: data,
-      theme: data.toThemeData(),
-      darkTheme: data.toThemeData(),
-      autoTheming: false,
-      dynamicColoring: false,
-      drawUnderSystemBars: true,
-      locale: const Locale('en', 'US'),
-      localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      supportedLocales: const [Locale('en', 'US')],
-      home: SplashGate(
-        startSignal: widget.splashStartSignal,
-        onFinished: () => unawaited(_retryPendingUploads()),
-        child: const Sleepy3Shell(),
+    // Every time in the app already reads MediaQuery.alwaysUse24HourFormat,
+    // including M3ETimePicker. Overriding it here keeps the clock, the history
+    // times and the pickers on the same 12/24-hour choice.
+    return MediaQuery(
+      data: MediaQuery.of(context)
+          .copyWith(alwaysUse24HourFormat: timeFormat.uses24HourFormat),
+      child: M3EMaterialApp(
+        title: 'Sleepy3',
+        data: data,
+        theme: data.toThemeData(),
+        darkTheme: data.toThemeData(),
+        autoTheming: false,
+        dynamicColoring: false,
+        drawUnderSystemBars: true,
+        locale: const Locale('en', 'US'),
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        supportedLocales: const [Locale('en', 'US')],
+        home: SplashGate(
+          startSignal: widget.splashStartSignal,
+          onFinished: () => unawaited(_retryPendingUploads()),
+          child: const Sleepy3Shell(),
+        ),
       ),
     );
   }
