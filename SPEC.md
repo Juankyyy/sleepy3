@@ -3,7 +3,7 @@
 **Proyecto:** Sleepy3
 **Plataforma:** Android
 **Stack principal:** Flutter + Material 3 Expressive
-**Estado:** v0.2.0, última release estable (sin widget). Home (con una sola acción
+**Estado:** v0.2.1, última release estable (sin widget). Home (con una sola acción
 contextual), Stats (historial tonal con marcas de objetivo animadas, pull-to-refresh, alta
 manual, edición y borrado de sesiones y detalles de solo lectura para registros de otras
 apps), Settings, la persistencia local y Health Connect (Local/Google Health) funcionan. El
@@ -114,7 +114,7 @@ ci(release): publish the APK
 - Después de publicar, aplicar notas y título con:
 
 ```bash
-dart run tool/apply_release_notes.dart v0.2.0
+dart run tool/apply_release_notes.dart v0.2.1
 ```
 
   El script lee el título de la primera línea y ejecuta `gh release edit`; no toca el APK.
@@ -1093,7 +1093,7 @@ splash.
   rellena el paquete de origen de una copia descargada sin tocar sus horas.
 - `SettingsStore` es la interfaz de preferencias y `DriftSettingsStore` su implementación.
   Usa la tabla `preferences` de la misma base; no hay `shared_preferences`. Guarda
-  `theme_mode`, `time_format` y `sleep_data_source`.
+  `theme_mode`, `time_format`, `language` y `sleep_data_source`.
 - Los tests usan `FakeSleepSessionStore`, `FakeSettingsStore`, `FakeHealthConnectGateway`,
   `FakeHealthSyncStore` o una base Drift en memoria.
 
@@ -1421,7 +1421,8 @@ dart run tool/generate_brand_assets.dart
   nueva y los detalles de solo lectura; la 0.1.7 añade el historial tonal, las marcas de
   objetivo y el panel de sesión; la 0.2.0 añade la acción única en Home, el pull-to-refresh,
   el alta manual, la animación de la marca de objetivo y la propiedad por build en Health
-  Connect. Ninguna incluye el widget.
+  Connect; la 0.2.1 añade la interfaz en inglés y español y el formato de hora 12/24.
+  Ninguna incluye el widget.
 - Tests de estado, persistencia y UI.
 
 ### Siguiente
