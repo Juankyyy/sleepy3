@@ -3,10 +3,11 @@
 **Proyecto:** Sleepy3
 **Plataforma:** Android
 **Stack principal:** Flutter + Material 3 Expressive
-**Estado:** v0.1.7, última release estable (sin widget). Home, Stats (historial tonal con
-marcas de objetivo, edición y borrado de sesiones y detalles de solo lectura para registros
-de otras apps), Settings, la persistencia local y Health Connect (Local/Google Health)
-funcionan. El widget de pantalla de inicio es el siguiente bloque (0.2.0).
+**Estado:** v0.2.0, última release estable (sin widget). Home (con una sola acción
+contextual), Stats (historial tonal con marcas de objetivo animadas, pull-to-refresh, alta
+manual, edición y borrado de sesiones y detalles de solo lectura para registros de otras
+apps), Settings, la persistencia local y Health Connect (Local/Google Health) funcionan. El
+widget de pantalla de inicio es el siguiente bloque (0.3.0).
 
 ---
 
@@ -110,7 +111,7 @@ ci(release): publish the APK
 - Después de publicar, aplicar notas y título con:
 
 ```bash
-dart run tool/apply_release_notes.dart v0.1.7
+dart run tool/apply_release_notes.dart v0.2.0
 ```
 
   El script lee el título de la primera línea y ejecuta `gh release edit`; no toca el APK.
@@ -510,7 +511,7 @@ Reglas:
 - El modo de tema y la fuente de datos se guardan en la tabla `preferences` de la misma
   base Drift; no se usa `shared_preferences`.
 
-### 3.5 Widget de pantalla de inicio (0.2.0)
+### 3.5 Widget de pantalla de inicio (0.3.0)
 
 - Dos acciones: **Sleep** y **Wake**.
 - El toque registra la hora sin abrir la app.
@@ -941,7 +942,7 @@ lib/
     │   ├── data/           # Health Connect gateway and Drift sync store
     │   ├── application/    # source, history, history-permission, sync, upload and copy
     │   └── presentation/   # copy dialogs, sync and history banners, source text
-    └── widget/             # 0.2.0
+    └── widget/             # 0.3.0
 assets/
 ├── brand/                 # fuentes del logo, marca del splash e iconos generados
 └── fonts/                 # Space Grotesk, Google Sans Flex para títulos y licencias OFL
@@ -1158,7 +1159,7 @@ dart run build_runner build
 
 ---
 
-## 8. Widget de pantalla de inicio (0.2.0)
+## 8. Widget de pantalla de inicio (0.3.0)
 
 - Implementación nativa con Jetpack Glance y `RemoteViews`; no usa el engine de Flutter.
 - Dos acciones: Sleep/Wake.
@@ -1363,12 +1364,14 @@ dart run tool/generate_brand_assets.dart
   Google Health, incluida la edición y el borrado de sesiones.
 - Primera release estable 0.1.0, sin widget. La 0.1.6 añade el dock glass, la tipografía
   nueva y los detalles de solo lectura; la 0.1.7 añade el historial tonal, las marcas de
-  objetivo y el panel de sesión. Ninguna incluye el widget.
+  objetivo y el panel de sesión; la 0.2.0 añade la acción única en Home, el pull-to-refresh,
+  el alta manual, la animación de la marca de objetivo y la propiedad por build en Health
+  Connect. Ninguna incluye el widget.
 - Tests de estado, persistencia y UI.
 
 ### Siguiente
 
-1. Widget de pantalla de inicio con Glance y `home_widget` (0.2.0).
+1. Widget de pantalla de inicio con Glance y `home_widget` (0.3.0).
 2. Pulido de motion y accesibilidad.
 
 ---
