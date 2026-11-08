@@ -1,4 +1,5 @@
 import '../../health/domain/sleep_data_source.dart';
+import '../../reminders/domain/sleep_reminder.dart';
 import 'app_language.dart';
 import 'app_theme_mode.dart';
 import 'app_time_format.dart';
@@ -23,4 +24,9 @@ abstract interface class SettingsStore {
   Future<SleepDataSource> loadSleepDataSource();
 
   Future<void> saveSleepDataSource(SleepDataSource source);
+
+  /// The nightly reminder preference, defaulting to disabled at 22:00.
+  Future<SleepReminder> loadSleepReminder();
+
+  Future<void> saveSleepReminder(SleepReminder reminder);
 }

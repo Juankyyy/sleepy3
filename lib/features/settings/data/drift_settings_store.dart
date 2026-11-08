@@ -1,4 +1,5 @@
 import '../../health/domain/sleep_data_source.dart';
+import '../../reminders/domain/sleep_reminder.dart';
 import '../../sleep_tracking/data/sleepy3_database.dart';
 import '../domain/app_language.dart';
 import '../domain/app_theme_mode.dart';
@@ -15,6 +16,8 @@ class DriftSettingsStore implements SettingsStore {
   static const _timeFormatKey = 'time_format';
   static const _languageKey = 'language';
   static const _sleepDataSourceKey = 'sleep_data_source';
+  static const _sleepReminderEnabledKey = 'sleep_reminder_enabled';
+  static const _sleepReminderTimeKey = 'sleep_reminder_time';
 
   @override
   Future<AppThemeMode> loadThemeMode() async {
@@ -54,6 +57,23 @@ class DriftSettingsStore implements SettingsStore {
   @override
   Future<void> saveSleepDataSource(SleepDataSource source) {
     return _write(_sleepDataSourceKey, source.storageValue);
+  }
+
+  @override
+  Future<SleepReminder> loadSleepReminder() async {
+    final enabled = await _read(_sleepReminderEnabledKey);
+    final time = parseReminderTime(await _read(_sleepReminderTimeKey));
+    return SleepReminder(
+      enabled: enabled == 'true',
+      hour: time?.hour ?? SleepReminder.defaults.hour,
+      minute: time?.minute ?? SleepReminder.defaults.minute,
+    );
+  }
+
+  @override
+  Future<void> saveSleepReminder(SleepReminder reminder) async {
+    await _write(_sleepReminderEnabledKey, reminder.enabled.toString());
+    await _write(_sleepReminderTimeKey, reminder.storageValue);
   }
 
   Future<String?> _read(String key) async {

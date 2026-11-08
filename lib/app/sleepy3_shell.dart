@@ -1,6 +1,8 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../features/reminders/application/reminder_providers.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/sleep_tracking/presentation/sleep_home_screen.dart';
 import '../features/stats/presentation/stats_screen.dart';
@@ -16,14 +18,14 @@ import 'navigation/sleepy3_destination.dart';
 /// built they stay alive, so switching tabs preserves each screen's state and
 /// scroll position. From a secondary tab the system back gesture returns to
 /// Home instead of leaving the app.
-class Sleepy3Shell extends StatefulWidget {
+class Sleepy3Shell extends ConsumerStatefulWidget {
   const Sleepy3Shell({super.key});
 
   @override
-  State<Sleepy3Shell> createState() => _Sleepy3ShellState();
+  ConsumerState<Sleepy3Shell> createState() => _Sleepy3ShellState();
 }
 
-class _Sleepy3ShellState extends State<Sleepy3Shell> {
+class _Sleepy3ShellState extends ConsumerState<Sleepy3Shell> {
   static const _homeIndex = 0;
   static const _statsIndex = 1;
 
@@ -43,6 +45,11 @@ class _Sleepy3ShellState extends State<Sleepy3Shell> {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
     final l10n = context.l10n;
+
+    ref.listen(reminderHomeRequestProvider, (previous, next) {
+      if (previous == next) return;
+      _selectDestination(_homeIndex);
+    });
 
     return PopScope<Object?>(
       canPop: _selectedIndex == _homeIndex,

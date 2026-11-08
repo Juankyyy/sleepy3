@@ -3,8 +3,8 @@
 ## Project
 
 Sleepy3 is a Flutter Android app for zero-friction sleep tracking: one large action button
-that switches between Sleep and Wake, a home-screen widget, local session history, and
-Health Connect as an optional data source.
+that switches between Sleep and Wake, an optional nightly reminder, a home-screen widget,
+local session history, and Health Connect as an optional data source.
 
 - Flutter stable 3.47.x / Dart 3.13.x, Android only, `minSdk` 28.
 - The previous native Android prototype is archived at Git tag
@@ -17,8 +17,9 @@ Health Connect as an optional data source.
   single contextual Sleep/Wake action on Home, the sleep state machine, Drift persistence,
   Stats history with tonal cards, pull-to-refresh, goal marks and their animation, the
   session panel, manual session entry from the Stats FAB, session editing/deleting and
-  read-only details for other apps' records, Settings (theme, 12/24-hour time and English /
-  Español language), Health Connect (Local/Google Health, pending uploads, copy actions,
+  read-only details for other apps' records, Settings (theme, 12/24-hour time, English /
+  Español language and the optional nightly reminder), Health Connect (Local/Google
+  Health, pending uploads, copy actions,
   full history access and per-build record ownership), the glass dock, the Space Grotesk /
   Google Sans Flex type, the branded launcher icon and splash, and the manual release
   workflow (`minor`, `patch`, `exact`) work. The Glance widget is the next milestone
@@ -59,6 +60,7 @@ lib/
     ├── stats/           # presentation
     ├── settings/        # theme, app version, about and preferences
     ├── health/          # sources, Health Connect gateway, sync, copy, history access
+    ├── reminders/       # nightly local notification, scheduler and Settings section
     └── widget/          # home_widget bridge and pending events
 ```
 
@@ -100,6 +102,14 @@ lib/
   language is stored in `preferences` under `language`; there is no visible `System`
   option: on first launch the device language is resolved and stored, matching the
   12/24-hour preference.
+- Reminder: `lib/features/reminders/` owns the optional nightly local notification.
+  `SleepReminderController` serializes permission, scheduling and cancellation;
+  `Sleepy3App` syncs it on launch, resume, Sleep/Wake changes and language changes.
+  A sleeping session pauses the reminder, waking re-arms it, and tapping the notification
+  returns to Home. `flutter_local_notifications` is pinned to 22.3.3 (23 needs
+  `compileSdk` 37); it uses `inexactAllowWhileIdle`, so do not add exact-alarm permissions
+  without a product decision. The reminder preference lives in `preferences` as
+  `sleep_reminder_enabled` and `sleep_reminder_time`; no schema migration is needed.
 - Sleep data source: `Local` (default) reads only Drift; `Google Health` reads all
   `SLEEP_SESSION` records from Health Connect. Never mix the two lists. The open
   session and every finished session are always written locally first as a safety copy.

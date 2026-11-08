@@ -9,6 +9,7 @@ import '../features/health/application/health_history_permission_controller.dart
 import '../features/health/application/health_sync_controller.dart';
 import '../features/health/application/sleep_data_source_controller.dart';
 import '../features/health/domain/sleep_data_source.dart';
+import '../features/reminders/application/sleep_reminder_controller.dart';
 import '../features/settings/application/language_controller.dart';
 import '../features/settings/application/theme_mode_controller.dart';
 import '../features/settings/application/time_format_controller.dart';
@@ -41,13 +42,28 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    unawaited(_syncSleepReminder());
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       unawaited(_retryPendingUploads());
+      unawaited(_syncSleepReminder());
     }
+  }
+
+  /// Keeps the scheduled reminder aligned with the current state.
+  ///
+  /// A sleeping session pauses it; app start, resume and a language change
+  /// re-arm it with the current copy.
+  Future<void> _syncSleepReminder({bool? isSleeping}) async {
+    if (!mounted) return;
+    final sleeping =
+        isSleeping ?? ref.read(sleepTrackingControllerProvider).isSleeping;
+    await ref
+        .read(sleepReminderControllerProvider.notifier)
+        .sync(isSleeping: sleeping);
   }
 
   /// Retries failed Health Connect uploads when the app opens or comes back.
@@ -114,6 +130,21 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
     final data = Sleepy3Theme.forBrightness(
       mode.resolveBrightness(platformBrightness),
     );
+
+    // A sleep session pauses the reminder; waking or changing the language
+    // re-arms it from the root so the feature stays independent from the
+    // Sleep/Wake controller.
+    ref.listen(sleepTrackingControllerProvider.select((s) => s.isSleeping), (
+      previous,
+      isSleeping,
+    ) {
+      if (previous == isSleeping) return;
+      unawaited(_syncSleepReminder(isSleeping: isSleeping));
+    });
+    ref.listen(languageControllerProvider, (previous, next) {
+      if (previous == next) return;
+      unawaited(_syncSleepReminder());
+    });
 
     // Every time in the app already reads MediaQuery.alwaysUse24HourFormat,
     // including M3ETimePicker. Overriding it here keeps the clock, the history

@@ -1,3 +1,5 @@
+import 'dart:ui' show Tristate;
+
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +14,8 @@ import 'package:sleepy3/features/health/application/sleep_data_source_controller
 import 'package:sleepy3/features/health/domain/health_connect_gateway.dart';
 import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
+import 'package:sleepy3/features/reminders/application/sleep_reminder_controller.dart';
+import 'package:sleepy3/features/reminders/domain/sleep_reminder.dart';
 import 'package:sleepy3/features/settings/application/app_version_provider.dart';
 import 'package:sleepy3/features/settings/application/language_controller.dart';
 import 'package:sleepy3/features/settings/domain/app_language.dart';
@@ -24,6 +28,7 @@ import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/l10n/l10n.dart';
 
 import '../../health/fakes.dart';
+import '../../reminders/fakes.dart';
 import '../fakes.dart';
 import '../../sleep_tracking/fakes.dart';
 
@@ -44,10 +49,12 @@ void main() {
     AppTimeFormat initialTimeFormat = AppTimeFormat.twelveHour,
     AppLanguage initialLanguage = AppLanguage.english,
     SleepDataSource source = SleepDataSource.local,
+    SleepReminder initialReminder = SleepReminder.defaults,
     AppVersion? version,
     FakeSettingsStore? store,
     FakeHealthConnectGateway? gateway,
     FakeHealthSyncStore? healthSyncStore,
+    FakeSleepReminderScheduler? reminderScheduler,
     double textScale = 1,
     Size size = const Size(360, 800),
   }) async {
@@ -69,6 +76,10 @@ void main() {
           initialTimeFormatProvider.overrideWithValue(initialTimeFormat),
           initialLanguageProvider.overrideWithValue(initialLanguage),
           initialSleepDataSourceProvider.overrideWithValue(source),
+          initialSleepReminderProvider.overrideWithValue(initialReminder),
+          sleepReminderSchedulerProvider.overrideWithValue(
+            reminderScheduler ?? FakeSleepReminderScheduler(),
+          ),
           healthConnectGatewayProvider.overrideWithValue(
             gateway ?? FakeHealthConnectGateway(),
           ),
@@ -171,8 +182,14 @@ void main() {
     final title = tester.widget<Text>(find.text('Settings'));
     expect(title.style?.fontFamily, Sleepy3Theme.brandFontFamily);
     expect(title.style?.fontVariations!.single.value, 28);
-    expect(find.text('Theme, sleep data and app info.'), findsOneWidget);
+    expect(
+      find.text('Theme, reminders, sleep data and app info.'),
+      findsOneWidget,
+    );
     expect(find.text('Appearance'), findsOneWidget);
+    expect(find.text('Reminders'), findsOneWidget);
+    expect(find.text('Sleep reminder'), findsOneWidget);
+    expect(find.text('Off'), findsOneWidget);
     expect(find.text('Theme'), findsOneWidget);
     expect(find.text('System'), findsOneWidget);
     expect(find.text('Time format'), findsOneWidget);
@@ -202,6 +219,140 @@ void main() {
 
     await scrollToLabel(tester, 'Licenses');
     expect(find.text('Licenses'), findsOneWidget);
+  });
+
+  testWidgets('announces the sleep reminder as a switch', (tester) async {
+    final handle = tester.ensureSemantics();
+    try {
+      await pumpSettings(tester);
+
+      final node = tester.getSemantics(find.bySemanticsLabel('Sleep reminder'));
+      final data = node.getSemanticsData();
+
+      expect(data.flagsCollection.isToggled, Tristate.isFalse);
+    } finally {
+      handle.dispose();
+    }
+  });
+
+  testWidgets(
+    'enabling the sleep reminder requests permission and schedules it',
+    (tester) async {
+      final scheduler = FakeSleepReminderScheduler();
+      final store = await pumpSettings(tester, reminderScheduler: scheduler);
+
+      await tapLabel(tester, 'Sleep reminder');
+
+      expect(scheduler.permissionRequests, 1);
+      expect(scheduler.scheduled, hasLength(1));
+      expect(
+        scheduler.scheduled.single.reminder,
+        const SleepReminder(enabled: true, hour: 22, minute: 0),
+      );
+      expect(store.reminderSaves.single.enabled, isTrue);
+      expect(tester.widget<M3ESwitch>(find.byType(M3ESwitch)).value, isTrue);
+      expect(find.text('Every day at 10:00 PM'), findsOneWidget);
+      expect(find.text('Reminder time'), findsOneWidget);
+      expect(find.text('10:00 PM'), findsOneWidget);
+    },
+  );
+
+  testWidgets('denied notification permission keeps the reminder off', (
+    tester,
+  ) async {
+    final scheduler = FakeSleepReminderScheduler(permissionGranted: false);
+    final store = await pumpSettings(tester, reminderScheduler: scheduler);
+
+    await tapLabel(tester, 'Sleep reminder');
+
+    expect(tester.widget<M3ESwitch>(find.byType(M3ESwitch)).value, isFalse);
+    expect(scheduler.scheduled, isEmpty);
+    expect(store.reminderSaves, isEmpty);
+    expect(
+      find.text('Allow notifications to get the sleep reminder.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Open settings'));
+    await tester.pumpAndSettle();
+
+    expect(scheduler.openSettingsCalls, 1);
+  });
+
+  testWidgets('shows a warning when Android blocks notifications', (
+    tester,
+  ) async {
+    final scheduler = FakeSleepReminderScheduler(
+      notificationsAreEnabled: false,
+    );
+    await pumpSettings(
+      tester,
+      initialReminder: const SleepReminder(enabled: true, hour: 22, minute: 0),
+      reminderScheduler: scheduler,
+    );
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(SettingsScreen)),
+    );
+    await container
+        .read(sleepReminderControllerProvider.notifier)
+        .sync(isSleeping: false);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Notifications are off'), findsOneWidget);
+    expect(
+      find.text('Allow Sleepy3 to send the notification.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('reminder details fit at 200% text in Spanish', (tester) async {
+    final scheduler = FakeSleepReminderScheduler(
+      notificationsAreEnabled: false,
+    );
+    await pumpSettings(
+      tester,
+      initialLanguage: AppLanguage.spanish,
+      initialReminder: const SleepReminder(enabled: true, hour: 22, minute: 0),
+      reminderScheduler: scheduler,
+      textScale: 2,
+    );
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(SettingsScreen)),
+    );
+    await container
+        .read(sleepReminderControllerProvider.notifier)
+        .sync(isSleeping: false);
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    for (final finder in [
+      find.text('Aviso de sueño'),
+      find.textContaining('Todos los días'),
+      find.text('Hora del recordatorio'),
+      find.textContaining('10:00'),
+      find.text('Las notificaciones están desactivadas'),
+      find.text('Permite que Sleepy3 envíe la notificación.'),
+    ]) {
+      final paragraph = tester.renderObject<RenderParagraph>(finder.first);
+      expect(paragraph.didExceedMaxLines, isFalse, reason: finder.toString());
+    }
+  });
+
+  testWidgets('the reminder time row opens the time picker', (tester) async {
+    await pumpSettings(
+      tester,
+      initialReminder: const SleepReminder(enabled: true, hour: 22, minute: 0),
+    );
+
+    await tapLabel(tester, 'Reminder time');
+
+    expect(find.text('OK'), findsOneWidget);
+    expect(find.text('Cancel'), findsOneWidget);
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('opens the source dialog with Local and Google Health', (
@@ -812,6 +963,9 @@ void main() {
       '12 horas',
       'Idioma',
       'Español',
+      'Recordatorios',
+      'Aviso de sueño',
+      'Desactivado',
       'Datos de sueño',
       'Fuente',
       'Local',
@@ -923,6 +1077,9 @@ void main() {
       'System',
       'Language',
       'English',
+      'Reminders',
+      'Sleep reminder',
+      'Off',
       'Sleep data',
       'Source',
       'Local',

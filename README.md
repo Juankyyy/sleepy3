@@ -15,8 +15,9 @@
 ## Why Sleepy3
 
 - **Two taps.** One button starts the night, the other ends it. No forms, no timers, no guessing.
+- **A reminder if you want one.** Choose a time in Settings and Sleepy3 sends a local notification so you do not forget to tap Sleep. It never fires while a night is already in progress.
 - **Your last nights at a glance.** Home shows today, yesterday and the day before with a three-day average and bars against an eight-hour goal.
-- **Nothing leaves your phone.** There is no account, no server of ours and no analytics. Health Connect is optional.
+- **Nothing leaves your phone.** There is no account, no server of ours and no analytics. Health Connect is optional, and the reminder is scheduled on the device.
 - **Designed for 3 a.m.** Big buttons, one-hand use, a clear awake/sleeping state and light and dark themes that follow your phone.
 
 ## Download and install
@@ -33,11 +34,13 @@ Sleepy3 runs on **Android 9 or newer**. Version **0.2.1** is the latest stable r
 
 1. Tap **Sleep** when you go to bed. The button becomes **Wake**, the header switches to a sleeping state and the clock keeps running.
 2. Tap **Wake** when you get up. Sleepy3 saves the night, the button returns to **Sleep** and shows how long you slept.
-3. Open **Stats** to review or fix your history, use the plus button to add a night you forgot to track, and **Settings** for the theme, the 12/24-hour clock, the language and Health Connect.
+3. Open **Stats** to review or fix your history, use the plus button to add a night you forgot to track, and **Settings** for the theme, the 12/24-hour clock, the language, the nightly reminder and Health Connect.
 
 Use the floating glass dock at the bottom to move between **Home**, **Stats** and **Settings**; the selected destination shows its label, and the content stays visible behind the dock.
 
-Settings is split into **Appearance** (theme, 12/24-hour clock and language), **Sleep data** (Local or Google Health, and Import), **Google Health** (connection status, Sync and Add) and **About** (privacy, version and open-source licenses). The interface is available in **English** and **Spanish**; there is no separate “System” option, so the first launch resolves and stores the phone's language and you can change it later in **Appearance → Language**.
+Settings is split into **Appearance** (theme, 12/24-hour clock and language), **Reminders** (the optional nightly notification), **Sleep data** (Local or Google Health, and Import), **Google Health** (connection status, Sync and Add) and **About** (privacy, version and open-source licenses). The interface is available in **English** and **Spanish**; there is no separate “System” option, so the first launch resolves and stores the phone's language and you can change it later in **Appearance → Language**.
+
+The reminder is **off by default**. Turn it on in **Settings → Reminders**, allow notifications when Android asks, and choose the time with the clock picker. Sleepy3 schedules the next notification on the phone; if you already tapped **Sleep**, it skips that reminder and rearms it when you wake up. Tapping the notification opens **Home** so the large Sleep button is one tap away. Changing the app language updates the notification text. On Android 13 and newer the permission is requested only when you enable the reminder; if you deny it, the switch stays off and the app offers to open the system notification settings. You can revoke it later in Android settings, and Settings will show a warning if notifications are blocked. Reminders are inexact by design: Android may deliver them a few minutes late, especially with battery saver. There is no push server and the notification contains no sleep data.
 
 The header always tells you what is happening:
 
@@ -89,7 +92,7 @@ Health Connect hides records older than 30 days unless you give Sleepy3 the hist
 
 ## Your data
 
-- Sessions, the theme, the 12/24-hour clock, the language and the data source are stored in a local database on your phone.
+- Sessions, the theme, the 12/24-hour clock, the language, the data source and the reminder preference are stored in a local database on your phone.
 - There is no account, no backend and no analytics. Nothing is sent to us.
 - Local mode works completely offline. Health Connect is optional, and denying permission never blocks local tracking.
 - Uninstalling Sleepy3 deletes the local database. If Android backup is enabled, the system may restore it when you reinstall.
@@ -105,6 +108,8 @@ Health Connect hides records older than 30 days unless you give Sleepy3 the hist
 
 **Health Connect is missing.** On Android 13 or lower, install the Health Connect app from the Play Store, then try again.
 
+**The sleep reminder arrives late or not at all.** Reminders use Android's inexact alarm scheduling, so battery saver or aggressive OEM background restrictions can delay them. Allow Sleepy3 to run in the background and make sure notifications are enabled in Android settings. If you already tapped **Sleep**, the reminder is intentionally skipped for that night.
+
 ## What's next
 
 - [x] Local tracking, Stats history and Settings.
@@ -115,6 +120,7 @@ Health Connect hides records older than 30 days unless you give Sleepy3 the hist
 - [x] Single Home action, Stats pull-to-refresh and goal motion (0.2.0).
 - [x] Manual session entry from Stats (0.2.0).
 - [x] English and Spanish, and a 12/24-hour clock setting (0.2.1).
+- [x] Optional nightly sleep reminder with a chosen time.
 - [ ] Home-screen widget with Sleep and Wake buttons.
 - [ ] Motion and accessibility polish.
 
@@ -171,6 +177,11 @@ lib/
     │   ├── data/          # Health Connect gateway, repositories and Drift sync store
     │   ├── application/   # source, history, history permission, sync, upload and copy
     │   └── presentation/  # copy dialogs, sync and history banners, source text
+    ├── reminders/
+    │   ├── domain/        # reminder value, next occurrence and scheduler contract
+    │   ├── data/          # local notification and timezone scheduler
+    │   ├── application/   # reminder controller and Home request
+    │   └── presentation/  # Reminders section and switch row
     └── settings/
         ├── domain/        # theme, time format, language, app version and store contract
         ├── data/          # Drift settings store
@@ -184,9 +195,11 @@ android/
     └── MainActivity.kt    # native widget and platform bridges land here
 ```
 
-On launch, Sleepy3 opens the database, loads the open session, the saved theme, the 12/24-hour clock format, the language, the selected data source and the installed version, then injects them into the Riverpod scope before the first frame. The first launch resolves the clock format and language from the phone and stores them. The closed history loads asynchronously from the selected source; a failed read falls back to an empty/default value instead of blocking startup.
+On launch, Sleepy3 opens the database, loads the open session, the saved theme, the 12/24-hour clock format, the language, the selected data source, the reminder preference and the installed version, then injects them into the Riverpod scope before the first frame. The first launch resolves the clock format and language from the phone and stores them. The closed history loads asynchronously from the selected source; a failed read falls back to an empty/default value instead of blocking startup.
 
 The controller is a Riverpod `Notifier`: it updates in-memory state first so the buttons answer instantly, then serializes the disk write behind it. The UI never reads the database directly, and the clock is injected, which keeps the domain logic testable.
+
+The reminder follows the same rule at a smaller scale: `SleepReminderController` serializes permission requests, scheduling and cancellation, and `Sleepy3App` calls it on launch, resume, Sleep/Wake changes and language changes. `LocalSleepReminderScheduler` keeps the platform and time-zone details behind the `SleepReminderScheduler` interface, so tests use a fake and never touch Android notifications.
 
 ### Tech stack
 
@@ -200,7 +213,8 @@ The controller is a Riverpod `Notifier`: it updates in-memory state first so the
 | App info | `package_info_plus` |
 | Widget | `home_widget` + native Kotlin / Jetpack Glance (planned) |
 | Health | Health Connect `SleepSessionRecord` |
-| Background | WorkManager for Flutter |
+| Reminders | `flutter_local_notifications` 22.3.3, `timezone` and `flutter_timezone` |
+| Background | WorkManager for Flutter (future; reminders use AlarmManager) |
 
 ### Project conventions
 

@@ -21,6 +21,9 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // flutter_local_notifications schedules through java.time APIs that
+        // need desugaring on Android 9-11.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -80,6 +83,8 @@ dependencies {
     // uses.
     implementation("androidx.health.connect:connect-client:1.2.0-alpha02")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    // Required by flutter_local_notifications for scheduled notifications.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 }
 
 flutter {

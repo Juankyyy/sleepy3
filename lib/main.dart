@@ -10,6 +10,8 @@ import 'features/health/application/sleep_data_source_controller.dart';
 import 'features/health/data/drift_health_sync_store.dart';
 import 'features/health/data/health_connect_gateway_impl.dart';
 import 'features/health/domain/sleep_data_source.dart';
+import 'features/reminders/application/sleep_reminder_controller.dart';
+import 'features/reminders/domain/sleep_reminder.dart';
 import 'features/settings/application/app_version_provider.dart';
 import 'features/settings/application/language_controller.dart';
 import 'features/settings/application/theme_mode_controller.dart';
@@ -42,6 +44,7 @@ Future<void> main() async {
   final timeFormat = await _loadTimeFormat(settingsStore);
   final language = await _loadLanguage(settingsStore);
   final dataSource = await _loadSleepDataSource(settingsStore);
+  final sleepReminder = await _loadSleepReminder(settingsStore);
   final packageInfo = await _loadPackageInfo();
   final appVersion = _appVersionFrom(packageInfo);
 
@@ -59,6 +62,7 @@ Future<void> main() async {
         healthConnectGatewayProvider.overrideWithValue(healthGateway),
         healthSyncStoreProvider.overrideWithValue(healthSyncStore),
         initialSleepDataSourceProvider.overrideWithValue(dataSource),
+        initialSleepReminderProvider.overrideWithValue(sleepReminder),
         appVersionProvider.overrideWithValue(appVersion),
         currentAppPackageProvider.overrideWithValue(
           packageInfo?.packageName ?? 'com.sleepy3.app',
@@ -166,6 +170,17 @@ Future<SleepDataSource> _loadSleepDataSource(SettingsStore store) async {
       'Sleepy3: could not load the sleep data source: $error\n$stackTrace',
     );
     return SleepDataSource.local;
+  }
+}
+
+Future<SleepReminder> _loadSleepReminder(SettingsStore store) async {
+  try {
+    return await store.loadSleepReminder();
+  } catch (error, stackTrace) {
+    debugPrint(
+      'Sleepy3: could not load the sleep reminder: $error\n$stackTrace',
+    );
+    return SleepReminder.defaults;
   }
 }
 

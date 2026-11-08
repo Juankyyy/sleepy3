@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
+import 'package:sleepy3/features/reminders/domain/sleep_reminder.dart';
 import 'package:sleepy3/features/settings/data/drift_settings_store.dart';
 import 'package:sleepy3/features/settings/domain/app_language.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
@@ -145,6 +146,64 @@ void main() {
           );
 
       expect(await store.loadSleepDataSource(), SleepDataSource.local);
+    });
+
+    test('defaults to a disabled 22:00 reminder', () async {
+      expect(await store.loadSleepReminder(), SleepReminder.defaults);
+    });
+
+    test('round-trips an enabled reminder', () async {
+      const reminder = SleepReminder(enabled: true, hour: 23, minute: 15);
+
+      await store.saveSleepReminder(reminder);
+
+      expect(await store.loadSleepReminder(), reminder);
+    });
+
+    test('stores the reminder under its two preference keys', () async {
+      await store.saveSleepReminder(
+        const SleepReminder(enabled: true, hour: 7, minute: 5),
+      );
+
+      final rows = await database.select(database.preferences).get();
+      expect(
+        {for (final row in rows) row.settingKey: row.settingValue},
+        {'sleep_reminder_enabled': 'true', 'sleep_reminder_time': '07:05'},
+      );
+    });
+
+    test('falls back to 22:00 for a malformed stored time', () async {
+      await database
+          .into(database.preferences)
+          .insert(
+            PreferencesCompanion.insert(
+              settingKey: 'sleep_reminder_time',
+              settingValue: 'late',
+            ),
+          );
+
+      final reminder = await store.loadSleepReminder();
+
+      expect(reminder.enabled, isFalse);
+      expect(reminder.hour, 22);
+      expect(reminder.minute, 0);
+    });
+
+    test('keeps a valid time when the enabled key is missing', () async {
+      await database
+          .into(database.preferences)
+          .insert(
+            PreferencesCompanion.insert(
+              settingKey: 'sleep_reminder_time',
+              settingValue: '21:30',
+            ),
+          );
+
+      final reminder = await store.loadSleepReminder();
+
+      expect(reminder.enabled, isFalse);
+      expect(reminder.hour, 21);
+      expect(reminder.minute, 30);
     });
 
     test('stores the theme and the source side by side', () async {

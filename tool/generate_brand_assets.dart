@@ -1,5 +1,6 @@
-// Generates the Sleepy3 launcher icons, the Android 12+ splash marks and the
-// Flutter splash mark from the brand sources in `assets/brand/`.
+// Generates the Sleepy3 launcher icons, Android 12+ splash marks, the white
+// notification icon and the Flutter splash mark from the brand sources in
+// `assets/brand/`.
 //
 // Run from the repository root:
 //
@@ -74,6 +75,7 @@ void main() {
   _writeSplashMark(mark);
   _writeLauncherIcons(mark);
   _writeLaunchMarks(mark);
+  _writeNotificationIcons(mark);
 
   stdout.writeln('Brand assets written to $_splashMarkPath and $_resPath.');
 }
@@ -160,6 +162,23 @@ void _writeLaunchMarks(img.Image mark) {
     _writePng(
       '$_resPath/drawable-night-${entry.key}/launch_mark.png',
       _colorize(light, 0xC6, 0xCC, 0xF7),
+    );
+  }
+}
+
+/// Android notification small icon: a white silhouette on a 24 dp canvas.
+///
+/// Notification icons are tinted by the system, so only the alpha channel
+/// matters. The mark keeps a 1 dp margin inside the 24 dp canvas.
+void _writeNotificationIcons(img.Image mark) {
+  for (final entry in _densities.entries) {
+    final scale = entry.value;
+    final size = (24 * scale).round();
+    final icon = img.Image(width: size, height: size, numChannels: 4);
+    _drawMark(icon, mark, 22 * scale);
+    _writePng(
+      '$_resPath/drawable-${entry.key}/ic_notification.png',
+      _colorize(icon, 255, 255, 255),
     );
   }
 }

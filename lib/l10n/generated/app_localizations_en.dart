@@ -49,10 +49,59 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTitle => 'Settings';
 
   @override
-  String get settingsSupport => 'Theme, sleep data and app info.';
+  String get settingsSupport => 'Theme, reminders, sleep data and app info.';
 
   @override
   String get appearance => 'Appearance';
+
+  @override
+  String get reminders => 'Reminders';
+
+  @override
+  String get sleepReminder => 'Sleep reminder';
+
+  @override
+  String get sleepReminderOff => 'Off';
+
+  @override
+  String sleepReminderEveryDay(String time) {
+    return 'Every day at $time';
+  }
+
+  @override
+  String get reminderTime => 'Reminder time';
+
+  @override
+  String get notificationsOff => 'Notifications are off';
+
+  @override
+  String get notificationsOffSupport =>
+      'Allow Sleepy3 to send the notification.';
+
+  @override
+  String get notificationsPermissionNeeded =>
+      'Allow notifications to get the sleep reminder.';
+
+  @override
+  String get sleepReminderScheduleFailed =>
+      'Couldn\'t set the sleep reminder. Try again.';
+
+  @override
+  String get openSettings => 'Open settings';
+
+  @override
+  String get sleepReminderNotificationTitle => 'Time to record your sleep';
+
+  @override
+  String get sleepReminderNotificationBody =>
+      'Open Sleepy3 and tap Sleep when you turn off the lights.';
+
+  @override
+  String get sleepReminderChannelName => 'Sleep reminder';
+
+  @override
+  String get sleepReminderChannelDescription =>
+      'A nightly reminder to record your sleep.';
 
   @override
   String get sleepData => 'Sleep data';

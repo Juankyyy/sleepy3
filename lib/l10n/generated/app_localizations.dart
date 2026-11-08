@@ -179,7 +179,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsSupport.
   ///
   /// In en, this message translates to:
-  /// **'Theme, sleep data and app info.'**
+  /// **'Theme, reminders, sleep data and app info.'**
   String get settingsSupport;
 
   /// No description provided for @appearance.
@@ -187,6 +187,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Appearance'**
   String get appearance;
+
+  /// No description provided for @reminders.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders'**
+  String get reminders;
+
+  /// No description provided for @sleepReminder.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep reminder'**
+  String get sleepReminder;
+
+  /// No description provided for @sleepReminderOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get sleepReminderOff;
+
+  /// No description provided for @sleepReminderEveryDay.
+  ///
+  /// In en, this message translates to:
+  /// **'Every day at {time}'**
+  String sleepReminderEveryDay(String time);
+
+  /// No description provided for @reminderTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminder time'**
+  String get reminderTime;
+
+  /// No description provided for @notificationsOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are off'**
+  String get notificationsOff;
+
+  /// No description provided for @notificationsOffSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Sleepy3 to send the notification.'**
+  String get notificationsOffSupport;
+
+  /// No description provided for @notificationsPermissionNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow notifications to get the sleep reminder.'**
+  String get notificationsPermissionNeeded;
+
+  /// No description provided for @sleepReminderScheduleFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t set the sleep reminder. Try again.'**
+  String get sleepReminderScheduleFailed;
+
+  /// No description provided for @openSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get openSettings;
+
+  /// No description provided for @sleepReminderNotificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Time to record your sleep'**
+  String get sleepReminderNotificationTitle;
+
+  /// No description provided for @sleepReminderNotificationBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Sleepy3 and tap Sleep when you turn off the lights.'**
+  String get sleepReminderNotificationBody;
+
+  /// No description provided for @sleepReminderChannelName.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep reminder'**
+  String get sleepReminderChannelName;
+
+  /// No description provided for @sleepReminderChannelDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A nightly reminder to record your sleep.'**
+  String get sleepReminderChannelDescription;
 
   /// No description provided for @sleepData.
   ///

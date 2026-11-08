@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
+import 'package:sleepy3/features/reminders/domain/sleep_reminder.dart';
 import 'package:sleepy3/features/settings/application/theme_mode_controller.dart';
 import 'package:sleepy3/features/settings/domain/app_language.dart';
 import 'package:sleepy3/features/settings/domain/app_night_mode.dart';
@@ -151,4 +152,10 @@ class _ControlledSettingsStore implements SettingsStore {
 
   @override
   Future<void> saveSleepDataSource(SleepDataSource source) async {}
+
+  @override
+  Future<SleepReminder> loadSleepReminder() async => SleepReminder.defaults;
+
+  @override
+  Future<void> saveSleepReminder(SleepReminder reminder) async {}
 }

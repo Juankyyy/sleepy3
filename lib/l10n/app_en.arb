@@ -13,8 +13,29 @@
   "navSettings": "Settings",
   "mainNavigation": "Main navigation",
   "settingsTitle": "Settings",
-  "settingsSupport": "Theme, sleep data and app info.",
+  "settingsSupport": "Theme, reminders, sleep data and app info.",
   "appearance": "Appearance",
+  "reminders": "Reminders",
+  "sleepReminder": "Sleep reminder",
+  "sleepReminderOff": "Off",
+  "sleepReminderEveryDay": "Every day at {time}",
+  "@sleepReminderEveryDay": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderTime": "Reminder time",
+  "notificationsOff": "Notifications are off",
+  "notificationsOffSupport": "Allow Sleepy3 to send the notification.",
+  "notificationsPermissionNeeded": "Allow notifications to get the sleep reminder.",
+  "sleepReminderScheduleFailed": "Couldn't set the sleep reminder. Try again.",
+  "openSettings": "Open settings",
+  "sleepReminderNotificationTitle": "Time to record your sleep",
+  "sleepReminderNotificationBody": "Open Sleepy3 and tap Sleep when you turn off the lights.",
+  "sleepReminderChannelName": "Sleep reminder",
+  "sleepReminderChannelDescription": "A nightly reminder to record your sleep.",
   "sleepData": "Sleep data",
   "googleHealth": "Google Health",
   "about": "About",

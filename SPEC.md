@@ -156,6 +156,8 @@ Sleepy3 es una app Android de registro de sueño con fricción cero.
   datos, y puede copiar sesiones entre ambos.
 - `Stats` permite ajustar la hora de inicio y fin de una noche o borrarla, sin convertir
   el registro en un formulario.
+- Un recordatorio diario opcional, a la hora que elija el usuario, ayuda a no olvidar
+  pulsar Sleep. Es local, se puede desactivar y nunca envía datos.
 - Un widget de pantalla de inicio permitirá registrar Sleep/Wake sin abrir la app.
 
 ### Objetivo de diseño
@@ -168,7 +170,8 @@ funcionar bien de noche, con una sola mano y con el teléfono bloqueado o desblo
 - Cuentas, login, sincronización propia en la nube.
 - UI para tablets o wearables.
 - Notas, calidad de sueño y edición avanzada del historial (divisiones, etiquetas).
-- Notificaciones o alarmas inteligentes.
+- Alarmas inteligentes o notificaciones basadas en los datos de sueño; el recordatorio
+  diario simple sí forma parte del producto.
 
 ---
 
@@ -468,8 +471,9 @@ Reglas:
 
 ### 3.4 Settings
 
-- La pantalla tiene cabecera `Settings` y línea de apoyo `Theme, sleep data and app info.`,
-  seguida de cuatro secciones: `Appearance`, `Sleep data`, `Google Health` y `About`.
+- La pantalla tiene cabecera `Settings` y línea de apoyo
+  `Theme, reminders, sleep data and app info.`, seguida de cinco secciones:
+  `Appearance`, `Reminders`, `Sleep data`, `Google Health` y `About`.
 - Cada sección usa un encabezado `titleMedium` emphasized y una lista agrupada
   `M3EList`/`M3EListItem` con radio exterior 16 dp, interior 4 dp y gap 2 dp.
 - `Appearance` contiene:
@@ -485,6 +489,17 @@ Reglas:
     ofrece esos dos idiomas, sin `System`. Si no hay preferencia guardada, el primer
     arranque resuelve el idioma del teléfono (`es` → Español; cualquier otro → English),
     lo persiste en `preferences` (`language`) y lo aplica a toda la app.
+- `Reminders` contiene:
+  - `Sleep reminder`, un interruptor con apoyo `Off` o `Every day at {time}`. Al
+    activarlo se pide permiso de notificaciones si hace falta y se programa el aviso
+    diario; si se deniega, el interruptor sigue apagado y un snackbar ofrece
+    `Open settings`. El valor por defecto es desactivado a las 22:00.
+  - `Reminder time`, visible solo con el recordatorio activo, muestra la hora actual y
+    abre `M3ETimePicker`. Cambiar la hora cancela la programación anterior y guarda la
+    nueva.
+  - Si Android bloquea las notificaciones de la app, aparece una fila
+    `Notifications are off` con `Allow Sleepy3 to send the notification.` que abre los
+    ajustes de notificaciones del sistema.
 - `Sleep data` contiene:
   - `Source`, cuyo supporting text muestra `Local` o `Google Health`. Al tocarla se abre
     el diálogo `Sleep data source` con una fila de radio por fuente y `Cancel` / `Apply`.
@@ -522,6 +537,34 @@ Reglas:
   nombre, la versión y la leyenda GPLv3.
 - El modo de tema y la fuente de datos se guardan en la tabla `preferences` de la misma
   base Drift; no se usa `shared_preferences`.
+
+#### 3.4.1 Recordatorios de sueño
+
+- Es un recordatorio local diario, no una notificación push. No hay servidor ni se envía
+  ningún dato de sueño; el texto solo invita a abrir Sleepy3.
+- Se guarda en `preferences` con `sleep_reminder_enabled` y `sleep_reminder_time`
+  (`HH:mm`). Sin preferencia, el valor por defecto es desactivado a las 22:00.
+- El permiso `POST_NOTIFICATIONS` se pide solo al activar el interruptor (Android 13+),
+  nunca al arrancar. Una denegación deja el recordatorio apagado y ofrece abrir los
+  ajustes de notificaciones.
+- Se programa con una alarma diaria del sistema a la hora local elegida. En esta versión
+  la alarma es **inexacta**: no se pide `SCHEDULE_EXACT_ALARM` y Android puede retrasarla
+  unos minutos, sobre todo con ahorro de batería. Los reinicios y las actualizaciones de
+  la app se cubren con `RECEIVE_BOOT_COMPLETED` y el `ScheduledNotificationBootReceiver`.
+- Si ya hay una sesión abierta (el usuario ya pulsó Sleep), el aviso no se envía y la
+  programación se cancela; al despertar se vuelve a programar. La app sincroniza el
+  recordatorio al arrancar, al volver al primer plano, al cambiar Sleep/Wake y al cambiar
+  el idioma, de modo que el texto de la notificación queda en el idioma actual.
+- Tocar la notificación abre Sleepy3 en `Home`, incluso si la app estaba en `Stats` o
+  `Settings`. No inicia ni cierra una sesión por sí sola.
+- Si el usuario revoca las notificaciones después de activarlo, la preferencia sigue
+  activa pero Settings muestra la fila de aviso.
+- El canal de Android se llama `Sleep reminder` y usa importancia alta para que el aviso
+  se vea; el usuario puede ajustarlo en los ajustes del sistema. Es una decisión de
+  producto, no un token M3.
+- La notificación usa un icono monocromo generado desde la marca
+  (`android/app/src/main/res/drawable-*/ic_notification.png`) y la programación usa un id
+  fijo, así que cambiar la hora reemplaza la anterior.
 
 ### 3.5 Widget de pantalla de inicio (0.3.0)
 
@@ -764,10 +807,18 @@ Reglas:
 - Pantalla Settings:
   - Título `Settings` en `headlineMedium` emphasized y apoyo en `bodyMedium`; márgenes
     laterales de 16 dp, y 24 dp desde 600 dp de ancho (decisión de layout).
-  - Secciones `Appearance`, `Sleep data`, `Google Health` y `About` con encabezado
-    `titleMedium` emphasized y 8 dp hasta la lista.
+  - Secciones `Appearance`, `Reminders`, `Sleep data`, `Google Health` y `About` con
+    encabezado `titleMedium` emphasized y 8 dp hasta la lista.
   - Filas `M3EListItem` dentro de `M3EList` con radio exterior 16 dp, interior 4 dp y gap
     2 dp. Las filas crecen con el texto del sistema.
+  - La fila del interruptor de `Sleep reminder` no usa `M3EListItem`: el item agrupado
+    recorta la etiqueta a una línea y excluye la semántica de sus hijos, así que el
+    interruptor desaparecería para TalkBack. Se compone con la misma superficie rellena
+    de 16 dp, texto `bodyLarge` / `bodyMedium`, mínimo de 72 dp y un `M3ESwitch` de
+    32 × 52 dp con objetivo de 48 dp; la fila entera es el objetivo táctil y anuncia
+    `toggled` al lector de pantalla. Las filas de hora y de aviso usan la misma
+    composición con texto que envuelve, para que las etiquetas largas no se recorten al
+    200 %.
   - La fila `Theme` usa el supporting text para el valor actual (`System`, `Light` o
     `Dark`), de modo que el lector de pantalla lo anuncie como parte de la etiqueta. El
     diálogo de selección usa opciones cortas para caber al 200 % de texto.
@@ -777,6 +828,10 @@ Reglas:
   - La fila `Language` usa el supporting text para el idioma actual y abre un diálogo con
     `English` / `Español`, `Cancel` y `Apply`. El cambio se aplica al instante; el idioma
     elegido se persiste y no hay opción `System`.
+  - `Sleep reminder` usa un interruptor M3 Expressive y supporting text con el estado:
+    `Off` o `Every day at {time}`, con el formato 12/24 h compartido. Al activarlo
+    aparece `Reminder time`, que abre `M3ETimePicker`. Si las notificaciones están
+    bloqueadas, se añade la fila de aviso con chevron.
   - A partir del 150 % de texto se retiran los iconos decorativos de las filas de
     `Settings` para que las etiquetas largas (`Importar`, `Privacidad`) no se recorten;
     los controles de selección (radio del diálogo de fuente) se mantienen.
@@ -847,8 +902,14 @@ Reglas:
 | Apoyo sin historial | `Your nights will appear here after you wake up.` |
 | Apoyo sin historial durmiendo | `Your first night will appear here when you wake up.` |
 | Título de Settings | `Settings` |
-| Apoyo de Settings | `Theme, sleep data and app info.` |
-| Secciones de Settings | `Appearance`, `Sleep data`, `Google Health`, `About` |
+| Apoyo de Settings | `Theme, reminders, sleep data and app info.` |
+| Secciones de Settings | `Appearance`, `Reminders`, `Sleep data`, `Google Health`, `About` |
+| Recordatorio | `Sleep reminder`; apoyo `Off` o `Every day at {time}` |
+| Hora del recordatorio | `Reminder time` |
+| Aviso de notificaciones | `Notifications are off` / `Allow Sleepy3 to send the notification.` |
+| Permiso denegado | `Allow notifications to get the sleep reminder.` / `Open settings` |
+| Error al programar | `Couldn't set the sleep reminder. Try again.` |
+| Notificación | `Time to record your sleep` / `Open Sleepy3 and tap Sleep when you turn off the lights.` |
 | Fila de tema | `Theme` |
 | Modos de tema | `System`, `Light`, `Dark` |
 | Fila de hora | `Time format` / `12-hour`, `24-hour` |
@@ -924,7 +985,8 @@ Reglas:
 | Info de la app | `package_info_plus` 10.x |
 | Widget | `home_widget` + Jetpack Glance nativo |
 | Salud | `health` 13.x sobre Health Connect `SleepSessionRecord` |
-| Background | WorkManager para Flutter |
+| Recordatorios | `flutter_local_notifications` 22.3.3, `timezone` 0.11, `flutter_timezone` 5.x |
+| Background | WorkManager para Flutter (futuro) |
 | Android | `minSdk` 28, `applicationId` `com.sleepy3.app` |
 
 Notas:
@@ -932,6 +994,9 @@ Notas:
 - `material_ui` está fijado en **1.7.0**: la 1.8.0 introduce `RoundedPolygon`, que choca con
   `material_new_shapes` usado por `material_3_expressive` 1.1.7. No actualizar hasta que
   los paquetes sean compatibles.
+- `flutter_local_notifications` está fijado en **22.3.3**: la 23 exige `compileSdk` 37 y
+  AGP 9.1.1, mientras el proyecto usa 36 y 9.1.0. El recordatorio usa alarmas inexactas
+  (`inexactAllowWhileIdle`) y no pide `SCHEDULE_EXACT_ALARM`.
 - No importar `package:flutter/material.dart` en el código de la app; usar
   `package:material_ui/material_ui.dart` y los componentes `M3E*`.
 - No se requiere Android Studio. Flutter CLI + Android command-line tools alcanzan.
@@ -976,6 +1041,11 @@ lib/
     │   ├── data/           # Health Connect gateway and Drift sync store
     │   ├── application/    # source, history, history-permission, sync, upload and copy
     │   └── presentation/   # copy dialogs, sync and history banners, source text
+    ├── reminders/
+    │   ├── domain/         # SleepReminder, next occurrence and scheduler contract
+    │   ├── data/           # flutter_local_notifications + timezone scheduler
+    │   ├── application/    # reminder controller, providers and Home request
+    │   └── presentation/   # Reminders section and switch row
     └── widget/             # 0.3.0
 assets/
 ├── brand/                 # fuentes del logo, marca del splash e iconos generados
@@ -991,13 +1061,13 @@ assets/
    (`purgeUnrecordableSessions`); un fallo solo se registra y no bloquea el arranque.
 4. Carga un `SleepSnapshot` con la sesión abierta y todas las sesiones cerradas,
    ordenadas de más antigua a más reciente.
-5. Carga el modo de tema, el formato de hora, el idioma y la fuente de datos de
-   `preferences`, y la versión instalada con `package_info_plus`. Si no hay formato o
-   idioma guardado, resuelve el valor del teléfono y lo persiste. Después replica el modo
-   de tema en el modo nocturno por aplicación de Android (API 31+), para que el próximo
-   arranque en frío resuelva el splash con el mismo modo.
+5. Carga el modo de tema, el formato de hora, el idioma, la fuente de datos y el
+   recordatorio de `preferences`, y la versión instalada con `package_info_plus`. Si no
+   hay formato o idioma guardado, resuelve el valor del teléfono y lo persiste. Después
+   replica el modo de tema en el modo nocturno por aplicación de Android (API 31+), para
+   que el próximo arranque en frío resuelva el splash con el mismo modo.
 6. Inyecta los stores, el snapshot, el tema inicial, el formato de hora, el idioma, la
-   fuente y la versión en `ProviderScope`.
+   fuente, el recordatorio y la versión en `ProviderScope`.
 7. Muestra el shell envuelto por `SplashGate`; la intro espera al primer frame
    rasterizado, reproduce el zoom de marca y se retira sobre la app ya construida. El
    fondo de lanzamiento nativo ya usaba el color de cuerpo del tema, así que el handoff
@@ -1043,6 +1113,17 @@ splash.
 - `TimeFormatController` es un `Notifier<AppTimeFormat>` con la misma actualización
   inmediata y cola de escritura. `main` lo carga antes del primer frame; si no hay valor
   guardado, resuelve el formato del teléfono y lo persiste para que quede fijo.
+- `SleepReminderController` es un `Notifier<SleepReminderState>`. Serializa permisos,
+  programación y cancelación en una sola cola para que un arranque, un cambio de hora y
+  un cambio Sleep/Wake no dejen una alarma anterior armada. `SleepReminderScheduler` es
+  la interfaz de plataforma; `LocalSleepReminderScheduler` usa
+  `flutter_local_notifications`, `timezone` y `flutter_timezone`, y `SleepReminder`
+  calcula la próxima hora con aritmética de calendario. La lógica con reloj se prueba con
+  horas fijas.
+- `Sleepy3App` sincroniza el recordatorio al arrancar, al volver al primer plano, al
+  cambiar `isSleeping` y al cambiar el idioma. Una sesión abierta lo cancela; despertar
+  lo vuelve a armar. El toque de la notificación incrementa
+  `reminderHomeRequestProvider` y `Sleepy3Shell` selecciona `Home`.
 - `Sleepy3App` resuelve el brillo con el modo de tema y el brillo del sistema; mantiene
   `M3EMaterialApp.autoTheming` desactivado para usar los esquemas claro/oscuro propios.
   También envuelve la app en un `MediaQuery` con `alwaysUse24HourFormat` resuelto, de modo
@@ -1163,6 +1244,9 @@ dart run build_runner build
   resuelve con el idioma del teléfono en el primer arranque.
 - Clave `sleep_data_source` con valores `local` o `healthConnect`; un valor ausente o
   desconocido se interpreta como `local`.
+- Clave `sleep_reminder_enabled` con `true` o `false`; ausente equivale a desactivado.
+- Clave `sleep_reminder_time` con `HH:mm` entre `00:00` y `23:59`; ausente o inválida
+  equivale a `22:00`.
 - La migración de v1 a v2 crea `preferences`; las sesiones existentes no se tocan.
 - El modo de tema y la fuente se guardan en la misma base para no abrir un segundo
   almacén.
@@ -1201,6 +1285,8 @@ dart run build_runner build
   Stats y en el resultado de `Import`.
 - Sleepy3 no accede a la nube de Google Health ni a una API cloud; solo al proveedor de
   Health Connect del dispositivo.
+- El recordatorio se programa en el propio teléfono. La notificación no contiene horas ni
+  datos de sueño, solo la invitación a abrir Sleepy3.
 - Denegar un permiso nunca bloquea el registro local.
 
 ---
@@ -1354,6 +1440,10 @@ dart run tool/generate_brand_assets.dart
   `Import`/`Sync`/`Add`, primer cambio con aviso de copia, permiso denegado, versión
   oculta si no está disponible, página de licencias, semántica, migraciones v1→v2, v2→v3 y
   v3→v4, y layout a 360 dp con texto al 200 %.
+- Recordatorios: valor por defecto desactivado a las 22:00, ida y vuelta en `preferences`,
+  hora malformada, permiso concedido/denegado, programación/cancelación, cambio de hora,
+  pausa mientras se duerme, notificaciones bloqueadas, copy en inglés/español, próxima
+  ocurrencia con reloj fijo y layout de la sección al 200 %.
 - Health Connect: disponibilidad, permisos de sueño e historial, lectura/escritura,
   cola de pendientes, reintento idempotente, banner, sesiones omitidas, acciones de copia,
   deduplicación por UUID y horas exactas, fallo parcial, protección de filas locales,
@@ -1406,6 +1496,9 @@ dart run tool/generate_brand_assets.dart
   persistido (resuelto del sistema en el primer arranque, sin opción `System`), fuente de
   datos `Local`/`Google Health`, estado de Google Health, acciones de copia y `About` con
   privacidad, versión y licencias.
+- Recordatorio nocturno opcional, desactivado por defecto a las 22:00, con hora elegida,
+  permiso de notificaciones contextual, pausa mientras hay una sesión abierta, retorno a
+  `Home` al tocar la notificación y aviso cuando Android bloquea las notificaciones.
 - Health Connect: permisos de sueño e historial, lectura y escritura, cola de pendientes,
   reintento al abrir o volver a la app, banner de pendientes, acciones
   `Import`/`Sync`/`Add`, actualización del mismo registro tras una edición, borrado

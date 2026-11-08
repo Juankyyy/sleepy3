@@ -7,6 +7,7 @@ import 'package:sleepy3/app/navigation/sleepy3_destination.dart';
 import 'package:sleepy3/app/sleepy3_app.dart';
 import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
 import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
+import 'package:sleepy3/features/reminders/application/reminder_providers.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
 
 import '../features/health/fakes.dart';
@@ -144,6 +145,23 @@ void main() {
     );
 
     await tester.tap(find.byKey(navKey(Sleepy3Destination.home)));
+    await tester.pumpAndSettle();
+
+    expect(navigationBar(tester).selectedIndex, 0);
+    expect(find.text('Sleepy3'), findsOneWidget);
+  });
+
+  testWidgets('a reminder tap returns to Home from Settings', (tester) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.byKey(navKey(Sleepy3Destination.settings)));
+    await tester.pumpAndSettle();
+    expect(navigationBar(tester).selectedIndex, 2);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(PillNavigationBar)),
+    );
+    container.read(reminderHomeRequestProvider.notifier).requestHome();
     await tester.pumpAndSettle();
 
     expect(navigationBar(tester).selectedIndex, 0);

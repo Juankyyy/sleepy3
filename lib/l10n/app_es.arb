@@ -13,8 +13,29 @@
   "navSettings": "Ajustes",
   "mainNavigation": "Navegación principal",
   "settingsTitle": "Ajustes",
-  "settingsSupport": "Tema, datos de sueño e información de la app.",
+  "settingsSupport": "Tema, recordatorios, datos de sueño e información de la app.",
   "appearance": "Apariencia",
+  "reminders": "Recordatorios",
+  "sleepReminder": "Aviso de sueño",
+  "sleepReminderOff": "Desactivado",
+  "sleepReminderEveryDay": "Todos los días a las {time}",
+  "@sleepReminderEveryDay": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderTime": "Hora del recordatorio",
+  "notificationsOff": "Las notificaciones están desactivadas",
+  "notificationsOffSupport": "Permite que Sleepy3 envíe la notificación.",
+  "notificationsPermissionNeeded": "Permite las notificaciones para recibir el recordatorio de sueño.",
+  "sleepReminderScheduleFailed": "No se pudo programar el recordatorio. Inténtalo de nuevo.",
+  "openSettings": "Abrir ajustes",
+  "sleepReminderNotificationTitle": "Hora de registrar tu sueño",
+  "sleepReminderNotificationBody": "Abre Sleepy3 y toca Dormir cuando apagues la luz.",
+  "sleepReminderChannelName": "Recordatorio de sueño",
+  "sleepReminderChannelDescription": "Un recordatorio nocturno para registrar tu sueño.",
   "sleepData": "Datos de sueño",
   "googleHealth": "Google Health",
   "about": "Acerca de",

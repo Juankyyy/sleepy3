@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../core/theme/sleepy3_theme.dart';
 import '../../../l10n/l10n.dart';
 import '../../health/application/sleep_data_source_controller.dart';
+import '../../reminders/presentation/widgets/sleep_reminder_settings.dart';
 import '../application/app_version_provider.dart';
 import '../application/language_controller.dart';
 import '../application/theme_mode_controller.dart';
@@ -59,6 +60,11 @@ class SettingsScreen extends ConsumerWidget {
             timeFormat: timeFormat,
             language: language,
           ),
+        ),
+        const SizedBox(height: 24),
+        SettingsSection(
+          title: l10n.reminders,
+          child: const SleepReminderSettings(),
         ),
         const SizedBox(height: 24),
         SettingsSection(

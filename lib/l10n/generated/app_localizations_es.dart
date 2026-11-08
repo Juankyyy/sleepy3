@@ -49,10 +49,60 @@ class AppLocalizationsEs extends AppLocalizations {
   String get settingsTitle => 'Ajustes';
 
   @override
-  String get settingsSupport => 'Tema, datos de sueño e información de la app.';
+  String get settingsSupport =>
+      'Tema, recordatorios, datos de sueño e información de la app.';
 
   @override
   String get appearance => 'Apariencia';
+
+  @override
+  String get reminders => 'Recordatorios';
+
+  @override
+  String get sleepReminder => 'Aviso de sueño';
+
+  @override
+  String get sleepReminderOff => 'Desactivado';
+
+  @override
+  String sleepReminderEveryDay(String time) {
+    return 'Todos los días a las $time';
+  }
+
+  @override
+  String get reminderTime => 'Hora del recordatorio';
+
+  @override
+  String get notificationsOff => 'Las notificaciones están desactivadas';
+
+  @override
+  String get notificationsOffSupport =>
+      'Permite que Sleepy3 envíe la notificación.';
+
+  @override
+  String get notificationsPermissionNeeded =>
+      'Permite las notificaciones para recibir el recordatorio de sueño.';
+
+  @override
+  String get sleepReminderScheduleFailed =>
+      'No se pudo programar el recordatorio. Inténtalo de nuevo.';
+
+  @override
+  String get openSettings => 'Abrir ajustes';
+
+  @override
+  String get sleepReminderNotificationTitle => 'Hora de registrar tu sueño';
+
+  @override
+  String get sleepReminderNotificationBody =>
+      'Abre Sleepy3 y toca Dormir cuando apagues la luz.';
+
+  @override
+  String get sleepReminderChannelName => 'Recordatorio de sueño';
+
+  @override
+  String get sleepReminderChannelDescription =>
+      'Un recordatorio nocturno para registrar tu sueño.';
 
   @override
   String get sleepData => 'Datos de sueño';
