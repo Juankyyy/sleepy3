@@ -18,8 +18,9 @@ Health Connect as an optional data source.
   marks, session panel, session editing/deleting and read-only details for other apps'
   records, Settings, Health Connect (Local/Google Health, pending uploads, copy actions and
   full history access), the glass dock, the Space Grotesk / Google Sans Flex type, the
-  branded launcher icon and splash, and the manual release workflow (`minor`, `patch`,
-  `exact`) work. The Glance widget is the next milestone (0.2.0). Sessions, preferences and
+  branded launcher icon and splash, the Stats FAB for adding missed nights manually, and
+  the manual release workflow (`minor`, `patch`, `exact`) work. The Glance widget is the
+  next milestone (0.2.0). Sessions, preferences and
   Health Connect metadata live in `sleepy3.sqlite` (schema v5); generated Drift code is
   committed.
 

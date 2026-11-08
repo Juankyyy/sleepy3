@@ -7,6 +7,8 @@ import '../../health/application/health_history_permission_controller.dart';
 import '../../health/application/health_sync_controller.dart';
 import '../../health/application/sleep_data_source_controller.dart';
 import '../../health/application/sleep_history_controller.dart';
+import '../../health/application/sleep_upload_service.dart';
+import '../../health/domain/health_record_identity.dart';
 import '../../health/domain/sleep_data_source.dart';
 import '../domain/session_edit.dart';
 import '../domain/sleep_session.dart';
@@ -197,6 +199,78 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
     return SleepWakeOutcome.closed;
   }
 
+  /// Adds a closed session that the user entered by hand.
+  ///
+  /// The local row is written first in every source as the safety copy. In
+  /// Local mode it joins [SleepTrackingState.closedSessions] immediately. In
+  /// Google Health mode it is uploaded and the visible history is read again
+  /// only after the platform confirms it; a failed upload leaves the row
+  /// pending, so the Health Connect list never contains an unconfirmed local
+  /// copy.
+  Future<SleepSessionEditResult> createClosedSession({
+    required DateTime startedAt,
+    required DateTime endedAt,
+  }) async {
+    final now = ref.read(sleepClockProvider)();
+    final errors = validateSessionEdit(
+      draft: SessionEditDraft(startedAt: startedAt, endedAt: endedAt),
+      now: now,
+      otherClosedSessions: state.closedSessions,
+      openSession: state.openSession,
+    );
+    if (errors.isNotEmpty) {
+      return SleepSessionEditResult.failed(error: errors.first);
+    }
+
+    final source = ref.read(sleepDataSourceProvider);
+    final draft = SleepSession(
+      startedAt: startedAt,
+      endedAt: endedAt,
+      healthClientRecordId: sleepy3SleepClientRecordId(startedAt),
+    );
+
+    final SleepSession created;
+    try {
+      created = await _enqueueAction(
+        () => ref.read(sleepSessionStoreProvider).insertClosedSession(draft),
+      );
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Sleepy3: could not add a manually created session: '
+        '$error\n$stackTrace',
+      );
+      return SleepSessionEditResult.failed(error: error);
+    }
+    if (!ref.mounted) return SleepSessionEditResult.saved(created);
+
+    // A source switch rebuilds the list from the new source; never inject the
+    // row into the old list.
+    if (ref.read(sleepDataSourceProvider) != source) {
+      return SleepSessionEditResult.saved(created);
+    }
+
+    if (source == SleepDataSource.local) {
+      state = state.copyWith(closedSessions: _insertClosedSession(created));
+      await _refreshHealthPendingCount();
+      return SleepSessionEditResult.saved(created);
+    }
+
+    final upload = await ref
+        .read(healthSyncControllerProvider.notifier)
+        .uploadFinishedSession(created);
+    if (!ref.mounted) return SleepSessionEditResult.saved(created);
+
+    if (upload.status == SleepUploadStatus.uploaded) {
+      await reloadHistory();
+      if (!ref.mounted) return SleepSessionEditResult.saved(created);
+      return SleepSessionEditResult.saved(created);
+    }
+
+    // The local safety copy is queued for the next retry. The pending banner
+    // and the Stats snackbar explain why the night is not visible yet.
+    return SleepSessionEditResult.savedPendingSync(created);
+  }
+
   /// Moves the start of the open session without closing it.
   ///
   /// Used when Wake finds a sleep of [maximumRecordableSleep] or more: the
@@ -378,6 +452,12 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
       );
       return false;
     }
+  }
+
+  List<SleepSession> _insertClosedSession(SleepSession inserted) {
+    final sessions = <SleepSession>[...state.closedSessions, inserted]
+      ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
+    return List.unmodifiable(sessions);
   }
 
   List<SleepSession> _replaceClosedSession(SleepSession updated) {

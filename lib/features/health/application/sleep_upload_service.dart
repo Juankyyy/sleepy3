@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../sleep_tracking/domain/sleep_session.dart';
 import '../domain/health_connect_gateway.dart';
+import '../domain/health_record_identity.dart';
 import '../domain/health_sync_store.dart';
 import '../domain/stored_sleep_session.dart';
 
@@ -71,7 +72,7 @@ class SleepUploadService {
 
   /// The stable Health Connect client record id for a session.
   static String clientRecordIdFor(DateTime startedAt) =>
-      'sleepy3-${startedAt.millisecondsSinceEpoch}';
+      sleepy3SleepClientRecordId(startedAt);
 
   /// Uploads one finished session, if it is still pending.
   ///

@@ -409,6 +409,53 @@ Reglas:
 - Al guardar o borrar, la lista y el resumen se actualizan desde el estado en memoria, sin
   recargar el historial ni mostrar el spinner. Solo se muestra un snackbar cuando hay algo
   que contar: guardado con sincronización pendiente, permiso necesario o sesión borrada.
+#### 3.3.1 Alta manual de sesiones
+
+- `Stats` muestra un FAB de 56 dp (tamaño regular de M3, el de la referencia) como
+  acción final del grupo de navegación inferior: la píldora de cristal y el FAB se
+  centran juntos, con 12 dp entre ambos y el FAB a la misma altura que la píldora.
+  Queda a la derecha del dock, lejos del borde de la pantalla. Al entrar en `Stats` la
+  píldora se desplaza unos 34 dp a la izquierda para dejar sitio al FAB; en Home y
+  Settings vuelve al centro. Es una decisión de diseño usar el regular en lugar del
+  mediano que M3 recomienda por defecto, colocar el grupo junto al dock en lugar de un
+  FAB suelto en la esquina, y usar el estilo relleno `primary` en lugar del
+  `primaryContainer` tonal.
+- El FAB usa `primary` / `onPrimary`, icono relleno de suma (`add_rounded`) de 24 dp,
+  radio de 28 dp (círculo, la mitad de los 56) y tooltip/etiqueta accesible
+  `Add a sleep session`. El círculo acompaña la forma stadium del dock; el relleno
+  primario lo convierte en la acción principal. Solo aparece en `Stats` y solo cuando
+  el historial está listo: durante la carga o tras un error no se muestra (M3 pide
+  retirar un FAB no disponible, no deshabilitarlo). El grupo reserva su hueco mientras
+  está en Stats, así que la píldora no se mueve cuando el FAB aparece. Permanece fijo
+  al hacer scroll.
+- Al entrar en `Stats` con el historial listo, el FAB entra desde el borde derecho del
+  dock: 42 dp desde la izquierda, escala 0.86→1 y opacidad 0→1. Posición y escala usan
+  el spring `expressiveSpatialFast`; la opacidad usa `effectsFast`, sin rebote. El plus
+  entra 60 ms después con el mismo par de springs. El retardo es una decisión de
+  diseño: M3 no publica valores de stagger. La entrada deslizante también es una
+  decisión de diseño; la aparición canónica de M3 expande desde el centro o el borde
+  inferior. Con `disableAnimations` el FAB aparece directamente en su sitio.
+- Al pulsarlo se abre `M3EDialog.showAdaptive` con título `New session` y acción `Add`.
+  El contenido reutiliza el hero y las secciones `Fell asleep` / `Woke up` del editor:
+  la duración y el objetivo se recalculan con el borrador. Cerrar con cambios pide
+  `Discard unsaved changes?`; sin cambios no pregunta.
+- El borrador inicial es la última noche: ayer a las 23:00 → hoy a las 07:00. Si ahora
+  es antes de las 07:00, termina en `now` con precisión de minuto. Es una decisión de
+  diseño; el usuario puede ajustar fecha y hora.
+- Los dos date pickers limitan la fecha a hoy; una hora futura de hoy se rechaza al
+  validar. Se reutiliza `validateSessionEdit`: fin posterior al inicio, duración entre
+  10 minutos y menos de 24 horas, sin inicio ni fin en el futuro y sin solape con una
+  sesión cerrada ni con la abierta. Los errores se muestran inline, también en vivo
+  tras el primer cambio, y el diálogo no se cierra.
+- En `Local` la fila se inserta en Drift y se añade al estado en memoria: el historial
+  y el resumen se actualizan al instante, sin recargar. En `Google Health` se escribe
+  primero la copia local de seguridad con el `clientRecordId` estable
+  (`sleepy3-<inicio>`), después se sube a Health Connect y solo si la plataforma
+  confirma se relee el historial. Si la subida falla, la fila queda pendiente, la lista
+  visible sigue mostrando solo Health Connect y el snackbar y el banner de pendientes
+  lo explican. La sesión creada es editable y borrable como cualquier sesión propia.
+- El FAB vive dentro del alto del dock, así que la lista y el empty state no reservan
+  espacio extra al final y la última tarjeta no queda debajo del botón.
 - Límites: no se añaden notas ni calidad de sueño; solo inicio, fin y borrado. La sesión
   abierta no aparece en Stats y no se edita desde esta pantalla.
 - Si una actualización de Health Connect falla desde `Local`, las dos copias pueden estar
@@ -584,12 +631,18 @@ Reglas:
 - Navegación:
   - Barra flotante, content-sized y centrada (`PillNavigationBar`), 64 dp, con margen
     mínimo de 16 dp (12 dp por debajo de 360 dp) y 12 dp sobre el inset inferior del
-    sistema. El ancho máximo es la pantalla menos 32 dp (24 dp por debajo de 360 dp).
+    sistema. El ancho máximo de la píldora es la pantalla menos 32 dp (24 dp por debajo
+    de 360 dp), menos el FAB y su hueco cuando el grupo los incluye.
   - Contenedor glass: `ClipRRect` + `BackdropFilter` (blur 16), `surfaceContainer` al
     82 % y borde `outlineVariant` al 55 %, sin sombra. La píldora activa es opaca.
   - Tres destinos: `Home`, `Stats` y `Settings`. El activo usa una píldora
     `secondaryContainer` de 48 dp con icono relleno y etiqueta; los inactivos, solo
     icono outline en `onSurfaceVariant`.
+  - En `Stats`, el FAB de alta manual es el `trailing` de la barra: la píldora y el FAB
+    se centran como grupo con 12 dp entre ambos; el ancho máximo de la píldora descuenta
+    el FAB y el hueco. El FAB mide 56 dp, usa `primary` / `onPrimary`, el icono de suma
+    de 24 dp y un radio de 28 dp. No añade altura al dock porque mide menos que los
+    64 dp de la píldora.
   - `Stats` usa `analytics_outlined` / `analytics`; el estado vacío de Stats usa
     `analytics_rounded`.
   - La etiqueta inactiva se oculta visualmente pero se conserva en semántica.

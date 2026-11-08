@@ -102,6 +102,19 @@ class SleepSession {
     );
   }
 
+  /// A copy of this session with the Drift row id assigned by the store.
+  SleepSession withLocalId(int localId) {
+    return SleepSession(
+      startedAt: startedAt,
+      endedAt: endedAt,
+      localId: localId,
+      isDownloaded: isDownloaded,
+      healthRecordId: healthRecordId,
+      healthClientRecordId: healthClientRecordId,
+      sourceId: sourceId,
+    );
+  }
+
   /// A copy of this session with a different Health Connect identity.
   ///
   /// A Health Connect upsert can assign a new UUID, so the editor must replace

@@ -33,7 +33,7 @@ Sleepy3 runs on **Android 9 or newer**. Version **0.1.7** is the latest stable r
 
 1. Tap **Sleep** when you go to bed. The button becomes **Wake**, the header switches to a sleeping state and the clock keeps running.
 2. Tap **Wake** when you get up. Sleepy3 saves the night, the button returns to **Sleep** and shows how long you slept.
-3. Open **Stats** to review or fix your history, and **Settings** for the theme and Health Connect.
+3. Open **Stats** to review or fix your history, use the plus button to add a night you forgot to track, and **Settings** for the theme and Health Connect.
 
 Use the floating glass dock at the bottom to move between **Home**, **Stats** and **Settings**; the selected destination shows its label, and the content stays visible behind the dock.
 
@@ -59,6 +59,8 @@ Stats groups nights by the day you woke up and offers 7-day, 30-day and all-hist
 Pull down on Stats to refresh. The list stays in place while an M3 Expressive loader descends from the top; pending Google Health uploads are retried first, then the selected source is read again. In Local mode a refresh never uploads a new session.
 
 Tap any card to open it. Sessions written by the app you are using open in a detail view with the night's duration against the 8-hour goal, where you can change the start or end time or delete the session after confirming. The goal mark moves only in this view: once the goal is met the clover turns continuously, once every 8 seconds, while the crescent stays upright, and a shorter night draws its ring once on open. With Android's **Remove animations** enabled, both marks stay still. If Google Health needs write access, the delete dialog offers **Allow** and tries again. Sessions created by another app open read-only, with locked fields and a card that names the app when Android can resolve it (otherwise it says another app). In Local mode, sessions downloaded from Health Connect are read-only too. In Google Health mode, your own records stay editable even without a local copy. A record written by the other Sleepy3 build (release vs debug) is read-only from the build you are using, because Health Connect only lets the app that wrote it change it.
+
+Use the round, primary-colored plus button beside the glass dock at the bottom of Stats to add a session you forgot to track. The dock and the button are centered as one group; the dock shifts a little to the left while you are in Stats, and the button slides in from the dock when the history is ready. The form starts with the last night (23:00 to 07:00, or up to the current time before 07:00), and dates cannot go past today. It applies the same rules as the editor: the wake time must be after the sleep time, a night lasts at least 10 minutes and less than 24 hours, neither time can be in the future, and it cannot overlap another session or the night in progress. In Google Health mode Sleepy3 saves the local safety copy first, then uploads it; if the upload fails the session stays pending for **Retry** and only Health Connect records appear in the visible list.
 
 ## Local or Google Health?
 
@@ -110,6 +112,7 @@ Health Connect hides records older than 30 days unless you give Sleepy3 the hist
 - [x] First stable release (0.1.0).
 - [x] Floating dock, new type and read-only session details (0.1.6).
 - [x] Tonal Stats history, goal marks and the session panel (0.1.7).
+- [x] Manual session entry from Stats.
 - [ ] Home-screen widget with Sleep and Wake buttons.
 - [ ] Motion and accessibility polish.
 

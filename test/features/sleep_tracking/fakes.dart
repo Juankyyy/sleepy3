@@ -10,6 +10,7 @@ class FakeSleepSessionStore implements SleepSessionStore {
 
   SleepSnapshot snapshot;
   final starts = <SleepSession>[];
+  final inserted = <SleepSession>[];
   final finishes = <DateTime>[];
   final updates = <SleepSession>[];
   final deletes = <int>[];
@@ -55,6 +56,33 @@ class FakeSleepSessionStore implements SleepSessionStore {
       openSession: session,
       closedSessions: snapshot.closedSessions,
     );
+  }
+
+  @override
+  Future<SleepSession> insertClosedSession(SleepSession session) async {
+    if (session.endedAt == null) {
+      throw ArgumentError.value(
+        session,
+        'session',
+        'Only closed sessions can be inserted',
+      );
+    }
+
+    var nextId = 1;
+    for (final current in snapshot.closedSessions) {
+      final id = current.localId;
+      if (id != null && id >= nextId) nextId = id + 1;
+    }
+
+    final insertedSession = session.withLocalId(nextId);
+    final next = [...snapshot.closedSessions, insertedSession]
+      ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
+    snapshot = SleepSnapshot(
+      openSession: snapshot.openSession,
+      closedSessions: next,
+    );
+    inserted.add(insertedSession);
+    return insertedSession;
   }
 
   @override

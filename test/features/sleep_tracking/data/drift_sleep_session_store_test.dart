@@ -38,6 +38,49 @@ void main() {
     expect(snapshot.closedSessions, isEmpty);
   });
 
+  test(
+    'inserts a closed local session with its Health Connect identity',
+    () async {
+      final startedAt = DateTime(2026, 10, 20, 23);
+      final endedAt = DateTime(2026, 10, 21, 7);
+      final clientRecordId = 'sleepy3-${startedAt.millisecondsSinceEpoch}';
+
+      final created = await store.insertClosedSession(
+        SleepSession(
+          startedAt: startedAt,
+          endedAt: endedAt,
+          healthClientRecordId: clientRecordId,
+        ),
+      );
+
+      expect(created.localId, isNotNull);
+      expect(created.startedAt, startedAt);
+      expect(created.endedAt, endedAt);
+      expect(created.healthClientRecordId, clientRecordId);
+
+      final row = await database.select(database.sleepSessions).getSingle();
+      expect(row.origin, SleepSessionOrigin.local.storageValue);
+      expect(row.healthClientRecordId, clientRecordId);
+      expect(row.healthRecordId, isNull);
+      expect(row.healthRecordVersion, 0);
+      expect(row.healthSyncedAtMillis, isNull);
+      expect(row.healthSyncSkipped, isFalse);
+
+      final closed = await store.loadClosedSessions();
+      expect(closed.single.localId, created.localId);
+      expect(closed.single.endedAt, endedAt);
+    },
+  );
+
+  test('refuses to insert an open session', () async {
+    expect(
+      () => store.insertClosedSession(
+        SleepSession(startedAt: DateTime(2026, 10, 20, 23)),
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('closes the open session and keeps the last closed one', () async {
     final startedAt = DateTime(2026, 10, 20, 22, 30);
     final endedAt = startedAt.add(const Duration(hours: 7, minutes: 45));

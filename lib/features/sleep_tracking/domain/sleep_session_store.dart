@@ -41,6 +41,15 @@ abstract interface class SleepSessionStore {
 
   Future<void> startSession(SleepSession session);
 
+  /// Inserts a closed session started in Sleepy3 and returns it with its Drift
+  /// row id.
+  ///
+  /// The row is local, so a later upload can still find it as its safety copy.
+  /// [SleepSession.healthClientRecordId] is preserved when present: it is what
+  /// lets a retry or an edit address the same Health Connect record. The
+  /// session must be closed.
+  Future<SleepSession> insertClosedSession(SleepSession session);
+
   /// Updates the times of a local session.
   ///
   /// Only rows started in Sleepy3 can change; downloaded rows are copies and

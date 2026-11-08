@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/sleep_tracking/presentation/sleep_home_screen.dart';
 import '../features/stats/presentation/stats_screen.dart';
+import '../features/stats/presentation/widgets/new_session_fab.dart';
 import 'navigation/pill_navigation_bar.dart';
 import 'navigation/sleepy3_destination.dart';
 
@@ -23,6 +24,7 @@ class Sleepy3Shell extends StatefulWidget {
 
 class _Sleepy3ShellState extends State<Sleepy3Shell> {
   static const _homeIndex = 0;
+  static const _statsIndex = 1;
 
   int _selectedIndex = _homeIndex;
   final _built = <int>{_homeIndex};
@@ -84,6 +86,12 @@ class _Sleepy3ShellState extends State<Sleepy3Shell> {
                 onDestinationSelected: _selectDestination,
                 destinations: Sleepy3Destination.values,
                 semanticLabel: 'Main navigation',
+                // The FAB decides internally whether the history is ready. It
+                // stays mounted in the bar so the snackbar still has a context
+                // while a Google Health upload reloads the history.
+                trailing: _selectedIndex == _statsIndex
+                    ? const NewSessionFab()
+                    : null,
               ),
             );
           },

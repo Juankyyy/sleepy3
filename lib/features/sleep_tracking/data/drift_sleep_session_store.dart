@@ -76,6 +76,29 @@ class DriftSleepSessionStore implements SleepSessionStore {
   }
 
   @override
+  Future<SleepSession> insertClosedSession(SleepSession session) async {
+    final endedAt = session.endedAt;
+    if (endedAt == null) {
+      throw ArgumentError.value(
+        session,
+        'session',
+        'Only closed sessions can be inserted',
+      );
+    }
+
+    final id = await _db
+        .into(_db.sleepSessions)
+        .insert(
+          SleepSessionsCompanion.insert(
+            startedAtMillis: session.startedAt.millisecondsSinceEpoch,
+            endedAtMillis: Value(endedAt.millisecondsSinceEpoch),
+            healthClientRecordId: Value(session.healthClientRecordId),
+          ),
+        );
+    return session.withLocalId(id);
+  }
+
+  @override
   Future<bool> updateSession(
     int id,
     DateTime startedAt,

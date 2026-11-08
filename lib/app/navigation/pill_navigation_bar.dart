@@ -30,6 +30,11 @@ const double _navGlassBorderOpacity = 0.55;
 /// label; inactive destinations show only their outlined icon. Inactive labels
 /// stay in the semantics tree.
 ///
+/// An optional [trailing] action (the Stats FAB) sits beside the glass with
+/// [trailingGap] between them. The two are centered as one group, so the action
+/// is never pinned to the screen edge; the glass measurement leaves room for
+/// the trailing width.
+///
 /// The scaffold extends its body behind the bar ([Scaffold.extendBody]) so
 /// content stays visible through the glass; screens add the bottom
 /// `MediaQuery` padding as scroll clearance.
@@ -45,7 +50,11 @@ class PillNavigationBar extends StatefulWidget {
     required this.selectedIndex,
     required this.onDestinationSelected,
     this.semanticLabel,
-  }) : assert(destinations.length > 0, 'Provide at least one destination');
+    this.trailing,
+    this.trailingGap = 12,
+    this.trailingWidth = 56,
+  }) : assert(destinations.length > 0, 'Provide at least one destination'),
+       assert(trailingWidth >= 0, 'The trailing width cannot be negative');
 
   /// Minimum container height at 1x text.
   static const double minHeight = 64;
@@ -69,6 +78,19 @@ class PillNavigationBar extends StatefulWidget {
   final int selectedIndex;
   final ValueChanged<int> onDestinationSelected;
   final String? semanticLabel;
+
+  /// Optional action rendered beside the glass, such as the Stats FAB.
+  ///
+  /// It is centered with the glass as one group and keeps the action away from
+  /// the screen edge. It lives inside the bar's 64 dp height, so screens do not
+  /// need extra bottom clearance for it.
+  final Widget? trailing;
+
+  /// Gap between the glass and [trailing].
+  final double trailingGap;
+
+  /// Width reserved for [trailing]. The widget should match this width.
+  final double trailingWidth;
 
   @override
   State<PillNavigationBar> createState() => _PillNavigationBarState();
@@ -150,102 +172,117 @@ class _PillNavigationBarState extends State<PillNavigationBar> {
         : PillNavigationBar.outerMargin;
     final iconSize = navigationTheme.iconSize;
 
-    return Semantics(
-      container: true,
-      label: widget.semanticLabel,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final maxBarWidth = math.max(
-            0.0,
-            constraints.maxWidth - outerMargin * 2,
-          );
-          final contentMaxWidth = math.max(
-            0.0,
-            maxBarWidth -
-                _navInnerPadding * 2 -
-                _navItemGap * (widget.destinations.length - 1),
-          );
-          final metrics = _measureDestinations(
-            context: context,
-            labelStyle: labelStyle,
-            textScaler: textScaler,
-            iconSize: iconSize,
-            availableWidth: contentMaxWidth,
-          );
-          final barHeight = metrics.itemHeight + _navInnerPadding * 2;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final trailingSpace = widget.trailing == null
+            ? 0.0
+            : widget.trailingWidth + widget.trailingGap;
+        final maxBarWidth = math.max(
+          0.0,
+          constraints.maxWidth - outerMargin * 2 - trailingSpace,
+        );
+        final contentMaxWidth = math.max(
+          0.0,
+          maxBarWidth -
+              _navInnerPadding * 2 -
+              _navItemGap * (widget.destinations.length - 1),
+        );
+        final metrics = _measureDestinations(
+          context: context,
+          labelStyle: labelStyle,
+          textScaler: textScaler,
+          iconSize: iconSize,
+          availableWidth: contentMaxWidth,
+        );
+        final barHeight = metrics.itemHeight + _navInnerPadding * 2;
 
-          final items = <Widget>[
-            for (var i = 0; i < widget.destinations.length; i++)
-              _PillNavigationItem(
-                key: ValueKey(widget.destinations[i]),
-                destination: widget.destinations[i],
-                selected: i == _selectedIndex,
-                targetWidth: metrics.targetWidths[i],
-                maxWidth: math.min(
-                  metrics.targetWidths[i] + _navOvershootSlack,
-                  metrics.maxSelectedWidth,
-                ),
-                height: metrics.itemHeight,
-                labelStyle: labelStyle,
-                labelWidth: metrics.labelBoxWidths[i],
-                navigationTheme: navigationTheme,
-                scheme: scheme,
-                focusNode: _focusNodes[i],
-                onTap: () => widget.onDestinationSelected(i),
+        final items = <Widget>[
+          for (var i = 0; i < widget.destinations.length; i++)
+            _PillNavigationItem(
+              key: ValueKey(widget.destinations[i]),
+              destination: widget.destinations[i],
+              selected: i == _selectedIndex,
+              targetWidth: metrics.targetWidths[i],
+              maxWidth: math.min(
+                metrics.targetWidths[i] + _navOvershootSlack,
+                metrics.maxSelectedWidth,
               ),
-          ];
+              height: metrics.itemHeight,
+              labelStyle: labelStyle,
+              labelWidth: metrics.labelBoxWidths[i],
+              navigationTheme: navigationTheme,
+              scheme: scheme,
+              focusNode: _focusNodes[i],
+              onTap: () => widget.onDestinationSelected(i),
+            ),
+        ];
 
-          final glass = ClipRRect(
-            key: PillNavigationBar.surfaceKey,
-            borderRadius: BorderRadius.circular(barHeight / 2),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: _navGlassBlur,
-                sigmaY: _navGlassBlur,
-              ),
-              child: DecoratedBox(
-                decoration: ShapeDecoration(
-                  color: navigationTheme
-                      .containerColor(scheme)
-                      .withValues(alpha: _navGlassOpacity),
-                  shape: StadiumBorder(
-                    side: BorderSide(
-                      color: scheme.outlineVariant.withValues(
-                        alpha: _navGlassBorderOpacity,
-                      ),
+        final glass = ClipRRect(
+          key: PillNavigationBar.surfaceKey,
+          borderRadius: BorderRadius.circular(barHeight / 2),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(
+              sigmaX: _navGlassBlur,
+              sigmaY: _navGlassBlur,
+            ),
+            child: DecoratedBox(
+              decoration: ShapeDecoration(
+                color: navigationTheme
+                    .containerColor(scheme)
+                    .withValues(alpha: _navGlassOpacity),
+                shape: StadiumBorder(
+                  side: BorderSide(
+                    color: scheme.outlineVariant.withValues(
+                      alpha: _navGlassBorderOpacity,
                     ),
                   ),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(_navInnerPadding),
-                  child: CallbackShortcuts(
-                    bindings: <ShortcutActivator, VoidCallback>{
-                      const SingleActivator(LogicalKeyboardKey.arrowLeft): () =>
-                          _moveFocus(-1),
-                      const SingleActivator(
-                        LogicalKeyboardKey.arrowRight,
-                      ): () =>
-                          _moveFocus(1),
-                    },
-                    child: FocusTraversalGroup(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        spacing: _navItemGap,
-                        children: items,
-                      ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(_navInnerPadding),
+                child: CallbackShortcuts(
+                  bindings: <ShortcutActivator, VoidCallback>{
+                    const SingleActivator(LogicalKeyboardKey.arrowLeft): () =>
+                        _moveFocus(-1),
+                    const SingleActivator(LogicalKeyboardKey.arrowRight): () =>
+                        _moveFocus(1),
+                  },
+                  child: FocusTraversalGroup(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      spacing: _navItemGap,
+                      children: items,
                     ),
                   ),
                 ),
               ),
             ),
-          );
+          ),
+        );
 
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[glass],
-          );
-        },
-      ),
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Semantics(
+              container: true,
+              label: widget.semanticLabel,
+              child: glass,
+            ),
+            if (widget.trailing != null) ...[
+              SizedBox(width: widget.trailingGap),
+              // Keep the slot even while the action hides itself, so the glass
+              // does not move when the FAB appears after the history loads.
+              // The explicit height stops the Center from expanding to the
+              // Scaffold's full height and floating the whole bar mid-screen.
+              SizedBox(
+                width: widget.trailingWidth,
+                height: widget.trailingWidth,
+                child: Center(child: widget.trailing),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 

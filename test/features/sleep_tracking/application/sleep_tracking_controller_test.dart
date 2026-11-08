@@ -753,6 +753,166 @@ void main() {
       expect(syncStore.pendingCountLoads, 0);
     });
 
+    group('manual session creation', () {
+      final start = DateTime(2026, 10, 19, 23);
+      final end = DateTime(2026, 10, 20, 7);
+
+      test('adds a closed session to the local history immediately', () async {
+        create();
+        await controller.historyLoad;
+
+        final result = await controller.createClosedSession(
+          startedAt: start,
+          endedAt: end,
+        );
+
+        expect(result.status, SleepSessionEditStatus.saved);
+        expect(store.inserted.single.startedAt, start);
+        expect(store.inserted.single.endedAt, end);
+        expect(store.inserted.single.localId, isNotNull);
+        expect(
+          store.inserted.single.healthClientRecordId,
+          'sleepy3-${start.millisecondsSinceEpoch}',
+        );
+
+        final state = container.read(sleepTrackingControllerProvider);
+        expect(state.closedSessions, hasLength(1));
+        expect(state.closedSessions.single.startedAt, start);
+        expect(state.closedSessions.single.localId, isNotNull);
+        expect(gateway.writes, isEmpty);
+      });
+
+      test('rejects a session that overlaps a closed one', () async {
+        create();
+        await controller.historyLoad;
+        await controller.createClosedSession(startedAt: start, endedAt: end);
+        store.inserted.clear();
+
+        final result = await controller.createClosedSession(
+          startedAt: end.add(const Duration(hours: -1)),
+          endedAt: end.add(const Duration(hours: 1)),
+        );
+
+        expect(result.status, SleepSessionEditStatus.failed);
+        expect(result.error, SessionEditError.overlapsClosedSession);
+        expect(store.inserted, isEmpty);
+      });
+
+      test('rejects a session that overlaps the open one', () async {
+        final open = SleepSession(startedAt: DateTime(2026, 10, 20, 21, 30));
+        create(
+          initial: SleepSnapshot(openSession: open),
+          storeSnapshot: SleepSnapshot(openSession: open),
+        );
+        await controller.historyLoad;
+
+        final result = await controller.createClosedSession(
+          startedAt: DateTime(2026, 10, 20, 21),
+          endedAt: DateTime(2026, 10, 20, 22),
+        );
+
+        expect(result.status, SleepSessionEditStatus.failed);
+        expect(result.error, SessionEditError.overlapsOpenSession);
+        expect(store.inserted, isEmpty);
+      });
+
+      test('rejects a future end', () async {
+        create();
+        await controller.historyLoad;
+
+        final result = await controller.createClosedSession(
+          startedAt: DateTime(2026, 10, 20, 14),
+          endedAt: DateTime(2026, 10, 20, 23),
+        );
+
+        expect(result.status, SleepSessionEditStatus.failed);
+        expect(result.error, SessionEditError.endInTheFuture);
+        expect(store.inserted, isEmpty);
+      });
+
+      test('rejects a sleep shorter than ten minutes', () async {
+        create();
+        await controller.historyLoad;
+
+        final result = await controller.createClosedSession(
+          startedAt: DateTime(2026, 10, 20, 6, 55),
+          endedAt: DateTime(2026, 10, 20, 7),
+        );
+
+        expect(result.status, SleepSessionEditStatus.failed);
+        expect(result.error, SessionEditError.tooShort);
+      });
+
+      test('uploads the new session in Google Health', () async {
+        final sync = FakeHealthSyncStore()
+          ..addLocal(
+            SleepSession(
+              startedAt: start,
+              endedAt: end,
+              healthClientRecordId: 'sleepy3-${start.millisecondsSinceEpoch}',
+            ),
+          );
+        final healthGateway = FakeHealthConnectGateway();
+        create(
+          source: SleepDataSource.healthConnect,
+          healthGateway: healthGateway,
+          healthSyncStore: sync,
+        );
+        await controller.historyLoad;
+
+        final result = await controller.createClosedSession(
+          startedAt: start,
+          endedAt: end,
+        );
+
+        expect(result.status, SleepSessionEditStatus.saved);
+        expect(healthGateway.writes.single.startedAt, start);
+        expect(healthGateway.writes.single.endedAt, end);
+        expect(
+          healthGateway.writes.single.clientRecordId,
+          'sleepy3-${start.millisecondsSinceEpoch}',
+        );
+        expect(sync.rows.single.healthSyncedAt, isNotNull);
+        expect(container.read(healthSyncControllerProvider).pendingCount, 0);
+
+        final state = container.read(sleepTrackingControllerProvider);
+        expect(state.closedSessions, hasLength(1));
+        expect(state.closedSessions.single.startedAt, start);
+        expect(state.closedSessions.single.endedAt, end);
+        expect(state.closedSessions.single.sourceId, isNotNull);
+      });
+
+      test('a failed upload keeps the new session pending', () async {
+        final local = SleepSession(
+          startedAt: start,
+          endedAt: end,
+          healthClientRecordId: 'sleepy3-${start.millisecondsSinceEpoch}',
+        );
+        final sync = FakeHealthSyncStore()..addLocal(local);
+        final healthGateway = FakeHealthConnectGateway()..writeSucceeds = false;
+        create(
+          source: SleepDataSource.healthConnect,
+          healthGateway: healthGateway,
+          healthSyncStore: sync,
+        );
+        await controller.historyLoad;
+
+        final result = await controller.createClosedSession(
+          startedAt: start,
+          endedAt: end,
+        );
+
+        expect(result.status, SleepSessionEditStatus.savedPendingSync);
+        expect(healthGateway.writes, hasLength(1));
+        expect(sync.rows.single.healthSyncedAt, isNull);
+        expect(container.read(healthSyncControllerProvider).pendingCount, 1);
+
+        final state = container.read(sleepTrackingControllerProvider);
+        expect(state.closedSessions, isEmpty);
+        expect(store.inserted.single.startedAt, start);
+      });
+    });
+
     group('closed session editing', () {
       final start = DateTime(2026, 10, 19, 23);
       final end = DateTime(2026, 10, 20, 7);
