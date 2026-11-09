@@ -50,6 +50,7 @@ void main() {
     FakeHealthConnectGateway? gateway,
     FakeHealthSyncStore? healthSyncStore,
     FakeAppInfoGateway? appInfo,
+    bool dark = false,
     bool settle = true,
   }) async {
     tester.view.physicalSize = size * 3;
@@ -61,7 +62,7 @@ void main() {
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
     final sleepStore = store ?? FakeSleepSessionStore(snapshot: initial);
-    final data = Sleepy3Theme.light();
+    final data = dark ? Sleepy3Theme.dark() : Sleepy3Theme.light();
     await tester.pumpWidget(
       Builder(
         builder: (context) {
@@ -1031,6 +1032,21 @@ void main() {
     expect(table.columnWidths, hasLength(4));
   });
 
+  testWidgets('renders the dashboard in the dark theme', (tester) async {
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: sessions),
+      dark: true,
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Average sleep'), findsOneWidget);
+    expect(find.text('Sleep duration'), findsOneWidget);
+    expect(find.text('Sleep window'), findsOneWidget);
+    expect(find.text('By weekday'), findsOneWidget);
+  });
+
   testWidgets('shows a loading card while the history loads', (tester) async {
     final store = FakeSleepSessionStore();
     store.closedLoadGate = Completer<void>();
@@ -1387,6 +1403,42 @@ void main() {
       expect(gateway.historyPermissionRequestCalls, 1);
       expect(find.text('Only the last 30 days are available'), findsOneWidget);
       expect(find.text('Allow full history'), findsOneWidget);
+      expect(find.textContaining('Last 30 days available'), findsNWidgets(3));
+      expect(
+        find.text('Bedtime to wake · Last 30 days available'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Average by wake day · Last 30 days available'),
+        findsOneWidget,
+      );
+      expect(find.text('Wed, Sep 2'), findsNothing);
+    });
+
+    testWidgets('Year without history access asks and explains the limit', (
+      tester,
+    ) async {
+      final gateway = FakeHealthConnectGateway(
+        sessions: [old, recent],
+        historyPermission: false,
+        grantHistoryOnRequest: false,
+      );
+
+      await pumpStats(
+        tester,
+        clock: () => DateTime(2026, 10, 21, 10),
+        source: SleepDataSource.healthConnect,
+        gateway: gateway,
+      );
+
+      expect(gateway.historyPermissionRequestCalls, 0);
+
+      await tester.tap(find.text('Year'));
+      await tester.pumpAndSettle();
+
+      expect(gateway.historyPermissionRequestCalls, 1);
+      expect(find.text('Only the last 30 days are available'), findsOneWidget);
+      expect(find.textContaining('Last 30 days available'), findsNWidgets(3));
       expect(find.text('Wed, Sep 2'), findsNothing);
     });
 
@@ -1471,7 +1523,7 @@ void main() {
     expect(find.text('Consistencia del horario'), findsOneWidget);
     expect(find.text('Balance de sueño'), findsOneWidget);
     expect(find.text('−1 h 57 min'), findsOneWidget);
-    expect(find.text('deuda · vs objetivo de 8 h'), findsOneWidget);
+    expect(find.text('deuda · frente al objetivo de 8 h'), findsOneWidget);
     expect(find.text('Mejor racha'), findsOneWidget);
     expect(find.text('1 noche'), findsOneWidget);
     expect(find.text('actual 1'), findsOneWidget);

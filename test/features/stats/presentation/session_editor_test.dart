@@ -656,6 +656,46 @@ void main() {
     expect(store.updates.single.startedAt, DateTime(2026, 10, 20, 21, 15));
   });
 
+  testWidgets('editing a session updates the Stats metrics without a reload', (
+    tester,
+  ) async {
+    final store = await pumpStats(tester, sessions: [localSession()]);
+    final loads = store.closedLoads;
+
+    await openLocalEditor(tester);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(SessionEditor),
+        matching: find.text('10:32 PM'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final dial = find.byWidgetPredicate(
+      (widget) =>
+          widget is CustomPaint &&
+          widget.painter?.runtimeType.toString() == 'M3ETimeDialPainter',
+    );
+    final rect = tester.getRect(dial);
+    final radius = rect.width * 0.35;
+
+    await tester.tapAt(rect.center + Offset(-radius, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('32'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(rect.center + Offset(radius, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(store.closedLoads, loads);
+    expect(find.text('Across 1 night · 9h 30m total'), findsOneWidget);
+    expect(find.text('9h 30m'), findsWidgets);
+  });
+
   testWidgets('discards a changed date when closing the editor', (
     tester,
   ) async {
@@ -888,6 +928,7 @@ void main() {
 
   testWidgets('deletes an editable session after confirmation', (tester) async {
     final store = await pumpStats(tester, sessions: [localSession()]);
+    final loads = store.closedLoads;
 
     await openLocalEditor(tester);
     await tapDeleteSession(tester);
@@ -897,6 +938,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(store.deletes, [1]);
+    expect(store.closedLoads, loads);
     expect(find.text('Session'), findsNothing);
     expect(find.text('Session deleted.'), findsOneWidget);
     expect(find.text('No sleep history yet'), findsOneWidget);

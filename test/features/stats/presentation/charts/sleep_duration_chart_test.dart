@@ -40,6 +40,7 @@ void main() {
     double textScale = 1,
     Locale locale = const Locale('en'),
     bool disableAnimations = false,
+    bool historyLimited = false,
   }) async {
     tester.view.physicalSize = size * 3;
     tester.view.devicePixelRatio = 3;
@@ -70,8 +71,10 @@ void main() {
             padding: const EdgeInsets.all(16),
             child: ValueListenableBuilder<SleepInsights>(
               valueListenable: value,
-              builder: (context, value, _) =>
-                  SleepDurationChart(insights: value),
+              builder: (context, value, _) => SleepDurationChart(
+                insights: value,
+                historyLimited: historyLimited,
+              ),
             ),
           ),
         ),
@@ -110,6 +113,29 @@ void main() {
           '4 nights with no data\\.',
         ),
       ),
+      findsOneWidget,
+    );
+
+    handle.dispose();
+  });
+
+  testWidgets('names the 30-day limit instead of the selected range', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    final threeMonths = buildSleepInsights(
+      now: now,
+      sessions: sessions,
+      range: SleepHistoryRange.threeMonths,
+    );
+    await pumpChart(tester, threeMonths, historyLimited: true);
+
+    expect(
+      find.text('Last 30 days available · 3 nights recorded · Goal 8h'),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(RegExp('^Sleep duration for the last 30 days\\.')),
       findsOneWidget,
     );
 
