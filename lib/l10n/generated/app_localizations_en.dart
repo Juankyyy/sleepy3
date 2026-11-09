@@ -122,6 +122,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sleepingNotificationOngoing => 'In progress';
 
   @override
+  String get sleepStatusNotification => 'Sleep in progress';
+
+  @override
+  String get sleepStatusNotificationSupport =>
+      'Shows a live timer while you sleep.';
+
+  @override
+  String get sleepStatusNotificationOff => 'Off';
+
+  @override
+  String get sleepStatusNotificationPermissionNeeded =>
+      'Allow notifications to show your sleep status.';
+
+  @override
   String get sleepData => 'Sleep data';
 
   @override

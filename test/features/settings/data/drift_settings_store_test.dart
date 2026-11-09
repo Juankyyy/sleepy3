@@ -223,6 +223,23 @@ void main() {
       expect(rows.single.settingValue, 'true');
     });
 
+    test('defaults to showing the sleep status notification', () async {
+      expect(await store.loadSleepingNotificationEnabled(), isTrue);
+    });
+
+    test('round-trips the sleep status notification setting', () async {
+      await store.saveSleepingNotificationEnabled(false);
+
+      expect(await store.loadSleepingNotificationEnabled(), isFalse);
+      final rows = await database.select(database.preferences).get();
+      expect(rows, hasLength(1));
+      expect(rows.single.settingKey, 'sleep_status_notification_enabled');
+      expect(rows.single.settingValue, 'false');
+
+      await store.saveSleepingNotificationEnabled(true);
+      expect(await store.loadSleepingNotificationEnabled(), isTrue);
+    });
+
     test('stores the theme and the source side by side', () async {
       await store.saveThemeMode(AppThemeMode.dark);
       await store.saveSleepDataSource(SleepDataSource.healthConnect);

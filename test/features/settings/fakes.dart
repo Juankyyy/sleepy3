@@ -13,6 +13,7 @@ class FakeSettingsStore implements SettingsStore {
     this.sleepDataSource = SleepDataSource.local,
     this.sleepReminder = SleepReminder.defaults,
     this.sleepNotificationPermissionAsked = false,
+    this.sleepingNotificationEnabled = true,
     this.failWrites = false,
   });
 
@@ -22,6 +23,7 @@ class FakeSettingsStore implements SettingsStore {
   SleepDataSource sleepDataSource;
   SleepReminder sleepReminder;
   bool sleepNotificationPermissionAsked;
+  bool sleepingNotificationEnabled;
   bool failWrites;
   int loads = 0;
   int timeFormatLoads = 0;
@@ -29,12 +31,14 @@ class FakeSettingsStore implements SettingsStore {
   int sourceLoads = 0;
   int reminderLoads = 0;
   int sleepNotificationPermissionAskedLoads = 0;
+  int sleepingNotificationEnabledLoads = 0;
   final saves = <AppThemeMode>[];
   final timeFormatSaves = <AppTimeFormat>[];
   final languageSaves = <AppLanguage>[];
   final sourceSaves = <SleepDataSource>[];
   final reminderSaves = <SleepReminder>[];
   final sleepNotificationPermissionAskedSaves = <bool>[];
+  final sleepingNotificationEnabledSaves = <bool>[];
 
   @override
   Future<AppThemeMode> loadThemeMode() async {
@@ -112,5 +116,18 @@ class FakeSettingsStore implements SettingsStore {
     if (failWrites) throw StateError('write failed');
     sleepNotificationPermissionAsked = value;
     sleepNotificationPermissionAskedSaves.add(value);
+  }
+
+  @override
+  Future<bool> loadSleepingNotificationEnabled() async {
+    sleepingNotificationEnabledLoads++;
+    return sleepingNotificationEnabled;
+  }
+
+  @override
+  Future<void> saveSleepingNotificationEnabled(bool value) async {
+    if (failWrites) throw StateError('write failed');
+    sleepingNotificationEnabled = value;
+    sleepingNotificationEnabledSaves.add(value);
   }
 }

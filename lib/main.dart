@@ -24,6 +24,7 @@ import 'features/settings/domain/app_time_format.dart';
 import 'features/settings/domain/app_version.dart';
 import 'features/settings/domain/settings_store.dart';
 import 'features/sleep_tracking/application/sleep_tracking_controller.dart';
+import 'features/sleep_tracking/application/sleeping_notification_enabled_controller.dart';
 import 'features/sleep_tracking/data/drift_sleep_session_store.dart';
 import 'features/sleep_tracking/data/sleepy3_database.dart';
 import 'features/sleep_tracking/domain/sleep_session.dart';
@@ -45,6 +46,9 @@ Future<void> main() async {
   final language = await _loadLanguage(settingsStore);
   final dataSource = await _loadSleepDataSource(settingsStore);
   final sleepReminder = await _loadSleepReminder(settingsStore);
+  final sleepingNotificationEnabled = await _loadSleepingNotificationEnabled(
+    settingsStore,
+  );
   final packageInfo = await _loadPackageInfo();
   final appVersion = _appVersionFrom(packageInfo);
 
@@ -63,6 +67,9 @@ Future<void> main() async {
         healthSyncStoreProvider.overrideWithValue(healthSyncStore),
         initialSleepDataSourceProvider.overrideWithValue(dataSource),
         initialSleepReminderProvider.overrideWithValue(sleepReminder),
+        initialSleepingNotificationEnabledProvider.overrideWithValue(
+          sleepingNotificationEnabled,
+        ),
         appVersionProvider.overrideWithValue(appVersion),
         currentAppPackageProvider.overrideWithValue(
           packageInfo?.packageName ?? 'com.sleepy3.app',
@@ -181,6 +188,17 @@ Future<SleepReminder> _loadSleepReminder(SettingsStore store) async {
       'Sleepy3: could not load the sleep reminder: $error\n$stackTrace',
     );
     return SleepReminder.defaults;
+  }
+}
+
+Future<bool> _loadSleepingNotificationEnabled(SettingsStore store) async {
+  try {
+    return await store.loadSleepingNotificationEnabled();
+  } catch (error, stackTrace) {
+    debugPrint(
+      'Sleepy3: could not load the sleep status setting: $error\n$stackTrace',
+    );
+    return true;
   }
 }
 

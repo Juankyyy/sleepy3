@@ -124,10 +124,13 @@ lib/
   back to the standard layout at large system font scales or if inflation fails, so do not
   remove that path. It is not a foreground service, so the chronometer keeps running when
   the app process dies. `Sleepy3App` syncs it on launch, resume, open-session changes,
-  language changes and time-format changes. The first Sleep may request notification
-  permission once; the flag lives in `preferences` as
-  `sleep_notification_permission_asked`, so do not prompt again. After a phone reboot it
-  reappears when the app opens.
+  language changes and time-format changes. `SleepingNotificationEnabledController` owns
+  the `Sleep in progress` switch in Settings; the preference is
+  `sleep_status_notification_enabled`, missing means enabled. Turning it off cancels the
+  card immediately; enabling it requests permission first and keeps the one-time prompt
+  flag in `preferences` as `sleep_notification_permission_asked`, so do not prompt again.
+  It is independent from the nightly reminder. After a phone reboot it reappears when the
+  app opens.
 - Sleep data source: `Local` (default) reads only Drift; `Google Health` reads all
   `SLEEP_SESSION` records from Health Connect. Never mix the two lists. The open
   session and every finished session are always written locally first as a safety copy.

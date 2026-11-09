@@ -43,4 +43,7 @@ abstract interface class SleepingNotificationPresenter {
 
   /// Cancels the sleep-status notification.
   Future<void> cancel();
+
+  /// Opens the app's notification settings in Android.
+  Future<void> openNotificationSettings();
 }

@@ -24,6 +24,8 @@ import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/settings/domain/app_version.dart';
 import 'package:sleepy3/features/settings/presentation/settings_screen.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_providers.dart';
+import 'package:sleepy3/features/sleep_tracking/application/sleeping_notification_controller.dart';
+import 'package:sleepy3/features/sleep_tracking/application/sleeping_notification_enabled_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/l10n/l10n.dart';
 
@@ -55,6 +57,8 @@ void main() {
     FakeHealthConnectGateway? gateway,
     FakeHealthSyncStore? healthSyncStore,
     FakeSleepReminderScheduler? reminderScheduler,
+    bool sleepingNotificationEnabled = true,
+    FakeSleepingNotificationPresenter? sleepingNotificationPresenter,
     double textScale = 1,
     Size size = const Size(360, 800),
   }) async {
@@ -79,6 +83,13 @@ void main() {
           initialSleepReminderProvider.overrideWithValue(initialReminder),
           sleepReminderSchedulerProvider.overrideWithValue(
             reminderScheduler ?? FakeSleepReminderScheduler(),
+          ),
+          initialSleepingNotificationEnabledProvider.overrideWithValue(
+            sleepingNotificationEnabled,
+          ),
+          sleepingNotificationPresenterProvider.overrideWithValue(
+            sleepingNotificationPresenter ??
+                FakeSleepingNotificationPresenter(),
           ),
           healthConnectGatewayProvider.overrideWithValue(
             gateway ?? FakeHealthConnectGateway(),
@@ -250,7 +261,14 @@ void main() {
         const SleepReminder(enabled: true, hour: 22, minute: 0),
       );
       expect(store.reminderSaves.single.enabled, isTrue);
-      expect(tester.widget<M3ESwitch>(find.byType(M3ESwitch)).value, isTrue);
+      expect(
+        tester
+            .widget<M3ESwitch>(
+              find.byKey(const ValueKey('sleep-reminder-switch')),
+            )
+            .value,
+        isTrue,
+      );
       expect(find.text('Every day at 10:00 PM'), findsOneWidget);
       expect(find.text('Reminder time'), findsOneWidget);
       expect(find.text('10:00 PM'), findsOneWidget);
@@ -265,7 +283,14 @@ void main() {
 
     await tapLabel(tester, 'Sleep reminder');
 
-    expect(tester.widget<M3ESwitch>(find.byType(M3ESwitch)).value, isFalse);
+    expect(
+      tester
+          .widget<M3ESwitch>(
+            find.byKey(const ValueKey('sleep-reminder-switch')),
+          )
+          .value,
+      isFalse,
+    );
     expect(scheduler.scheduled, isEmpty);
     expect(store.reminderSaves, isEmpty);
     expect(
@@ -278,6 +303,116 @@ void main() {
 
     expect(scheduler.openSettingsCalls, 1);
   });
+
+  testWidgets('shows the Sleep in progress notification on by default', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    try {
+      await pumpSettings(tester);
+      await scrollToLabel(tester, 'Sleep in progress');
+
+      final node = tester.getSemantics(
+        find.bySemanticsLabel('Sleep in progress'),
+      );
+
+      expect(
+        node.getSemanticsData().flagsCollection.isToggled,
+        Tristate.isTrue,
+      );
+    } finally {
+      handle.dispose();
+    }
+  });
+
+  testWidgets(
+    'disabling the Sleep in progress notification saves and cancels',
+    (tester) async {
+      final presenter = FakeSleepingNotificationPresenter();
+      final store = await pumpSettings(
+        tester,
+        sleepingNotificationPresenter: presenter,
+      );
+
+      await tapLabel(tester, 'Sleep in progress');
+
+      expect(store.sleepingNotificationEnabledSaves, [false]);
+      expect(
+        tester
+            .widget<M3ESwitch>(
+              find.byKey(const ValueKey('sleep-status-switch')),
+            )
+            .value,
+        isFalse,
+      );
+      expect(presenter.cancels, 1);
+    },
+  );
+
+  testWidgets(
+    'enabling the Sleep in progress notification asks for permission',
+    (tester) async {
+      final presenter = FakeSleepingNotificationPresenter(
+        notificationsAreEnabled: false,
+        permissionGranted: true,
+      );
+      final store = await pumpSettings(
+        tester,
+        sleepingNotificationEnabled: false,
+        sleepingNotificationPresenter: presenter,
+      );
+
+      await tapLabel(tester, 'Sleep in progress');
+
+      expect(presenter.permissionRequests, 1);
+      expect(store.sleepingNotificationEnabledSaves, [true]);
+      expect(
+        tester
+            .widget<M3ESwitch>(
+              find.byKey(const ValueKey('sleep-status-switch')),
+            )
+            .value,
+        isTrue,
+      );
+    },
+  );
+
+  testWidgets(
+    'a denied permission keeps the Sleep in progress notification off',
+    (tester) async {
+      final presenter = FakeSleepingNotificationPresenter(
+        notificationsAreEnabled: false,
+        permissionGranted: false,
+      );
+      final store = await pumpSettings(
+        tester,
+        sleepingNotificationEnabled: false,
+        sleepingNotificationPresenter: presenter,
+      );
+
+      await tapLabel(tester, 'Sleep in progress');
+
+      expect(
+        tester
+            .widget<M3ESwitch>(
+              find.byKey(const ValueKey('sleep-status-switch')),
+            )
+            .value,
+        isFalse,
+      );
+      expect(store.sleepingNotificationEnabledSaves, isEmpty);
+      expect(store.sleepNotificationPermissionAskedSaves, [true]);
+      expect(
+        find.text('Allow notifications to show your sleep status.'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Open settings'));
+      await tester.pumpAndSettle();
+
+      expect(presenter.openSettingsCalls, 1);
+    },
+  );
 
   testWidgets('shows a warning when Android blocks notifications', (
     tester,
@@ -533,6 +668,7 @@ void main() {
       healthSyncStore: FakeHealthSyncStore()..addLocal(session),
     );
 
+    await scrollToLabel(tester, 'Status');
     expect(find.text('Connected · 1 pending'), findsOneWidget);
   });
 
@@ -747,6 +883,7 @@ void main() {
       gateway: gateway,
     );
 
+    await scrollToLabel(tester, 'Status');
     expect(find.text('Permission needed'), findsOneWidget);
     expect(find.text('Connect'), findsOneWidget);
 
@@ -770,6 +907,7 @@ void main() {
       gateway: gateway,
     );
 
+    await scrollToLabel(tester, 'Status');
     expect(find.text('Not available'), findsOneWidget);
     expect(find.text('Install'), findsOneWidget);
 
@@ -789,6 +927,7 @@ void main() {
       ),
     );
 
+    await scrollToLabel(tester, 'Status');
     expect(find.text('Update required'), findsOneWidget);
     expect(find.text('Install'), findsOneWidget);
   });

@@ -123,6 +123,20 @@ class AppLocalizationsEs extends AppLocalizations {
   String get sleepingNotificationOngoing => 'En curso';
 
   @override
+  String get sleepStatusNotification => 'Sueño en curso';
+
+  @override
+  String get sleepStatusNotificationSupport =>
+      'Muestra un temporizador en vivo mientras duermes.';
+
+  @override
+  String get sleepStatusNotificationOff => 'Desactivado';
+
+  @override
+  String get sleepStatusNotificationPermissionNeeded =>
+      'Permite las notificaciones para mostrar el estado del sueño.';
+
+  @override
   String get sleepData => 'Datos de sueño';
 
   @override

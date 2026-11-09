@@ -302,6 +302,30 @@ abstract class AppLocalizations {
   /// **'In progress'**
   String get sleepingNotificationOngoing;
 
+  /// No description provided for @sleepStatusNotification.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep in progress'**
+  String get sleepStatusNotification;
+
+  /// No description provided for @sleepStatusNotificationSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Shows a live timer while you sleep.'**
+  String get sleepStatusNotificationSupport;
+
+  /// No description provided for @sleepStatusNotificationOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get sleepStatusNotificationOff;
+
+  /// No description provided for @sleepStatusNotificationPermissionNeeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow notifications to show your sleep status.'**
+  String get sleepStatusNotificationPermissionNeeded;
+
   /// No description provided for @sleepData.
   ///
   /// In en, this message translates to:

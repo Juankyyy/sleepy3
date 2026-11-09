@@ -529,9 +529,15 @@ Reglas:
   - `Reminder time`, visible solo con el recordatorio activo, muestra la hora actual y
     abre `M3ETimePicker`. Cambiar la hora cancela la programación anterior y guarda la
     nueva.
+  - `Sleep in progress`, un interruptor con apoyo `Shows a live timer while you sleep.` o
+    `Off`. Está activado por defecto. Al activarlo se pide permiso de notificaciones si
+    hace falta; si se deniega, sigue apagado y un snackbar ofrece `Open settings`. Al
+    desactivarlo se cancela la tarjeta al momento y no se publica en el siguiente Sleep.
+    Es independiente de `Sleep reminder`.
   - Si Android bloquea las notificaciones de la app, aparece una fila
     `Notifications are off` con `Allow Sleepy3 to send the notification.` que abre los
-    ajustes de notificaciones del sistema.
+    ajustes de notificaciones del sistema. La fila se muestra cuando el recordatorio
+    está activo; la tarjeta de sueño usa el aviso de permiso al intentar activarse.
 - `Sleep data` contiene:
   - `Source`, cuyo supporting text muestra `Local` o `Google Health`. Al tocarla se abre
     el diálogo `Sleep data source` con una fila de radio por fuente y `Cancel` / `Apply`.
@@ -620,11 +626,17 @@ Reglas:
   sesión abierta (por ejemplo, tras un crash) y se cancela al despertar o al descartar la
   sesión. También se vuelve a publicar si cambia la hora de inicio de la sesión abierta, el
   idioma o el formato horario.
-- En Android 13+ el permiso se pide como máximo una vez, en el primer Sleep y solo si no
-  está concedido. La marca `sleep_notification_permission_asked` en `preferences` evita
-  repetir el diálogo; una denegación deja la notificación oculta y no rompe el seguimiento.
-  El usuario puede habilitar después las notificaciones o el canal en Android y la
-  notificación vuelve en la siguiente sincronización.
+- El interruptor `Sleep in progress` de Ajustes se guarda en `preferences` como
+  `sleep_status_notification_enabled` (ausente = activado). Desactivarlo cancela la
+  tarjeta al momento y evita publicarla; activarlo la muestra si hay una sesión abierta.
+  Al activarlo se pide permiso si falta; una denegación deja el interruptor apagado y
+  ofrece abrir los ajustes de Android. Es independiente del recordatorio nocturno.
+- En Android 13+ el permiso se pide al activar el interruptor o en el primer Sleep con la
+  notificación activada, y como máximo una vez. La marca
+  `sleep_notification_permission_asked` en `preferences` evita repetir el diálogo; una
+  denegación deja la notificación oculta y no rompe el seguimiento. El usuario puede
+  habilitar después las notificaciones o el canal en Android y la notificación vuelve en
+  la siguiente sincronización.
 - Tocar la notificación abre `Home` mediante un `PendingIntent` a `MainActivity`; si la app
   ya estaba abierta en otra pestaña, `onNewIntent` avisa a Dart y `Sleepy3Shell` selecciona
   `Home`. El canal es independiente del recordatorio, así que se puede desactivar solo este
@@ -944,14 +956,14 @@ Reglas:
     encabezado `titleMedium` emphasized y 8 dp hasta la lista.
   - Filas `M3EListItem` dentro de `M3EList` con radio exterior 16 dp, interior 4 dp y gap
     2 dp. Las filas crecen con el texto del sistema.
-  - La fila del interruptor de `Sleep reminder` no usa `M3EListItem`: el item agrupado
-    recorta la etiqueta a una línea y excluye la semántica de sus hijos, así que el
-    interruptor desaparecería para TalkBack. Se compone con la misma superficie rellena
-    de 16 dp, texto `bodyLarge` / `bodyMedium`, mínimo de 72 dp y un `M3ESwitch` de
-    32 × 52 dp con objetivo de 48 dp; la fila entera es el objetivo táctil y anuncia
-    `toggled` al lector de pantalla. Las filas de hora y de aviso usan la misma
-    composición con texto que envuelve, para que las etiquetas largas no se recorten al
-    200 %.
+  - Las filas de interruptor (`Sleep reminder` y `Sleep in progress`) no usan `M3EListItem`:
+    el item agrupado recorta la etiqueta a una línea y excluye la semántica de sus hijos,
+    así que el interruptor desaparecería para TalkBack. Comparten
+    `SettingsToggleRow`, con la misma superficie rellena de 16 dp, texto `bodyLarge` /
+    `bodyMedium`, mínimo de 72 dp y un `M3ESwitch` de 32 × 52 dp con objetivo de 48 dp;
+    la fila entera es el objetivo táctil y anuncia `toggled` al lector de pantalla. Las
+    filas de hora y de aviso usan la misma composición con texto que envuelve, para que
+    las etiquetas largas no se recorten al 200 %.
   - La fila `Theme` usa el supporting text para el valor actual (`System`, `Light` o
     `Dark`), de modo que el lector de pantalla lo anuncie como parte de la etiqueta. El
     diálogo de selección usa opciones cortas para caber al 200 % de texto.
@@ -964,7 +976,9 @@ Reglas:
   - `Sleep reminder` usa un interruptor M3 Expressive y supporting text con el estado:
     `Off` o `Every day at {time}`, con el formato 12/24 h compartido. Al activarlo
     aparece `Reminder time`, que abre `M3ETimePicker`. Si las notificaciones están
-    bloqueadas, se añade la fila de aviso con chevron.
+    bloqueadas, se añade la fila de aviso con chevron. `Sleep in progress` reutiliza la misma
+    fila, con icono de notificaciones y claves de test `sleep-reminder-switch` y
+    `sleep-status-switch` respectivamente.
   - A partir del 150 % de texto se retiran los iconos decorativos de las filas de
     `Settings` para que las etiquetas largas (`Importar`, `Privacidad`) no se recorten;
     los controles de selección (radio del diálogo de fuente) se mantienen.
@@ -1043,6 +1057,8 @@ Reglas:
 | Secciones de Settings | `Appearance`, `Reminders`, `Sleep data`, `Google Health`, `About` |
 | Recordatorio | `Sleep reminder`; apoyo `Off` o `Every day at {time}` |
 | Hora del recordatorio | `Reminder time` |
+| Notificación de sueño | `Sleep in progress`; apoyo `Shows a live timer while you sleep.` / `Off` |
+| Permiso de sueño denegado | `Allow notifications to show your sleep status.` / `Open settings` |
 | Aviso de notificaciones | `Notifications are off` / `Allow Sleepy3 to send the notification.` |
 | Permiso denegado | `Allow notifications to get the sleep reminder.` / `Open settings` |
 | Error al programar | `Couldn't set the sleep reminder. Try again.` |
@@ -1267,6 +1283,8 @@ splash.
   `NativeSleepingNotificationPresenter` delega el permiso en el `LocalNotifications`
   compartido e invoca el puente nativo `com.sleepy3.app/sleeping_notification`, que pinta
   la tarjeta con `RemoteViews`, cronómetro nativo, importancia baja y canal propio.
+  `SleepingNotificationEnabledController` es un `Notifier<bool>` que persiste el
+  interruptor; `sync` no publica nada cuando está apagado.
 - `Sleepy3App` sincroniza el recordatorio al arrancar, al volver al primer plano, al
   cambiar `isSleeping` y al cambiar el idioma. Una sesión abierta lo cancela; despertar
   lo vuelve a armar. También sincroniza la notificación de sueño en curso al arrancar, al
@@ -1403,6 +1421,8 @@ dart run build_runner build
   equivale a `22:00`.
 - Clave `sleep_notification_permission_asked` con `true` o `false`; ausente equivale a
   `false`. Solo evita repetir el diálogo de permiso del primer Sleep.
+- Clave `sleep_status_notification_enabled` con `true` o `false`; ausente equivale a
+  `true`. Controla el interruptor `Sleep in progress` de Ajustes.
 - La migración de v1 a v2 crea `preferences`; las sesiones existentes no se tocan.
 - El modo de tema y la fuente se guardan en la misma base para no abrir un segundo
   almacén.
@@ -1611,6 +1631,9 @@ dart run tool/generate_brand_assets.dart
   texto grande, importancia baja, publicación al dormir, cancelación al despertar,
   actualización al retimar o cambiar idioma/formato, permiso pedido una sola vez y copy en
   inglés/español. El puente se cubre con un test del `MethodChannel`.
+- Interruptor de notificación de sueño: activado por defecto, persistencia, cancelación al
+  desactivar, permiso al activar, denegación con `Open settings`, independencia del
+  recordatorio y layout al 200 %.
 - Health Connect: disponibilidad, permisos de sueño e historial, lectura/escritura,
   cola de pendientes, reintento idempotente, banner, sesiones omitidas, acciones de copia,
   deduplicación por UUID y horas exactas, fallo parcial, protección de filas locales,
@@ -1668,7 +1691,8 @@ dart run tool/generate_brand_assets.dart
   `Home` al tocar la notificación y aviso cuando Android bloquea las notificaciones.
 - Notificación de sueño en curso silenciosa y no descartable, con tarjeta nativa y
   cronómetro grande, objetivo de 8 h y hora meta, fallback al layout estándar con texto
-  grande, que se publica al dormir y se cancela al despertar.
+  grande, que se publica al dormir y se cancela al despertar. Se puede desactivar desde
+  Ajustes con el interruptor `Sleep in progress`, activado por defecto.
 - Health Connect: permisos de sueño e historial, lectura y escritura, cola de pendientes,
   reintento al abrir o volver a la app, banner de pendientes, acciones
   `Import`/`Sync`/`Add`, actualización del mismo registro tras una edición, borrado

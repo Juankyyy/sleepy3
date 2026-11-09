@@ -35,4 +35,12 @@ abstract interface class SettingsStore {
   Future<bool> loadSleepNotificationPermissionAsked();
 
   Future<void> saveSleepNotificationPermissionAsked(bool asked);
+
+  /// Whether the sleep-status notification is shown while a session is open.
+  ///
+  /// Missing preference means enabled, preserving the behavior of versions
+  /// before the setting existed.
+  Future<bool> loadSleepingNotificationEnabled();
+
+  Future<void> saveSleepingNotificationEnabled(bool enabled);
 }

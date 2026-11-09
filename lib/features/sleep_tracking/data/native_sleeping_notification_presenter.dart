@@ -54,6 +54,11 @@ class NativeSleepingNotificationPresenter
     return _channel.invokeMethod<void>('cancel');
   }
 
+  @override
+  Future<void> openNotificationSettings() {
+    return _notifications.openNotificationSettings();
+  }
+
   Future<Object?> _handleCall(MethodCall call) async {
     if (call.method == 'opened') onOpened();
     return null;

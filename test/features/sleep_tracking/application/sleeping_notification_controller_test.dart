@@ -6,6 +6,7 @@ import 'package:sleepy3/features/settings/application/time_format_controller.dar
 import 'package:sleepy3/features/settings/domain/app_language.dart';
 import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleeping_notification_controller.dart';
+import 'package:sleepy3/features/sleep_tracking/application/sleeping_notification_enabled_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 
 import '../../settings/fakes.dart';
@@ -21,15 +22,18 @@ void main() {
       AppLanguage language = AppLanguage.english,
       AppTimeFormat timeFormat = AppTimeFormat.twentyFourHour,
       bool permissionAsked = false,
+      bool enabled = true,
     }) {
       store = FakeSettingsStore(
         sleepNotificationPermissionAsked: permissionAsked,
+        sleepingNotificationEnabled: enabled,
       );
       presenter = FakeSleepingNotificationPresenter();
       final container = ProviderContainer(
         overrides: [
           settingsStoreProvider.overrideWithValue(store),
           sleepingNotificationPresenterProvider.overrideWithValue(presenter),
+          initialSleepingNotificationEnabledProvider.overrideWithValue(enabled),
           initialLanguageProvider.overrideWithValue(language),
           initialTimeFormatProvider.overrideWithValue(timeFormat),
         ],
@@ -147,6 +151,45 @@ void main() {
       expect(presenter.permissionRequests, 1);
       expect(presenter.shown, isEmpty);
       expect(store.sleepNotificationPermissionAsked, isTrue);
+    });
+
+    test('does not show when the setting is off', () async {
+      final container = createContainer(enabled: false);
+
+      await container
+          .read(sleepingNotificationControllerProvider)
+          .sync(openSession: session);
+
+      expect(presenter.shown, isEmpty);
+      expect(presenter.cancels, 1);
+    });
+
+    test('asks for permission on request and respects the flag', () async {
+      final container = createContainer();
+      presenter.notificationsAreEnabled = false;
+      presenter.permissionGranted = false;
+      final controller = container.read(sleepingNotificationControllerProvider);
+
+      expect(await controller.requestPermission(), isFalse);
+      expect(presenter.permissionRequests, 1);
+      expect(store.sleepNotificationPermissionAsked, isTrue);
+
+      expect(await controller.requestPermission(), isFalse);
+      expect(presenter.permissionRequests, 1);
+
+      presenter.notificationsAreEnabled = true;
+      expect(await controller.requestPermission(), isTrue);
+      expect(presenter.permissionRequests, 1);
+    });
+
+    test('opens the system notification settings', () async {
+      final container = createContainer();
+
+      await container
+          .read(sleepingNotificationControllerProvider)
+          .openNotificationSettings();
+
+      expect(presenter.openSettingsCalls, 1);
     });
 
     test('serializes a quick sleep and wake', () async {

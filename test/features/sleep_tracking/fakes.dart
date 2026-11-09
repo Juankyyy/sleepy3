@@ -221,6 +221,7 @@ class FakeSleepingNotificationPresenter
   int notificationsEnabledChecks = 0;
   int permissionRequests = 0;
   int cancels = 0;
+  int openSettingsCalls = 0;
   final shown = <ShownSleepingNotification>[];
   final events = <String>[];
 
@@ -251,5 +252,10 @@ class FakeSleepingNotificationPresenter
     if (throwOnCancel) throw StateError('cancel failed');
     cancels++;
     events.add('cancel');
+  }
+
+  @override
+  Future<void> openNotificationSettings() async {
+    openSettingsCalls++;
   }
 }

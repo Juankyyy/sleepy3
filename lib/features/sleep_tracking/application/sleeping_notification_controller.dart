@@ -10,6 +10,7 @@ import '../../settings/application/time_format_controller.dart';
 import '../domain/sleep_goal.dart';
 import '../domain/sleep_session.dart';
 import '../domain/sleeping_notification_presenter.dart';
+import 'sleeping_notification_enabled_controller.dart';
 import 'sleeping_notification_providers.dart';
 
 export 'sleeping_notification_providers.dart';
@@ -59,6 +60,11 @@ class SleepingNotificationController {
   }) async {
     final presenter = _ref.read(sleepingNotificationPresenterProvider);
 
+    if (!_ref.read(sleepingNotificationEnabledProvider)) {
+      await presenter.cancel();
+      return;
+    }
+
     if (openSession == null) {
       await presenter.cancel();
       return;
@@ -75,7 +81,34 @@ class SleepingNotificationController {
     );
   }
 
-  /// Asks for notification permission once, when a sleep starts.
+  /// Asks for notification permission when the user enables the notification
+  /// from Settings. Returns whether notifications are now allowed.
+  ///
+  /// The same one-time flag as the first Sleep is used, so a previous denial is
+  /// respected and the Settings row can offer the system settings instead of
+  /// opening the dialog again.
+  Future<bool> requestPermission() async {
+    final presenter = _ref.read(sleepingNotificationPresenterProvider);
+    if (await presenter.notificationsEnabled()) return true;
+    return _askForPermission(presenter);
+  }
+
+  /// Opens the app's notification settings in Android.
+  Future<void> openNotificationSettings() async {
+    try {
+      await _ref
+          .read(sleepingNotificationPresenterProvider)
+          .openNotificationSettings();
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Sleepy3: could not open the notification settings: '
+        '$error\n$stackTrace',
+      );
+    }
+  }
+
+  /// Asks for notification permission once, when a sleep starts or the user
+  /// enables the notification from Settings.
   ///
   /// The flag lives in `preferences`, so a denial is respected on later nights
   /// and Android never shows the dialog again from this path. The user can
