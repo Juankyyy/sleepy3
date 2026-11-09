@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
+import 'package:sleepy3/features/sleep_tracking/domain/sleeping_notification_presenter.dart';
 
 /// In-memory sleep store that also behaves like the Drift store for the
 /// start/finish cycle, so a history reload sees what the controller wrote.
@@ -190,5 +191,65 @@ class FakeSleepSessionStore implements SleepSessionStore {
       closedSessions: kept,
     );
     return purged;
+  }
+}
+
+class ShownSleepingNotification {
+  const ShownSleepingNotification({
+    required this.startedAt,
+    required this.copy,
+  });
+
+  final DateTime startedAt;
+  final SleepingNotificationCopy copy;
+}
+
+class FakeSleepingNotificationPresenter
+    implements SleepingNotificationPresenter {
+  FakeSleepingNotificationPresenter({
+    this.notificationsAreEnabled = true,
+    this.permissionGranted = true,
+    this.throwOnShow = false,
+    this.throwOnCancel = false,
+  });
+
+  bool notificationsAreEnabled;
+  bool permissionGranted;
+  bool throwOnShow;
+  bool throwOnCancel;
+
+  int notificationsEnabledChecks = 0;
+  int permissionRequests = 0;
+  int cancels = 0;
+  final shown = <ShownSleepingNotification>[];
+  final events = <String>[];
+
+  @override
+  Future<bool> notificationsEnabled() async {
+    notificationsEnabledChecks++;
+    return notificationsAreEnabled;
+  }
+
+  @override
+  Future<bool> requestPermission() async {
+    permissionRequests++;
+    return permissionGranted;
+  }
+
+  @override
+  Future<void> show({
+    required DateTime startedAt,
+    required SleepingNotificationCopy copy,
+  }) async {
+    if (throwOnShow) throw StateError('show failed');
+    shown.add(ShownSleepingNotification(startedAt: startedAt, copy: copy));
+    events.add('show');
+  }
+
+  @override
+  Future<void> cancel() async {
+    if (throwOnCancel) throw StateError('cancel failed');
+    cancels++;
+    events.add('cancel');
   }
 }

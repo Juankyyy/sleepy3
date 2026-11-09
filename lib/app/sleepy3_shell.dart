@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../features/reminders/application/reminder_providers.dart';
+import '../core/notifications/notification_providers.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/sleep_tracking/presentation/sleep_home_screen.dart';
 import '../features/stats/presentation/stats_screen.dart';
@@ -46,7 +46,7 @@ class _Sleepy3ShellState extends ConsumerState<Sleepy3Shell> {
     final scheme = theme.colorScheme;
     final l10n = context.l10n;
 
-    ref.listen(reminderHomeRequestProvider, (previous, next) {
+    ref.listen(notificationHomeRequestProvider, (previous, next) {
       if (previous == next) return;
       _selectDestination(_homeIndex);
     });

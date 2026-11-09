@@ -598,6 +598,35 @@ Reglas:
   (`android/app/src/main/res/drawable-*/ic_notification.png`) y la programación usa un id
   fijo, así que cambiar la hora reemplaza la anterior.
 
+#### 3.4.2 Notificación de sueño en curso
+
+- No es un recordatorio: es una notificación de estado que solo existe mientras hay una
+  sesión abierta. Se publica con el mismo plugin local, con id fijo `1002` y canal propio
+  `sleep_status`; no hay servidor ni se envía ningún dato.
+- Usa `ongoing: true` y `autoCancel: false`, así que no se descarta al tocarla ni se barre
+  con el resto. La importancia es baja y el canal es silencioso (sin sonido, vibración ni
+  badge), de modo que aparece en la bandeja sin interrumpir.
+- El tiempo transcurrido lo dibuja Android con `usesChronometer` sobre `startedAt`; no hay
+  un `Timer` de Dart ni un foreground service. Por eso sigue contando aunque el proceso de
+  la app muera y no consume batería.
+- El título es `Sleeping`/`Durmiendo` y el cuerpo combina `dailySleepGoal` con la hora a la
+  que se cumple: `Goal 8h · until 7:30 AM` / `Objetivo 8 h · hasta las 7:30`. La hora
+  respeta el formato 12/24 y el idioma actuales.
+- Se muestra al pulsar Sleep, se restaura al arrancar o volver al primer plano si hay una
+  sesión abierta (por ejemplo, tras un crash) y se cancela al despertar o al descartar la
+  sesión. También se vuelve a publicar si cambia la hora de inicio de la sesión abierta, el
+  idioma o el formato horario.
+- En Android 13+ el permiso se pide como máximo una vez, en el primer Sleep y solo si no
+  está concedido. La marca `sleep_notification_permission_asked` en `preferences` evita
+  repetir el diálogo; una denegación deja la notificación oculta y no rompe el seguimiento.
+  El usuario puede habilitar después las notificaciones o el canal en Android y la
+  notificación vuelve en la siguiente sincronización.
+- Tocar la notificación abre `Home`. El canal es independiente del recordatorio, así que
+  se puede desactivar solo este aviso sin perder el recordatorio nocturno.
+- Tras reiniciar el teléfono la notificación no se restaura por sí sola: vuelve a aparecer
+  al abrir Sleepy3 si la sesión sigue abierta. No se añade un receiver nativo ni un
+  foreground service en esta iteración.
+
 ### 3.5 Widget de pantalla de inicio (0.3.0)
 
 - Dos acciones: **Sleep** y **Wake**.
@@ -1121,15 +1150,16 @@ lib/
 │   └── navigation/
 │       └── sleepy3_destination.dart
 ├── core/
+│   ├── notifications/    # shared flutter_local_notifications plugin and tap routing
 │   ├── theme/
 │   ├── time/             # clock formatting, day/night rule and LocalDayBuilder
 │   └── widgets/
 ├── l10n/                 # app_en.arb, app_es.arb, generated AppLocalizations and helpers
 └── features/
     ├── sleep_tracking/
-    │   ├── domain/         # sessions, durations, history, edit draft and store contract
-    │   ├── data/           # Drift database and store implementation
-    │   ├── application/    # controllers, edit service and state
+    │   ├── domain/         # sessions, durations, history, edit draft, store and notification contracts
+    │   ├── data/           # Drift database, store and local notification presenter
+    │   ├── application/    # controllers, edit service, notification sync and state
     │   └── presentation/   # home screen, header, clock, buttons and summary
     ├── stats/
     │   └── presentation/   # screen, chips, summary, history list and session editor
@@ -1145,8 +1175,8 @@ lib/
     │   └── presentation/   # copy dialogs, sync and history banners, source text
     ├── reminders/
     │   ├── domain/         # SleepReminder, next occurrence and scheduler contract
-    │   ├── data/           # flutter_local_notifications + timezone scheduler
-    │   ├── application/    # reminder controller, providers and Home request
+    │   ├── data/           # timezone-aware reminder scheduler
+    │   ├── application/    # reminder controller and providers
     │   └── presentation/   # Reminders section and switch row
     └── widget/             # 0.3.0
 assets/
@@ -1222,14 +1252,20 @@ splash.
 - `SleepReminderController` es un `Notifier<SleepReminderState>`. Serializa permisos,
   programación y cancelación en una sola cola para que un arranque, un cambio de hora y
   un cambio Sleep/Wake no dejen una alarma anterior armada. `SleepReminderScheduler` es
-  la interfaz de plataforma; `LocalSleepReminderScheduler` usa
-  `flutter_local_notifications`, `timezone` y `flutter_timezone`, y `SleepReminder`
+  la interfaz de plataforma; `LocalSleepReminderScheduler` usa `timezone` y
+  `flutter_timezone` a través del `LocalNotifications` compartido, y `SleepReminder`
   calcula la próxima hora con aritmética de calendario. La lógica con reloj se prueba con
   horas fijas.
+- `SleepingNotificationController` serializa la publicación y cancelación de la
+  notificación de sueño en curso. `SleepingNotificationPresenter` es la interfaz;
+  `LocalSleepingNotificationPresenter` usa el mismo `LocalNotifications` y publica una
+  notificación ongoing con cronómetro nativo, importancia baja y canal propio.
 - `Sleepy3App` sincroniza el recordatorio al arrancar, al volver al primer plano, al
   cambiar `isSleeping` y al cambiar el idioma. Una sesión abierta lo cancela; despertar
-  lo vuelve a armar. El toque de la notificación incrementa
-  `reminderHomeRequestProvider` y `Sleepy3Shell` selecciona `Home`.
+  lo vuelve a armar. También sincroniza la notificación de sueño en curso al arrancar, al
+  volver al primer plano, al cambiar la sesión abierta, el idioma o el formato horario. El
+  toque de cualquiera de las dos notificaciones incrementa
+  `notificationHomeRequestProvider` y `Sleepy3Shell` selecciona `Home`.
 - `Sleepy3App` resuelve el brillo con el modo de tema y el brillo del sistema; mantiene
   `M3EMaterialApp.autoTheming` desactivado para usar los esquemas claro/oscuro propios.
   También envuelve la app en un `MediaQuery` con `alwaysUse24HourFormat` resuelto, de modo
@@ -1353,6 +1389,8 @@ dart run build_runner build
 - Clave `sleep_reminder_enabled` con `true` o `false`; ausente equivale a desactivado.
 - Clave `sleep_reminder_time` con `HH:mm` entre `00:00` y `23:59`; ausente o inválida
   equivale a `22:00`.
+- Clave `sleep_notification_permission_asked` con `true` o `false`; ausente equivale a
+  `false`. Solo evita repetir el diálogo de permiso del primer Sleep.
 - La migración de v1 a v2 crea `preferences`; las sesiones existentes no se tocan.
 - El modo de tema y la fuente se guardan en la misma base para no abrir un segundo
   almacén.
@@ -1557,6 +1595,9 @@ dart run tool/generate_brand_assets.dart
   hora malformada, permiso concedido/denegado, programación/cancelación, cambio de hora,
   pausa mientras se duerme, notificaciones bloqueadas, copy en inglés/español, próxima
   ocurrencia con reloj fijo y layout de la sección al 200 %.
+- Notificación de sueño: cronómetro nativo, importancia baja, publicación al dormir,
+  cancelación al despertar, actualización al retimar o cambiar idioma/formato, permiso
+  pedido una sola vez y copy en inglés/español.
 - Health Connect: disponibilidad, permisos de sueño e historial, lectura/escritura,
   cola de pendientes, reintento idempotente, banner, sesiones omitidas, acciones de copia,
   deduplicación por UUID y horas exactas, fallo parcial, protección de filas locales,
@@ -1612,6 +1653,8 @@ dart run tool/generate_brand_assets.dart
 - Recordatorio nocturno opcional, desactivado por defecto a las 22:00, con hora elegida,
   permiso de notificaciones contextual, pausa mientras hay una sesión abierta, retorno a
   `Home` al tocar la notificación y aviso cuando Android bloquea las notificaciones.
+- Notificación de sueño en curso silenciosa y no descartable, con cronómetro nativo,
+  objetivo de 8 h y hora meta, que se publica al dormir y se cancela al despertar.
 - Health Connect: permisos de sueño e historial, lectura y escritura, cola de pendientes,
   reintento al abrir o volver a la app, banner de pendientes, acciones
   `Import`/`Sync`/`Add`, actualización del mismo registro tras una edición, borrado

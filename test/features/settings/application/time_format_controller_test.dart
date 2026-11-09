@@ -152,4 +152,10 @@ class _ControlledSettingsStore implements SettingsStore {
 
   @override
   Future<void> saveSleepReminder(SleepReminder reminder) async {}
+
+  @override
+  Future<bool> loadSleepNotificationPermissionAsked() async => false;
+
+  @override
+  Future<void> saveSleepNotificationPermissionAsked(bool asked) async {}
 }

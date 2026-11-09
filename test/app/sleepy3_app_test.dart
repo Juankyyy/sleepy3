@@ -14,6 +14,7 @@ import 'package:sleepy3/features/settings/domain/app_language.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
+import 'package:sleepy3/features/sleep_tracking/application/sleeping_notification_controller.dart';
 
 import '../features/health/fakes.dart';
 import '../features/settings/fakes.dart';
@@ -26,6 +27,8 @@ void main() {
     required Brightness platformBrightness,
     AppTimeFormat timeFormat = AppTimeFormat.twelveHour,
     AppLanguage language = AppLanguage.english,
+    DateTime Function()? clock,
+    FakeSleepingNotificationPresenter? sleepingNotificationPresenter,
   }) async {
     tester.view.physicalSize = const Size(360, 800) * 3;
     tester.view.devicePixelRatio = 3;
@@ -40,9 +43,13 @@ void main() {
       ProviderScope(
         overrides: [
           sleepClockProvider.overrideWithValue(
-            () => DateTime(2026, 10, 20, 22, 30),
+            clock ?? () => DateTime(2026, 10, 20, 22, 30),
           ),
           sleepSessionStoreProvider.overrideWithValue(FakeSleepSessionStore()),
+          sleepingNotificationPresenterProvider.overrideWithValue(
+            sleepingNotificationPresenter ??
+                FakeSleepingNotificationPresenter(),
+          ),
           healthConnectGatewayProvider.overrideWithValue(
             FakeHealthConnectGateway(),
           ),
@@ -234,5 +241,50 @@ void main() {
 
     expect(appUses24HourFormat(tester), isTrue);
     expect(store.timeFormatSaves, [AppTimeFormat.twentyFourHour]);
+  });
+
+  testWidgets('shows and cancels the sleep status notification', (
+    tester,
+  ) async {
+    var now = DateTime(2026, 10, 20, 22, 30);
+    final presenter = FakeSleepingNotificationPresenter();
+    await pumpApp(
+      tester,
+      mode: AppThemeMode.light,
+      platformBrightness: Brightness.light,
+      clock: () => now,
+      sleepingNotificationPresenter: presenter,
+    );
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(Sleepy3Shell)),
+    );
+
+    await container.read(sleepTrackingControllerProvider.notifier).sleep();
+    await tester.pumpAndSettle();
+
+    expect(presenter.shown, hasLength(1));
+    expect(presenter.shown.single.startedAt, now);
+    expect(presenter.shown.single.copy.title, 'Sleeping');
+    expect(presenter.shown.single.copy.body, 'Goal 8h · until 6:30 AM');
+
+    await container
+        .read(languageControllerProvider.notifier)
+        .setLanguage(AppLanguage.spanish);
+    await tester.pumpAndSettle();
+
+    expect(presenter.shown.last.copy.title, 'Durmiendo');
+
+    await container
+        .read(timeFormatControllerProvider.notifier)
+        .setFormat(AppTimeFormat.twentyFourHour);
+    await tester.pumpAndSettle();
+
+    expect(presenter.shown.last.copy.body, 'Objetivo 8 h · hasta las 06:30');
+
+    now = now.add(const Duration(hours: 8));
+    await container.read(sleepTrackingControllerProvider.notifier).wake();
+    await tester.pumpAndSettle();
+
+    expect(presenter.cancels, greaterThanOrEqualTo(2));
   });
 }

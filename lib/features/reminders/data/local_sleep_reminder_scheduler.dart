@@ -4,6 +4,7 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../../core/notifications/local_notifications.dart';
 import '../domain/reminder_notification_copy.dart';
 import '../domain/sleep_reminder.dart';
 import '../domain/sleep_reminder_scheduler.dart';
@@ -15,42 +16,25 @@ import '../domain/sleep_reminder_scheduler.dart';
 /// application layer decides which screen to show; the scheduler only reports
 /// that the notification was tapped.
 class LocalSleepReminderScheduler implements SleepReminderScheduler {
-  LocalSleepReminderScheduler({
-    FlutterLocalNotificationsPlugin? plugin,
-    DateTime Function()? clock,
-    VoidCallback? onTap,
-  }) : _plugin = plugin ?? FlutterLocalNotificationsPlugin(),
-       _clock = clock ?? DateTime.now,
-       _onNotificationTap = onTap;
+  LocalSleepReminderScheduler(this._notifications, {DateTime Function()? clock})
+    : _clock = clock ?? DateTime.now;
 
   static const notificationId = 1001;
   static const channelId = 'sleep_reminder';
 
-  final FlutterLocalNotificationsPlugin _plugin;
+  final LocalNotifications _notifications;
   final DateTime Function() _clock;
-  final VoidCallback? _onNotificationTap;
 
-  Future<void>? _initializing;
-  bool _initialized = false;
+  Future<void>? _timeZonesInitializing;
 
   @override
-  Future<bool> notificationsEnabled() async {
-    await _ensureInitialized();
-    final android = _android;
-    if (android == null) return false;
-    return await android.areNotificationsEnabled() ?? false;
+  Future<bool> notificationsEnabled() {
+    return _notifications.notificationsEnabled();
   }
 
   @override
-  Future<bool> requestPermission() async {
-    await _ensureInitialized();
-    final android = _android;
-    if (android == null) return false;
-    final granted = await android.requestNotificationsPermission();
-    if (granted == false) return false;
-    // On Android 12 and older the request returns null because there is no
-    // runtime permission. The notification block is still a valid answer.
-    return await android.areNotificationsEnabled() ?? true;
+  Future<bool> requestPermission() {
+    return _notifications.requestPermission();
   }
 
   @override
@@ -58,7 +42,8 @@ class LocalSleepReminderScheduler implements SleepReminderScheduler {
     required SleepReminder reminder,
     required ReminderNotificationCopy copy,
   }) async {
-    await _ensureInitialized();
+    await _notifications.ensureInitialized();
+    await _ensureTimeZones();
 
     final next = nextSleepReminderOccurrence(
       _clock(),
@@ -79,7 +64,7 @@ class LocalSleepReminderScheduler implements SleepReminderScheduler {
       ),
     );
 
-    await _plugin.zonedSchedule(
+    await _notifications.plugin.zonedSchedule(
       id: notificationId,
       title: copy.title,
       body: copy.body,
@@ -93,46 +78,28 @@ class LocalSleepReminderScheduler implements SleepReminderScheduler {
 
   @override
   Future<void> cancel() async {
-    await _ensureInitialized();
-    await _plugin.cancel(id: notificationId);
+    await _notifications.ensureInitialized();
+    await _notifications.plugin.cancel(id: notificationId);
   }
 
   @override
-  Future<void> openNotificationSettings() async {
-    await _ensureInitialized();
-    await _android?.openAppNotificationSettings();
+  Future<void> openNotificationSettings() {
+    return _notifications.openNotificationSettings();
   }
 
-  AndroidFlutterLocalNotificationsPlugin? get _android => _plugin
-      .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin
-      >();
-
-  Future<void> _ensureInitialized() {
-    if (_initialized) return Future<void>.value();
-    return _initializing ??= _initialize();
+  Future<void> _ensureTimeZones() {
+    return _timeZonesInitializing ??= _initializeTimeZones();
   }
 
-  Future<void> _initialize() async {
+  Future<void> _initializeTimeZones() async {
     try {
       tz_data.initializeTimeZones();
       final localZone = await FlutterTimezone.getLocalTimezone();
       tz.setLocalLocation(tz.getLocation(localZone.identifier));
-
-      final initialized = await _plugin.initialize(
-        settings: const InitializationSettings(
-          android: AndroidInitializationSettings('ic_notification'),
-        ),
-        onDidReceiveNotificationResponse: (_) => _onNotificationTap?.call(),
-      );
-      if (initialized == false) {
-        throw StateError('The notification plugin did not initialize.');
-      }
-      _initialized = true;
     } catch (error, stackTrace) {
-      _initializing = null;
+      _timeZonesInitializing = null;
       debugPrint(
-        'Sleepy3: could not initialize notifications: $error\n$stackTrace',
+        'Sleepy3: could not initialize time zones: $error\n$stackTrace',
       );
       rethrow;
     }

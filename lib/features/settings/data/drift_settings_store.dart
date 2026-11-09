@@ -18,6 +18,8 @@ class DriftSettingsStore implements SettingsStore {
   static const _sleepDataSourceKey = 'sleep_data_source';
   static const _sleepReminderEnabledKey = 'sleep_reminder_enabled';
   static const _sleepReminderTimeKey = 'sleep_reminder_time';
+  static const _sleepNotificationPermissionAskedKey =
+      'sleep_notification_permission_asked';
 
   @override
   Future<AppThemeMode> loadThemeMode() async {
@@ -74,6 +76,16 @@ class DriftSettingsStore implements SettingsStore {
   Future<void> saveSleepReminder(SleepReminder reminder) async {
     await _write(_sleepReminderEnabledKey, reminder.enabled.toString());
     await _write(_sleepReminderTimeKey, reminder.storageValue);
+  }
+
+  @override
+  Future<bool> loadSleepNotificationPermissionAsked() async {
+    return await _read(_sleepNotificationPermissionAskedKey) == 'true';
+  }
+
+  @override
+  Future<void> saveSleepNotificationPermissionAsked(bool asked) {
+    return _write(_sleepNotificationPermissionAskedKey, asked.toString());
   }
 
   Future<String?> _read(String key) async {

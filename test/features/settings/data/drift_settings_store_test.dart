@@ -206,6 +206,23 @@ void main() {
       expect(reminder.minute, 30);
     });
 
+    test(
+      'defaults to not having asked for the sleep notification permission',
+      () async {
+        expect(await store.loadSleepNotificationPermissionAsked(), isFalse);
+      },
+    );
+
+    test('round-trips the sleep notification permission flag', () async {
+      await store.saveSleepNotificationPermissionAsked(true);
+
+      expect(await store.loadSleepNotificationPermissionAsked(), isTrue);
+      final rows = await database.select(database.preferences).get();
+      expect(rows, hasLength(1));
+      expect(rows.single.settingKey, 'sleep_notification_permission_asked');
+      expect(rows.single.settingValue, 'true');
+    });
+
     test('stores the theme and the source side by side', () async {
       await store.saveThemeMode(AppThemeMode.dark);
       await store.saveSleepDataSource(SleepDataSource.healthConnect);

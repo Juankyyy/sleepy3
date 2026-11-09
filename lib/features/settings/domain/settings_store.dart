@@ -29,4 +29,10 @@ abstract interface class SettingsStore {
   Future<SleepReminder> loadSleepReminder();
 
   Future<void> saveSleepReminder(SleepReminder reminder);
+
+  /// Whether Sleepy3 already asked for notification permission when a sleep
+  /// started. The sleep-status notification never prompts twice.
+  Future<bool> loadSleepNotificationPermissionAsked();
+
+  Future<void> saveSleepNotificationPermissionAsked(bool asked);
 }

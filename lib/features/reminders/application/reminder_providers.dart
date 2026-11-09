@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/notifications/notification_providers.dart';
 import '../data/local_sleep_reminder_scheduler.dart';
 import '../domain/sleep_reminder.dart';
 import '../domain/sleep_reminder_scheduler.dart';
@@ -9,30 +10,11 @@ final initialSleepReminderProvider = Provider<SleepReminder>(
   (ref) => SleepReminder.defaults,
 );
 
-/// The platform scheduler used by [SleepReminderController].
+/// The platform scheduler used by `SleepReminderController`.
 ///
-/// Tests override it with a fake. The tap callback only asks the shell to
-/// return to Home; the reminder itself never changes sleep data.
+/// Tests override it with a fake. It shares the app's only notification plugin
+/// with the sleep-status notification, so both taps open Home without
+/// initializing `flutter_local_notifications` twice.
 final sleepReminderSchedulerProvider = Provider<SleepReminderScheduler>((ref) {
-  return LocalSleepReminderScheduler(
-    onTap: () {
-      ref.read(reminderHomeRequestProvider.notifier).requestHome();
-    },
-  );
+  return LocalSleepReminderScheduler(ref.watch(localNotificationsProvider));
 });
-
-/// Increments whenever the reminder notification is tapped.
-///
-/// `Sleepy3Shell` listens to it and selects Home, so the user lands on the
-/// large Sleep action even when another tab was open.
-final reminderHomeRequestProvider =
-    NotifierProvider<ReminderHomeRequestController, int>(
-      ReminderHomeRequestController.new,
-    );
-
-class ReminderHomeRequestController extends Notifier<int> {
-  @override
-  int build() => 0;
-
-  void requestHome() => state++;
-}

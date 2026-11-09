@@ -104,6 +104,21 @@ class AppLocalizationsEn extends AppLocalizations {
       'A nightly reminder to record your sleep.';
 
   @override
+  String get sleepingNotificationTitle => 'Sleeping';
+
+  @override
+  String sleepingNotificationBody(String goal, String time) {
+    return 'Goal $goal · until $time';
+  }
+
+  @override
+  String get sleepingNotificationChannelName => 'Sleep status';
+
+  @override
+  String get sleepingNotificationChannelDescription =>
+      'A quiet timer while a sleep session is active.';
+
+  @override
   String get sleepData => 'Sleep data';
 
   @override

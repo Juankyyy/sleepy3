@@ -7,8 +7,9 @@ import 'package:sleepy3/app/navigation/sleepy3_destination.dart';
 import 'package:sleepy3/app/sleepy3_app.dart';
 import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
 import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
-import 'package:sleepy3/features/reminders/application/reminder_providers.dart';
+import 'package:sleepy3/core/notifications/notification_providers.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
+import 'package:sleepy3/features/sleep_tracking/application/sleeping_notification_controller.dart';
 
 import '../features/health/fakes.dart';
 import '../features/sleep_tracking/fakes.dart';
@@ -40,6 +41,9 @@ void main() {
             () => DateTime(2026, 10, 20, 22, 30),
           ),
           sleepSessionStoreProvider.overrideWithValue(FakeSleepSessionStore()),
+          sleepingNotificationPresenterProvider.overrideWithValue(
+            FakeSleepingNotificationPresenter(),
+          ),
           healthConnectGatewayProvider.overrideWithValue(
             FakeHealthConnectGateway(),
           ),
@@ -161,7 +165,7 @@ void main() {
     final container = ProviderScope.containerOf(
       tester.element(find.byType(PillNavigationBar)),
     );
-    container.read(reminderHomeRequestProvider.notifier).requestHome();
+    container.read(notificationHomeRequestProvider.notifier).requestHome();
     await tester.pumpAndSettle();
 
     expect(navigationBar(tester).selectedIndex, 0);

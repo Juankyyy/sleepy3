@@ -36,6 +36,22 @@
   "sleepReminderNotificationBody": "Abre Sleepy3 y toca Dormir cuando apagues la luz.",
   "sleepReminderChannelName": "Recordatorio de sueño",
   "sleepReminderChannelDescription": "Un recordatorio nocturno para registrar tu sueño.",
+  "sleepingNotificationTitle": "Durmiendo",
+  "sleepingNotificationBody": "Objetivo {goal} · hasta las {time}",
+  "@sleepingNotificationBody": {
+    "placeholders": {
+      "goal": {
+        "type": "String",
+        "example": "8 h"
+      },
+      "time": {
+        "type": "String",
+        "example": "7:30"
+      }
+    }
+  },
+  "sleepingNotificationChannelName": "Estado del sueño",
+  "sleepingNotificationChannelDescription": "Un temporizador discreto mientras duermes.",
   "sleepData": "Datos de sueño",
   "googleHealth": "Google Health",
   "about": "Acerca de",

@@ -14,6 +14,7 @@ import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/settings/application/settings_providers.dart';
 import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
+import 'package:sleepy3/features/sleep_tracking/application/sleeping_notification_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
 import 'package:sleepy3/features/sleep_tracking/presentation/sleep_home_screen.dart';
@@ -41,6 +42,9 @@ void main() {
         overrides: [
           sleepClockProvider.overrideWithValue(clock),
           sleepSessionStoreProvider.overrideWithValue(sleepStore),
+          sleepingNotificationPresenterProvider.overrideWithValue(
+            FakeSleepingNotificationPresenter(),
+          ),
           initialSleepSnapshotProvider.overrideWithValue(
             SleepSnapshot(openSession: initial.openSession),
           ),

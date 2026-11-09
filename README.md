@@ -15,6 +15,7 @@
 ## Why Sleepy3
 
 - **Two moves.** Tap Sleep to start the night; slide to wake when you get up. No forms, no timers, no guessing.
+- **A quiet timer while you sleep.** An ongoing notification shows the live elapsed time and when you will reach your eight-hour goal. It stays silent and disappears when you wake.
 - **A reminder if you want one.** Choose a time in Settings and Sleepy3 sends a local notification so you do not forget to tap Sleep. It never fires while a night is already in progress.
 - **Your last nights at a glance.** Home shows today, yesterday and the day before with a three-day average and bars against an eight-hour goal.
 - **Nothing leaves your phone.** There is no account, no server of ours and no analytics. Health Connect is optional, and the reminder is scheduled on the device.
@@ -32,7 +33,7 @@ Sleepy3 runs on **Android 9 or newer**. Version **0.2.2** is the latest stable r
 
 ## How to use it
 
-1. Tap **Sleep** when you go to bed. The control shows the live sleep duration, a small slide to wake hint and a breathing moon; the header switches to a sleeping state and the clock keeps running.
+1. Tap **Sleep** when you go to bed. The control shows the live sleep duration, a small slide to wake hint and a breathing moon; the header switches to a sleeping state and the clock keeps running. A quiet ongoing notification also shows the live timer and the goal time.
 2. Slide to wake when you get up. Sleepy3 shows **Saving session** while it stores the night, then **Session saved**; the button returns to **Sleep** and shows how long you slept.
 3. Open **Stats** to review or fix your history, use the plus button to add a night you forgot to track, and **Settings** for the theme, the 12/24-hour clock, the language, the nightly reminder and Health Connect.
 
@@ -41,6 +42,8 @@ Use the floating glass dock at the bottom to move between **Home**, **Stats** an
 Settings is split into **Appearance** (theme, 12/24-hour clock and language), **Reminders** (the optional nightly notification), **Sleep data** (Local or Google Health, and Import), **Google Health** (connection status, Sync and Add) and **About** (privacy, version and open-source licenses). The interface is available in **English** and **Spanish**; there is no separate “System” option, so the first launch resolves and stores the phone's language and you can change it later in **Appearance → Language**.
 
 The reminder is **off by default**. Turn it on in **Settings → Reminders**, allow notifications when Android asks, and choose the time with the clock picker. Sleepy3 schedules the next notification on the phone; if you already tapped **Sleep**, it skips that reminder and rearms it when you wake up. Tapping the notification opens **Home** so the large Sleep button is one tap away. Changing the app language updates the notification text. On Android 13 and newer the permission is requested only when you enable the reminder; if you deny it, the switch stays off and the app offers to open the system notification settings. You can revoke it later in Android settings, and Settings will show a warning if notifications are blocked. Reminders are inexact by design: Android may deliver them a few minutes late, especially with battery saver. There is no push server and the notification contains no sleep data.
+
+While a night is open, Sleepy3 also posts a **sleep status** notification: a silent, ongoing card with the live elapsed time as Android's own chronometer, the title **Sleeping** and the eight-hour goal time. It uses its own **Sleep status** channel, so you can turn only that card off in Android without losing the reminder. It disappears when you wake and keeps counting if the app process closes. On Android 13 and newer, the first **Sleep** tap asks for notification permission when you have not already allowed it; after a denial Sleepy3 does not ask again every night. The card reappears when you reopen the app if a night is still open. After a phone reboot it stays away until you open Sleepy3, because the app has no foreground service. Tapping it opens **Home**.
 
 The header always tells you what is happening:
 

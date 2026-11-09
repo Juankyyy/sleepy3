@@ -16,6 +16,7 @@ import '../features/settings/application/time_format_controller.dart';
 import '../features/settings/domain/app_theme_mode.dart';
 import '../l10n/l10n.dart';
 import '../features/sleep_tracking/application/sleep_tracking_controller.dart';
+import '../features/sleep_tracking/application/sleeping_notification_controller.dart';
 import 'sleepy3_shell.dart';
 import 'splash_gate.dart';
 
@@ -43,6 +44,7 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     unawaited(_syncSleepReminder());
+    unawaited(_syncSleepingNotification());
   }
 
   @override
@@ -50,6 +52,7 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
     if (state == AppLifecycleState.resumed) {
       unawaited(_retryPendingUploads());
       unawaited(_syncSleepReminder());
+      unawaited(_syncSleepingNotification());
     }
   }
 
@@ -64,6 +67,23 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
     await ref
         .read(sleepReminderControllerProvider.notifier)
         .sync(isSleeping: sleeping);
+  }
+
+  /// Keeps the ongoing sleep notification in sync with the open session.
+  ///
+  /// The permission dialog is only allowed when the user starts a sleep,
+  /// never on launch or resume.
+  Future<void> _syncSleepingNotification({
+    bool allowPermissionPrompt = false,
+  }) async {
+    if (!mounted) return;
+    final openSession = ref.read(sleepTrackingControllerProvider).openSession;
+    await ref
+        .read(sleepingNotificationControllerProvider)
+        .sync(
+          openSession: openSession,
+          allowPermissionPrompt: allowPermissionPrompt,
+        );
   }
 
   /// Retries failed Health Connect uploads when the app opens or comes back.
@@ -141,9 +161,28 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
       if (previous == isSleeping) return;
       unawaited(_syncSleepReminder(isSleeping: isSleeping));
     });
+
+    // A new open session updates the sleep notification; the transition from
+    // awake to sleeping is the only path allowed to ask for permission.
+    ref.listen(sleepTrackingControllerProvider.select((s) => s.openSession), (
+      previous,
+      next,
+    ) {
+      if (previous == next) return;
+      unawaited(
+        _syncSleepingNotification(
+          allowPermissionPrompt: previous == null && next != null,
+        ),
+      );
+    });
     ref.listen(languageControllerProvider, (previous, next) {
       if (previous == next) return;
       unawaited(_syncSleepReminder());
+      unawaited(_syncSleepingNotification());
+    });
+    ref.listen(timeFormatControllerProvider, (previous, next) {
+      if (previous == next) return;
+      unawaited(_syncSleepingNotification());
     });
 
     // Every time in the app already reads MediaQuery.alwaysUse24HourFormat,

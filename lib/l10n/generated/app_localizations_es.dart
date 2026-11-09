@@ -105,6 +105,21 @@ class AppLocalizationsEs extends AppLocalizations {
       'Un recordatorio nocturno para registrar tu sueño.';
 
   @override
+  String get sleepingNotificationTitle => 'Durmiendo';
+
+  @override
+  String sleepingNotificationBody(String goal, String time) {
+    return 'Objetivo $goal · hasta las $time';
+  }
+
+  @override
+  String get sleepingNotificationChannelName => 'Estado del sueño';
+
+  @override
+  String get sleepingNotificationChannelDescription =>
+      'Un temporizador discreto mientras duermes.';
+
+  @override
   String get sleepData => 'Datos de sueño';
 
   @override

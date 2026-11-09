@@ -272,6 +272,30 @@ abstract class AppLocalizations {
   /// **'A nightly reminder to record your sleep.'**
   String get sleepReminderChannelDescription;
 
+  /// No description provided for @sleepingNotificationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleeping'**
+  String get sleepingNotificationTitle;
+
+  /// No description provided for @sleepingNotificationBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal {goal} · until {time}'**
+  String sleepingNotificationBody(String goal, String time);
+
+  /// No description provided for @sleepingNotificationChannelName.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep status'**
+  String get sleepingNotificationChannelName;
+
+  /// No description provided for @sleepingNotificationChannelDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A quiet timer while a sleep session is active.'**
+  String get sleepingNotificationChannelDescription;
+
   /// No description provided for @sleepData.
   ///
   /// In en, this message translates to:

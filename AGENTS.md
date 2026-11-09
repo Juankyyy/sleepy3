@@ -19,7 +19,8 @@ local session history, and Health Connect as an optional data source.
   Stats history with tonal cards, pull-to-refresh, goal marks and their animation, the
   session panel, manual session entry from the Stats FAB, session editing/deleting and
   read-only details for other apps' records, Settings (theme, 12/24-hour time, English /
-  Español language and the optional nightly reminder), Health Connect (Local/Google
+  Español language and the optional nightly reminder), the silent ongoing sleep-status
+  notification with a live timer and goal time, Health Connect (Local/Google
   Health, pending uploads, copy actions,
   full history access and per-build record ownership), the glass dock, the Space Grotesk /
   Google Sans Flex type, the branded launcher icon and splash, and the manual release
@@ -54,7 +55,9 @@ Target structure:
 lib/
 ├── main.dart
 ├── app/                 # MaterialApp, routing, dependency wiring
-├── core/theme/          # Material 3 theme and design tokens
+├── core/
+│   ├── notifications/   # shared flutter_local_notifications plugin and tap routing
+│   └── theme/           # Material 3 theme and design tokens
 ├── l10n/                # ARB files, generated AppLocalizations and helpers
 └── features/
     ├── sleep_tracking/  # domain, data, application, presentation
@@ -112,6 +115,16 @@ lib/
   `compileSdk` 37); it uses `inexactAllowWhileIdle`, so do not add exact-alarm permissions
   without a product decision. The reminder preference lives in `preferences` as
   `sleep_reminder_enabled` and `sleep_reminder_time`; no schema migration is needed.
+- Sleep status notification: while a session is open, `SleepingNotificationController`
+  posts an ongoing, silent, low-importance notification (id 1002, channel `sleep_status`)
+  with Android's own chronometer based on `startedAt` and a `Goal 8h · until …` line. It
+  is not a foreground service, so the chronometer keeps running when the app process
+  dies. `LocalNotifications` in `lib/core/notifications/` initializes
+  `flutter_local_notifications` once for both notifications and routes every tap to Home.
+  `Sleepy3App` syncs it on launch, resume, open-session changes, language changes and
+  time-format changes. The first Sleep may request notification permission once; the flag
+  lives in `preferences` as `sleep_notification_permission_asked`, so do not prompt again.
+  After a phone reboot it reappears when the app opens.
 - Sleep data source: `Local` (default) reads only Drift; `Google Health` reads all
   `SLEEP_SESSION` records from Health Connect. Never mix the two lists. The open
   session and every finished session are always written locally first as a safety copy.
