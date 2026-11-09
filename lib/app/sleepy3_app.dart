@@ -129,7 +129,10 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
 
   @override
   void didChangePlatformBrightness() {
-    // A pinned light/dark theme does not depend on the system brightness.
+    // The native sleep card follows the system theme even when the app theme
+    // is pinned, so refresh its colors and accent on a theme change.
+    unawaited(_syncSleepingNotification());
+    // A pinned light/dark app theme does not depend on the system brightness.
     if (ref.read(themeModeControllerProvider) != AppThemeMode.system) return;
     setState(() {});
   }

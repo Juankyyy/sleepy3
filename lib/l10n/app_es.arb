@@ -52,6 +52,7 @@
   },
   "sleepingNotificationChannelName": "Estado del sueño",
   "sleepingNotificationChannelDescription": "Un temporizador discreto mientras duermes.",
+  "sleepingNotificationOngoing": "En curso",
   "sleepData": "Datos de sueño",
   "googleHealth": "Google Health",
   "about": "Acerca de",

@@ -120,6 +120,9 @@ class AppLocalizationsEs extends AppLocalizations {
       'Un temporizador discreto mientras duermes.';
 
   @override
+  String get sleepingNotificationOngoing => 'En curso';
+
+  @override
   String get sleepData => 'Datos de sueño';
 
   @override

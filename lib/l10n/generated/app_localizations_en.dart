@@ -119,6 +119,9 @@ class AppLocalizationsEn extends AppLocalizations {
       'A quiet timer while a sleep session is active.';
 
   @override
+  String get sleepingNotificationOngoing => 'In progress';
+
+  @override
   String get sleepData => 'Sleep data';
 
   @override

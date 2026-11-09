@@ -32,6 +32,32 @@ void main() {
       reason: 'the mark is centered horizontally',
     );
   });
+
+  test('the notification mark leaves room for the circular background', () {
+    final file = File(
+      'android/app/src/main/res/drawable-xxxhdpi/ic_notification_mark.png',
+    );
+    final image = img.decodePng(file.readAsBytesSync());
+    expect(
+      image,
+      isNotNull,
+      reason: 'Run dart run tool/generate_brand_assets.dart.',
+    );
+
+    final bounds = _opaqueBounds(image!);
+
+    expect(bounds.height / image.height, closeTo(32 / 40, 0.005));
+    expect(
+      (bounds.y - (image.height - bounds.height) / 2).abs(),
+      lessThanOrEqualTo(1),
+      reason: 'the mark is centered vertically',
+    );
+    expect(
+      (bounds.x - (image.width - bounds.width) / 2).abs(),
+      lessThanOrEqualTo(1),
+      reason: 'the mark is centered horizontally',
+    );
+  });
 }
 
 ({int x, int y, int width, int height}) _opaqueBounds(img.Image image) {

@@ -12,7 +12,8 @@ local session history, and Health Connect as an optional data source.
 - The Flutter app UI lives in `lib/`. The home-screen widget is native Kotlin/Glance
   under `android/app/src/main/kotlin/com/sleepy3/app/`.
 - Platform features that cannot run in Flutter (the widget, Health Connect manifest
-  entries, app labels) stay in the Android layer behind small, documented bridges.
+  entries, app labels and the custom sleep notification card) stay in the Android layer
+  behind small, documented bridges.
 - Current state: v0.2.2 is the latest stable release (without the home-screen widget). The
   single contextual Sleep/Wake action on Home, the live sleeping duration and its
   entrance cue, the sleep state machine, Drift persistence,
@@ -117,14 +118,16 @@ lib/
   `sleep_reminder_enabled` and `sleep_reminder_time`; no schema migration is needed.
 - Sleep status notification: while a session is open, `SleepingNotificationController`
   posts an ongoing, silent, low-importance notification (id 1002, channel `sleep_status`)
-  with Android's own chronometer based on `startedAt` and a `Goal 8h · until …` line. It
-  is not a foreground service, so the chronometer keeps running when the app process
-  dies. `LocalNotifications` in `lib/core/notifications/` initializes
-  `flutter_local_notifications` once for both notifications and routes every tap to Home.
-  `Sleepy3App` syncs it on launch, resume, open-session changes, language changes and
-  time-format changes. The first Sleep may request notification permission once; the flag
-  lives in `preferences` as `sleep_notification_permission_asked`, so do not prompt again.
-  After a phone reboot it reappears when the app opens.
+  with a big `RemoteViews` chronometer based on `startedAt` and a `Goal 8h · until …` line.
+  `NativeSleepingNotificationPresenter` calls the Kotlin `SleepingNotificationBridge`; the
+  shared `LocalNotifications` still owns permission and the reminder. The native card falls
+  back to the standard layout at large system font scales or if inflation fails, so do not
+  remove that path. It is not a foreground service, so the chronometer keeps running when
+  the app process dies. `Sleepy3App` syncs it on launch, resume, open-session changes,
+  language changes and time-format changes. The first Sleep may request notification
+  permission once; the flag lives in `preferences` as
+  `sleep_notification_permission_asked`, so do not prompt again. After a phone reboot it
+  reappears when the app opens.
 - Sleep data source: `Local` (default) reads only Drift; `Google Health` reads all
   `SLEEP_SESSION` records from Health Connect. Never mix the two lists. The open
   session and every finished session are always written locally first as a safety copy.

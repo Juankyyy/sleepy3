@@ -2,4 +2,9 @@
 <resources>
     <!-- Sleepy3 dark body color, shown before Flutter draws its first frame. -->
     <color name="launch_background">#121318</color>
+    <!-- Sleep status notification card. The mark stays on its light circle. -->
+    <color name="notification_title">#A8A9B3</color>
+    <color name="notification_secondary">#A8A9B3</color>
+    <color name="notification_brand">#C6CCF7</color>
+    <color name="notification_accent">#C6CCF7</color>
 </resources>

@@ -6,12 +6,17 @@ class SleepingNotificationCopy {
   const SleepingNotificationCopy({
     required this.title,
     required this.body,
+    required this.ongoingLabel,
     required this.channelName,
     required this.channelDescription,
   });
 
   final String title;
   final String body;
+
+  /// A short header label such as `En curso` that explains why the card stays.
+  final String ongoingLabel;
+
   final String channelName;
   final String channelDescription;
 }

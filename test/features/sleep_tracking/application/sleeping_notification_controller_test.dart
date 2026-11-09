@@ -60,6 +60,7 @@ void main() {
       expect(presenter.shown.single.startedAt, session.startedAt);
       expect(presenter.shown.single.copy.title, 'Sleeping');
       expect(presenter.shown.single.copy.body, 'Goal 8h · until 07:00');
+      expect(presenter.shown.single.copy.ongoingLabel, 'In progress');
       expect(presenter.shown.single.copy.channelName, 'Sleep status');
       expect(
         presenter.shown.single.copy.channelDescription,
@@ -79,6 +80,7 @@ void main() {
         presenter.shown.single.copy.body,
         'Objetivo 8 h · hasta las 07:00',
       );
+      expect(presenter.shown.single.copy.ongoingLabel, 'En curso');
       expect(presenter.shown.single.copy.channelName, 'Estado del sueño');
     });
 

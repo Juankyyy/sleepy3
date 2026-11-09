@@ -266,6 +266,7 @@ void main() {
     expect(presenter.shown.single.startedAt, now);
     expect(presenter.shown.single.copy.title, 'Sleeping');
     expect(presenter.shown.single.copy.body, 'Goal 8h · until 6:30 AM');
+    expect(presenter.shown.single.copy.ongoingLabel, 'In progress');
 
     await container
         .read(languageControllerProvider.notifier)

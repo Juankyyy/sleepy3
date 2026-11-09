@@ -1,6 +1,6 @@
 // Generates the Sleepy3 launcher icons, Android 12+ splash marks, the white
-// notification icon and the Flutter splash mark from the brand sources in
-// `assets/brand/`.
+// notification icon, the sleep card mark and the Flutter splash mark from the
+// brand sources in `assets/brand/`.
 //
 // Run from the repository root:
 //
@@ -76,6 +76,7 @@ void main() {
   _writeLauncherIcons(mark);
   _writeLaunchMarks(mark);
   _writeNotificationIcons(mark);
+  _writeNotificationMark(mark);
 
   stdout.writeln('Brand assets written to $_splashMarkPath and $_resPath.');
 }
@@ -179,6 +180,23 @@ void _writeNotificationIcons(img.Image mark) {
     _writePng(
       '$_resPath/drawable-${entry.key}/ic_notification.png',
       _colorize(icon, 255, 255, 255),
+    );
+  }
+}
+
+/// Sleep status card mark: a 40 dp transparent canvas with the mark at 32 dp.
+///
+/// The custom notification places it inside a 40 dp light circle, so the
+/// padding is part of the image and the ImageView needs no extra inset.
+void _writeNotificationMark(img.Image mark) {
+  for (final entry in _densities.entries) {
+    final scale = entry.value;
+    final size = (40 * scale).round();
+    final canvas = img.Image(width: size, height: size, numChannels: 4);
+    _drawMark(canvas, mark, 32 * scale);
+    _writePng(
+      '$_resPath/drawable-${entry.key}/ic_notification_mark.png',
+      canvas,
     );
   }
 }

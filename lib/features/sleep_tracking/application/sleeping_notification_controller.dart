@@ -125,6 +125,7 @@ class SleepingNotificationController {
           localeName: l10n.localeName,
         ),
       ),
+      ongoingLabel: l10n.sleepingNotificationOngoing,
       channelName: l10n.sleepingNotificationChannelName,
       channelDescription: l10n.sleepingNotificationChannelDescription,
     );

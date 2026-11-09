@@ -4,4 +4,10 @@
     <color name="launch_background">#EFF4F9</color>
     <!-- Launcher icon background. It stays light in both themes. -->
     <color name="ic_launcher_background">#EFF4F9</color>
+    <!-- Sleep status notification card. -->
+    <color name="notification_title">#5F606A</color>
+    <color name="notification_secondary">#5F606A</color>
+    <color name="notification_brand">#252B81</color>
+    <color name="notification_accent">#252B81</color>
+    <color name="notification_mark_background">#EFF4F9</color>
 </resources>

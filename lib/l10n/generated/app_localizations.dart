@@ -296,6 +296,12 @@ abstract class AppLocalizations {
   /// **'A quiet timer while a sleep session is active.'**
   String get sleepingNotificationChannelDescription;
 
+  /// No description provided for @sleepingNotificationOngoing.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress'**
+  String get sleepingNotificationOngoing;
+
   /// No description provided for @sleepData.
   ///
   /// In en, this message translates to:
