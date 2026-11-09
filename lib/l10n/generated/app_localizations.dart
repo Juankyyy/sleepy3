@@ -884,6 +884,18 @@ abstract class AppLocalizations {
   /// **'Sleeping since {time} · it will appear when you wake.'**
   String statsSupportingSleeping(String time);
 
+  /// No description provided for @advancedStatsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced stats'**
+  String get advancedStatsTitle;
+
+  /// No description provided for @advancedStatsAction.
+  ///
+  /// In en, this message translates to:
+  /// **'View advanced stats'**
+  String get advancedStatsAction;
+
   /// No description provided for @history.
   ///
   /// In en, this message translates to:

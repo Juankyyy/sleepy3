@@ -220,6 +220,8 @@
       }
     }
   },
+  "advancedStatsTitle": "Estadísticas avanzadas",
+  "advancedStatsAction": "Ver estadísticas avanzadas",
   "history": "Historial",
   "timeRange": "Rango de tiempo",
   "rangeWeek": "Semana",

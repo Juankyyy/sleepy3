@@ -17,8 +17,9 @@ local session history, and Health Connect as an optional data source.
 - Current state: v0.2.2 is the latest stable release (without the home-screen widget). The
   single contextual Sleep/Wake action on Home, the live sleeping duration and its
   entrance cue, the sleep state machine, Drift persistence,
-  Stats history with tonal cards, pull-to-refresh, goal marks and their animation, the
-  session panel, manual session entry from the Stats FAB, session editing/deleting and
+  Stats summary with tonal cards, a draggable advanced sheet with a 70 % snap (metrics,
+  charts and insights), pull-to-refresh, goal marks and their animation, the session
+  panel, manual session entry from the Stats FAB, session editing/deleting and
   read-only details for other apps' records, Settings (theme, 12/24-hour time, English /
   Español language and the optional nightly reminder), the silent ongoing sleep-status
   notification with a live timer and goal time, Health Connect (Local/Google
@@ -62,7 +63,7 @@ lib/
 ├── l10n/                # ARB files, generated AppLocalizations and helpers
 └── features/
     ├── sleep_tracking/  # domain, data, application, presentation
-    ├── stats/           # presentation
+    ├── stats/           # application and presentation
     ├── settings/        # theme, app version, about and preferences
     ├── health/          # sources, Health Connect gateway, sync, copy, history access
     ├── reminders/       # nightly local notification, scheduler and Settings section

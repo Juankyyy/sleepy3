@@ -11,10 +11,8 @@ import '../../../core/time/local_day_builder.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../l10n/l10n.dart';
 import '../../health/application/current_app_package_provider.dart';
-import '../../health/application/health_history_permission_controller.dart';
 import '../../health/application/health_sync_controller.dart';
 import '../../health/application/sleep_data_source_controller.dart';
-import '../../health/domain/health_history_access.dart';
 import '../../health/domain/sleep_data_source.dart';
 import '../../health/domain/sleepy3_health_source.dart';
 import '../../health/presentation/health_history_banner.dart';
@@ -26,17 +24,20 @@ import '../../sleep_tracking/domain/sleep_history.dart';
 import '../../sleep_tracking/domain/sleep_insights.dart';
 import '../../sleep_tracking/domain/sleep_session.dart';
 import '../../sleep_tracking/presentation/widgets/sleep_history_status.dart';
-import 'charts/sleep_duration_chart.dart';
-import 'charts/sleep_window_chart.dart';
-import 'charts/weekday_chart.dart';
+import '../application/stats_range_controller.dart';
+import 'advanced_stats_sheet.dart';
 import 'widgets/session_editor.dart';
 import 'widgets/sleep_history_list.dart';
 import 'widgets/stats_hero_card.dart';
-import 'widgets/stats_insights_card.dart';
 import 'widgets/stats_metrics_card.dart';
 import 'widgets/stats_range_selector.dart';
 
-/// The Stats destination: a range summary and the full session history.
+/// The Stats destination: a compact range summary and the full session
+/// history.
+///
+/// The four advanced metrics, the three charts and the insights live in
+/// [AdvancedStatsSheet]. Keeping them off the default scroll puts the history
+/// near the first screen while the advanced data stays one tap away.
 class StatsScreen extends ConsumerStatefulWidget {
   const StatsScreen({super.key});
 
@@ -76,8 +77,6 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
   static const _settleDuration = Duration(milliseconds: 320);
   static const _settleCurve = Curves.easeOutCubic;
 
-  SleepHistoryRange _range = SleepHistoryRange.week;
-
   late final AnimationController _pullController;
   bool _dragging = false;
   bool _refreshing = false;
@@ -103,14 +102,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
     final state = ref.watch(sleepTrackingControllerProvider);
     final controller = ref.read(sleepTrackingControllerProvider.notifier);
     final source = ref.watch(sleepDataSourceProvider);
-    // Ranges wider than the 30-day Health Connect fallback can be selected
-    // after a denial. The list keeps the loaded nights, so the charts must say
-    // what is actually available instead of claiming the full range.
-    final historyLimited =
-        source == SleepDataSource.healthConnect &&
-        _range.requiresFullHistory &&
-        ref.watch(healthHistoryPermissionProvider) !=
-            HealthHistoryAccess.authorized;
+    final range = ref.watch(statsRangeProvider);
     final l10n = context.l10n;
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
@@ -144,17 +136,17 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
         final history = buildSleepHistory(
           now: today,
           sessions: state.closedSessions,
-          range: _range,
+          range: range,
         );
         final insights = buildSleepInsights(
           now: today,
           sessions: state.closedSessions,
-          range: _range,
+          range: range,
         );
         // Only offer the shortcut when there is something older to show. A
         // range can be empty because every session is in the future (clock
         // skew); All would be empty too, so no button.
-        final allHistory = !history.hasData && _range != SleepHistoryRange.all
+        final allHistory = !history.hasData && range != SleepHistoryRange.all
             ? buildSleepHistory(
                 now: today,
                 sessions: state.closedSessions,
@@ -196,16 +188,20 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                                 else ...[
                                   const SizedBox(height: 24),
                                   StatsRangeSelector(
-                                    selected: _range,
-                                    onChanged: (range) {
-                                      unawaited(_selectRange(range));
+                                    selected: range,
+                                    onChanged: (value) {
+                                      unawaited(
+                                        ref
+                                            .read(statsRangeProvider.notifier)
+                                            .select(value),
+                                      );
                                     },
                                   ),
                                   HealthHistoryBanner(
                                     visible:
                                         source ==
                                             SleepDataSource.healthConnect &&
-                                        _range.requiresFullHistory,
+                                        range.requiresFullHistory,
                                   ),
                                   const SizedBox(height: 24),
                                   StatsHeroCard(
@@ -213,32 +209,40 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                                     onShowAll: showAll
                                         ? () {
                                             unawaited(
-                                              _selectRange(
-                                                SleepHistoryRange.all,
-                                              ),
+                                              ref
+                                                  .read(
+                                                    statsRangeProvider.notifier,
+                                                  )
+                                                  .select(
+                                                    SleepHistoryRange.all,
+                                                  ),
                                             );
                                           }
                                         : null,
                                   ),
-                                  const SizedBox(height: 8),
-                                  StatsMetricsCard(insights: insights),
-                                  const SizedBox(height: 8),
-                                  SleepDurationChart(
-                                    insights: insights,
-                                    historyLimited: historyLimited,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  SleepWindowChart(
-                                    insights: insights,
-                                    historyLimited: historyLimited,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  WeekdayChart(
-                                    insights: insights,
-                                    historyLimited: historyLimited,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  StatsInsightsCard(insights: insights),
+                                  if (insights.hasData) ...[
+                                    const SizedBox(height: 8),
+                                    StatsMetricsCard(
+                                      insights: insights,
+                                      metrics: const [
+                                        StatsMetricType.goalHitRate,
+                                        StatsMetricType.sleepBalance,
+                                      ],
+                                      columns: 2,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Align(
+                                      alignment:
+                                          AlignmentDirectional.centerStart,
+                                      child: _AdvancedStatsButton(
+                                        onPressed: () {
+                                          unawaited(
+                                            showAdvancedStatsSheet(context),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ],
                                   if (history.hasData) ...[
                                     const SizedBox(height: 24),
                                     Semantics(
@@ -294,7 +298,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                                 use24HourFormat:
                                     MediaQuery.alwaysUse24HourFormatOf(context),
                                 source: source,
-                                compact: _range != SleepHistoryRange.week,
+                                compact: range != SleepHistoryRange.week,
                                 onEdit: (session) =>
                                     unawaited(_openEditor(session)),
                               ),
@@ -333,6 +337,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
   /// explains why; it never returns a result.
   Future<void> _openEditor(SleepSession session) async {
     final source = ref.read(sleepDataSourceProvider);
+    final range = ref.read(statsRangeProvider);
     final access = _accessFor(session, source);
 
     final result = await showSessionEditor(
@@ -340,7 +345,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
       session: session,
       source: source,
       access: access,
-      range: _range,
+      range: range,
     );
     if (!mounted || result == null) return;
 
@@ -356,38 +361,6 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
     if (message != null) {
       M3ESnackbar.show(context, message: message);
     }
-  }
-
-  /// Applies a range, asking for the full history first when the range is
-  /// wider than the 30-day fallback in Google Health mode.
-  ///
-  /// A denial still selects the range: the list keeps the last 30 days already
-  /// loaded and the banner explains the limit.
-  Future<void> _selectRange(SleepHistoryRange range) async {
-    if (range == _range) return;
-
-    final needsHistory =
-        range.requiresFullHistory &&
-        ref.read(sleepDataSourceProvider) == SleepDataSource.healthConnect &&
-        ref.read(healthHistoryPermissionProvider) !=
-            HealthHistoryAccess.authorized;
-
-    if (needsHistory) {
-      final granted = await ref
-          .read(healthHistoryPermissionProvider.notifier)
-          .ensureAuthorized();
-      if (!mounted) return;
-
-      if (granted) {
-        await ref
-            .read(sleepTrackingControllerProvider.notifier)
-            .reloadHistory();
-        if (!mounted) return;
-      }
-    }
-
-    if (!mounted) return;
-    setState(() => _range = range);
   }
 
   /// Builds the floating M3 loader above the scroll view.
@@ -567,6 +540,57 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
     if (!refreshed) {
       M3ESnackbar.show(context, message: context.l10n.refreshFailed);
     }
+  }
+}
+
+/// The tonal entry point to the advanced dashboard.
+///
+/// A filled action card instead of a pill button: the label can wrap at 200 %
+/// text without clipping, and the whole row is still one button target.
+class _AdvancedStatsButton extends StatelessWidget {
+  const _AdvancedStatsButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = M3ETheme.of(context);
+    final scheme = theme.colorScheme;
+    final l10n = context.l10n;
+
+    return M3ECard(
+      key: const Key('advanced-stats-button'),
+      variant: M3ECardVariant.filled,
+      color: scheme.secondaryContainer,
+      borderRadius: BorderRadius.circular(12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      onPressed: onPressed,
+      child: Row(
+        children: [
+          Icon(
+            M3EIcons.insights_outlined,
+            size: 20,
+            color: scheme.onSecondaryContainer,
+          ),
+          // 12dp separates the leading icon from the label.
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              l10n.advancedStatsAction,
+              style: theme.typography.baseline.labelLarge.copyWith(
+                color: scheme.onSecondaryContainer,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Icon(
+            M3EIcons.chevron_right,
+            size: 20,
+            color: scheme.onSecondaryContainer.withValues(alpha: 0.7),
+          ),
+        ],
+      ),
+    );
   }
 }
 

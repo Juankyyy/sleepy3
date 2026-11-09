@@ -5,24 +5,57 @@ import '../../../../l10n/l10n.dart';
 import '../../../sleep_tracking/domain/sleep_goal.dart';
 import '../../../sleep_tracking/domain/sleep_insights.dart';
 
-/// The four summary metrics under the Stats hero.
+/// The metric tiles shown by [StatsMetricsCard].
+///
+/// The summary uses the first two; the advanced sheet shows all four.
+enum StatsMetricType {
+  goalHitRate,
+  scheduleConsistency,
+  sleepBalance,
+  bestStreak,
+}
+
+/// The summary metrics card.
 ///
 /// From M3: outlined card, 12dp corners, `outlineVariant` dividers, and the
 /// `labelMedium` / `headlineSmall` / `bodySmall` type roles.
 /// My design decisions (not in M3): a 2x2 grid on compact screens, four
-/// columns from 600dp, 16dp inside each cell and tabular figures in the values.
+/// columns from 600dp for the full set, 16dp inside each cell and tabular
+/// figures in the values. The Stats summary passes only two metrics and a
+/// fixed two-column layout.
 class StatsMetricsCard extends StatelessWidget {
-  const StatsMetricsCard({super.key, required this.insights});
+  const StatsMetricsCard({
+    super.key,
+    required this.insights,
+    this.metrics = StatsMetricType.values,
+    this.columns,
+  });
 
   final SleepInsights insights;
+
+  /// Which metrics to render, in order.
+  final List<StatsMetricType> metrics;
+
+  /// Overrides the responsive column count. The summary uses 2.
+  final int? columns;
 
   @override
   Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
     final l10n = context.l10n;
-    final columns = MediaQuery.sizeOf(context).width >= 600 ? 4 : 2;
-    final metrics = _metrics(l10n);
+    final allMetrics = _buildMetrics(l10n);
+    final selected = [for (final type in metrics) allMetrics[type.index]];
+    if (selected.isEmpty) return const SizedBox.shrink();
+
+    final resolvedColumns =
+        (columns ??
+                (MediaQuery.sizeOf(context).width >= 600
+                    ? (selected.length < 4 ? selected.length : 4)
+                    : 2))
+            .clamp(1, selected.length)
+            .toInt();
+    final rows = (selected.length / resolvedColumns).ceil();
 
     return M3ECard(
       variant: M3ECardVariant.outlined,
@@ -30,7 +63,7 @@ class StatsMetricsCard extends StatelessWidget {
       child: Table(
         defaultVerticalAlignment: TableCellVerticalAlignment.top,
         columnWidths: {
-          for (var index = 0; index < columns; index++)
+          for (var index = 0; index < resolvedColumns; index++)
             index: const FlexColumnWidth(),
         },
         border: TableBorder(
@@ -38,11 +71,16 @@ class StatsMetricsCard extends StatelessWidget {
           verticalInside: BorderSide(color: scheme.outlineVariant, width: 1),
         ),
         children: [
-          for (var row = 0; row < metrics.length ~/ columns; row++)
+          for (var row = 0; row < rows; row++)
             TableRow(
               children: [
-                for (var column = 0; column < columns; column++)
-                  _MetricCell(metric: metrics[row * columns + column]),
+                for (var column = 0; column < resolvedColumns; column++)
+                  if (row * resolvedColumns + column < selected.length)
+                    _MetricCell(
+                      metric: selected[row * resolvedColumns + column],
+                    )
+                  else
+                    const SizedBox.shrink(),
               ],
             ),
         ],
@@ -50,7 +88,7 @@ class StatsMetricsCard extends StatelessWidget {
     );
   }
 
-  List<_Metric> _metrics(AppLocalizations l10n) {
+  List<_Metric> _buildMetrics(AppLocalizations l10n) {
     final recorded = insights.recordedDays;
     final goal = l10n.formatGoalDelta(dailySleepGoal);
 

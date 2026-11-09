@@ -461,6 +461,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get advancedStatsTitle => 'Advanced stats';
+
+  @override
+  String get advancedStatsAction => 'View advanced stats';
+
+  @override
   String get history => 'History';
 
   @override

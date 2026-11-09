@@ -60,11 +60,11 @@ Health Connect only accepts sleep sessions between 10 minutes and 24 hours. If a
 
 ## Stats
 
-Stats groups nights by the day you woke up and offers **Week**, **Month**, **3 months**, **Year** and **All** ranges. The hero shows your average sleep, the total, how many nights have data and how the range compares with the previous one; the metric card adds goal hit rate, schedule consistency, sleep balance against the 8-hour goal and your best streak. Three charts break the range down: **Sleep duration** against the goal, the **Sleep window** from bedtime to wake and the average **By weekday**, each with a spoken summary for screen readers.
+Stats groups nights by the day you woke up and offers **Week**, **Month**, **3 months**, **Year** and **All** ranges. The summary keeps the essentials together: the hero with your average sleep, the total, the coverage and the comparison with the previous range, plus goal hit rate and sleep balance against the 8-hour goal, and then your history. **View advanced stats** opens a draggable sheet over the same summary with schedule consistency, your best streak, **Sleep duration** against the goal, the **Sleep window** from bedtime to wake and the average **By weekday**, each with a spoken summary for screen readers, and an insights card with the best and shortest night, average bedtime and wake time, bedtime variability, split nights and the duration distribution. The sheet opens at 70 % of the height, has a fixed header with its range and a close button, and scrolls as one surface. Drag the handle up to full height, down to 70 % and beyond it to close; the close button, the scrim and the system back gesture also close it. The 70 % resting point is a Sleepy3 design decision; M3 caps a modal sheet's initial position at 50 %.
 
 Each night is a tonal card with a ring that compares it with the 8-hour goal, replaced by a Material 3 Expressive clover badge once the goal is met; the Month, 3 months, Year and All views use a denser two-line card so more nights fit on screen. Sessions written by another app show an external-app arrow and that app's name, or **Another app** when Android cannot resolve it; your own sessions stay unmarked.
 
-Pull down on Stats to refresh. The list stays in place while an M3 Expressive loader descends from the top; pending Google Health uploads are retried first, then the selected source is read again. In Local mode a refresh never uploads a new session.
+Pull down on Stats to refresh. The list stays in place while an M3 Expressive loader descends from the top; pending Google Health uploads are retried first, then the selected source is read again. In Local mode a refresh never uploads a new session. The advanced sheet reads the same live data; close it and pull down on the summary to refresh.
 
 Tap any card to open it. Sessions written by the app you are using open in a detail view with the night's duration against the 8-hour goal, where you can change the start or end time or delete the session after confirming. Below the times, **Night context** compares the session with your last seven nights and ranks it inside the selected range; read-only sessions show it too. The goal mark moves only in this view: once the goal is met the clover turns continuously, once every 8 seconds, while the crescent stays upright, and a shorter night draws its ring once on open. With Android's **Remove animations** enabled, both marks stay still. If Google Health needs write access, the delete dialog offers **Allow** and tries again. Sessions created by another app open read-only, with locked fields and a card that names the app when Android can resolve it (otherwise it says another app). In Local mode, sessions downloaded from Health Connect are read-only too. In Google Health mode, your own records stay editable even without a local copy. A record written by the other Sleepy3 build (release vs debug) is read-only from the build you are using, because Health Connect only lets the app that wrote it change it.
 
@@ -178,7 +178,8 @@ lib/
     │   ├── application/   # Riverpod controllers, edit service and state
     │   └── presentation/  # home screen, header, live clock and buttons
     ├── stats/
-    │   └── presentation/  # stats screen, chips, summary, history list, session editor
+    │   ├── application/   # shared range controller and permission flow
+    │   └── presentation/  # summary, advanced sheet, charts, history list, editors
     ├── health/
     │   ├── domain/        # gateway, source, history access, sync store and stored session
     │   ├── data/          # Health Connect gateway, repositories and Drift sync store

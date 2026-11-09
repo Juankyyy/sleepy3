@@ -235,6 +235,8 @@
       }
     }
   },
+  "advancedStatsTitle": "Advanced stats",
+  "advancedStatsAction": "View advanced stats",
   "history": "History",
   "timeRange": "Time range",
   "rangeWeek": "Week",

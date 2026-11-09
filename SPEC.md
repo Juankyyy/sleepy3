@@ -321,9 +321,20 @@ Reglas:
 
 ### 3.3 Stats e historial
 
-- `Stats` es un dashboard de una sola columna: cabecera, cinco filtros de rango, hero,
-  card de métricas, tres gráficos, card de insights y el historial. El FAB y el
-  pull-to-refresh no cambian.
+- `Stats` es un resumen de una sola columna: cabecera, cinco filtros de rango, hero,
+  dos métricas clave, la acción `View advanced stats` y el historial. Las cuatro métricas
+  completas, los tres gráficos y los insights viven en una modal sheet arrastrable que se
+  abre desde esa acción; el historial no se mueve a la hoja. El FAB y el pull-to-refresh
+  no cambian.
+- `View advanced stats` abre una modal sheet con scrim y esquinas superiores de 28 dp.
+  En compacto abre al 70 % de la altura; al llegar a pantalla completa deja 72 dp arriba.
+  En ventanas de más de 640 dp deja 56 dp arriba y a los lados, con un ancho máximo de
+  640 dp. Un handle en el header permite arrastrarla: hacia arriba hasta pantalla
+  completa, hacia abajo hasta el 70 % y, pasando el umbral, cerrarla. El header (título,
+  rango y aspa) queda fijo y el contenido usa un único scroll. El aspa, tocando el scrim
+  o con atrás también cierran. El 70 % inicial es una decisión de diseño: M3 limita la
+  posición inicial de una modal sheet al 50 %; aquí se prioriza que las cuatro métricas y
+  el inicio del primer gráfico se vean sin cubrir casi todo el resumen.
 - Rangos: `Week` (7 días), `Month` (30), `3 months` (90), `Year` (365 rolling) y `All`
   (todo el historial cerrado). Son filter chips M3 de selección única con check leading;
   por defecto se abre en `Week`. `Year` son los últimos 365 días, no el año natural.
@@ -339,22 +350,25 @@ Reglas:
   comparación. En los rangos fijos se oculta si el periodo anterior no tiene datos o su
   cobertura es menor del 50 %. Sin noches muestra `—`, `No nights in this range` y
   `Show all` cuando hay historial más antiguo.
-- Card de métricas 2×2 (4 columnas desde 600 dp): `Goal hit rate` (porcentaje y noches
-  que cumplen), `Schedule consistency` (desviación circular del bedtime, `±32 min`),
-  `Sleep balance` (`total − 8 h × noches registradas`, con `surplus` o `debt` en el
-  apoyo) y `Best streak` (mejor racha del rango y racha actual). Sin datos suficientes,
-  el valor es `—` y el apoyo explica por qué; nunca se inventa un 0 %.
-- Gráfico `Sleep duration`: barras por bucket (día en `Week`/`Month`, semana en
-  `3 months`, mes en `Year`, semanal o mensual en `All` según 180 días), línea de
-  objetivo de 8 h, línea de media y huecos para noches sin datos. El tooltip da fecha,
+- En el resumen, una card de 2 columnas muestra `Goal hit rate` (porcentaje y noches
+  que cumplen en el apoyo) y `Sleep balance` (`total − 8 h × noches registradas`, con
+  `surplus`, `debt` o `even` en el apoyo). El resto de métricas vive en la hoja.
+- En la hoja, card de métricas 2×2 (4 columnas desde 600 dp): las dos anteriores más
+  `Schedule consistency` (desviación circular del bedtime, `±32 min`) y `Best streak`
+  (mejor racha del rango y racha actual). Sin datos suficientes, el valor es `—` y el
+  apoyo explica por qué; nunca se inventa un 0 %.
+- Gráfico `Sleep duration` (en la hoja): barras por bucket (día en `Week`/`Month`,
+  semana en `3 months`, mes en `Year`, semanal o mensual en `All` según 180 días), línea
+  de objetivo de 8 h, línea de media y huecos para noches sin datos. El tooltip da fecha,
   duración y número de sesiones; en buckets largos usa el tooltip rico con el rango y la
   media por noche.
-- Gráfico `Sleep window`: una fila por bucket con una cápsula desde el bedtime hasta el
-  wake, banda de mínimos/máximos y línea de media circular. El eje va de 18:00 a 12:00.
-- Gráfico `By weekday`: media por día de despertar, de lunes a domingo; los días sin
-  datos son huecos y el mejor día se marca con la etiqueta `Best`.
-- Card `Insights`: mejor noche, noche más corta, hora media de acostarse y de
-  despertarse, variación del bedtime, noches con más de una sesión y distribución
+- Gráfico `Sleep window` (en la hoja): una fila por bucket con una cápsula desde el
+  bedtime hasta el wake, banda de mínimos/máximos y línea de media circular. El eje va de
+  18:00 a 12:00.
+- Gráfico `By weekday` (en la hoja): media por día de despertar, de lunes a domingo; los
+  días sin datos son huecos y el mejor día se marca con la etiqueta `Best`.
+- Card `Insights` (en la hoja): mejor noche, noche más corta, hora media de acostarse y
+  de despertarse, variación del bedtime, noches con más de una sesión y distribución
   (`<6 h`, `6–7 h`, `7–8 h`, `8–9 h`, `9 h+`). Texto factual, sin consejos ni lenguaje
   médico.
 - Reglas de cálculo: media y mediana solo sobre días con datos; una noche cumple el
@@ -364,12 +378,13 @@ Reglas:
   agrupan con aritmética de calendario para que el DST no desplace buckets; las
   duraciones negativas se clampan a cero y se excluyen del ritmo.
 - En modo `Google Health`, elegir `3 months`, `Year` o `All` pide el permiso de historial
-  de Health Connect. Si ya estaba concedido, no se vuelve a preguntar. Si se deniega, el
-  rango sigue seleccionado, la lectura se limita a los últimos 30 días, un banner explica
-  el límite y ofrece `Allow full history`, y los gráficos cambian su apoyo por
-  `Last 30 days available` en lugar de afirmar que cubren el rango completo. `Week` y
-  `Month` no piden nada. Al volver del segundo plano se relee el permiso por si el
-  usuario lo cambió en Health Connect.
+  de Health Connect, tanto en el resumen como en la hoja avanzada (ambas usan el mismo
+  `StatsRangeController`). Si ya estaba concedido, no se vuelve a preguntar. Si se
+  deniega, el rango sigue seleccionado, la lectura se limita a los últimos 30 días, un
+  banner explica el límite y ofrece `Allow full history`, y los gráficos cambian su apoyo
+  por `Last 30 days available` en lugar de afirmar que cubren el rango completo. `Week` y
+  `Month` no piden nada. Al volver del segundo plano se relee el permiso por si el usuario
+  lo cambió en Health Connect.
 - Debajo, una tarjeta tonal por sesión cerrada, de la más reciente a la más antigua,
   también dentro de un mismo día. En `Week` cada tarjeta tiene tres líneas: el día de
   despertar en una píldora (`Today`, `Yesterday`, `Tue, Oct 20` o con año si no es el año
@@ -421,6 +436,8 @@ Reglas:
   En `Google Health` primero se reintentan las subidas pendientes y después se relee el
   permiso de historial y las sesiones; en `Local` solo se reintentan actualizaciones de
   sesiones que ya tienen registro en Health Connect y nunca se sube una sesión nueva.
+  La hoja avanzada no tiene pull-to-refresh: lee el mismo estado compartido y, para
+  recargar, se cierra y se tira del resumen.
 - La fecha y la ventana se recalculan a medianoche local y al volver del segundo plano
   con `LocalDayBuilder`, no con un reloj que reconstruye cada segundo. Los días se
   calculan con aritmética de calendario para no desplazar los grupos con DST.
@@ -1838,7 +1855,8 @@ dart run tool/generate_brand_assets.dart
   Connect; la 0.2.1 añade la interfaz en inglés y español y el formato de hora 12/24; la
   0.2.2 añade el recordatorio nocturno, el deslizamiento para despertar y la duración en
   vivo. Ninguna incluye el widget.
-- Stats avanzadas en `feat/stats-charts`: cinco rangos, hero y métricas, gráficos M3 de
+- Stats avanzadas en `feat/stats-charts`: resumen con hero, dos métricas y el historial,
+  y una modal sheet arrastrable con snap al 70 % y cuatro métricas, gráficos M3 de
   duración, ventana y día de la semana, insights y `Night context` por sesión. Pendiente
   de validación en dispositivo y release.
 - Tests de estado, persistencia y UI.
