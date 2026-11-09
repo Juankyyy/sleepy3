@@ -394,6 +394,195 @@
       }
     }
   },
+  "chartSleepDurationTitle": "Sleep duration",
+  "chartSleepDurationSupport": "{range} · {nights, plural, =1{1 night recorded} other{{nights} nights recorded}} · Goal {goal}",
+  "@chartSleepDurationSupport": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      },
+      "nights": {
+        "type": "int"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "chartLegendSleep": "Sleep",
+  "chartLegendAverage": "Average",
+  "chartGoalLabel": "Goal {goal}",
+  "@chartGoalLabel": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "chartAverageLabel": "Avg",
+  "chartTooltipDate": "{date} · {duration}",
+  "@chartTooltipDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "chartTooltipSessions": "{date} · {duration} · {sessions, plural, =1{1 session} other{{sessions} sessions}}",
+  "@chartTooltipSessions": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      },
+      "sessions": {
+        "type": "int"
+      }
+    }
+  },
+  "chartTooltipAverageValue": "{duration} avg",
+  "@chartTooltipAverageValue": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "chartTooltipNights": "{count, plural, =1{1 night} other{{count} nights}}",
+  "@chartTooltipNights": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chartTooltipNoData": "{range} · No night recorded",
+  "@chartTooltipNoData": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "chartDurationSpoken": "Sleep duration for {range}. Average {average}. Best night {best}. Shortest night {worst}. {short, plural, =0{No nights under the {goal} goal} =1{1 night under the {goal} goal} other{{short} nights under the {goal} goal}}. {missing, plural, =0{No nights without data} =1{1 night with no data} other{{missing} nights with no data}}.",
+  "@chartDurationSpoken": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      },
+      "average": {
+        "type": "String"
+      },
+      "best": {
+        "type": "String"
+      },
+      "worst": {
+        "type": "String"
+      },
+      "short": {
+        "type": "int"
+      },
+      "missing": {
+        "type": "int"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "chartSleepWindowTitle": "Sleep window",
+  "chartSleepWindowSupport": "Bedtime to wake · {range}",
+  "@chartSleepWindowSupport": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "chartLegendWindow": "Bedtime to wake",
+  "chartLegendRange": "Range",
+  "chartWindowSpoken": "Sleep window for {range}. Average bedtime {bedtime} and average wake {wake}. {missing, plural, =0{Every night has data} =1{1 night has no data} other{{missing} nights have no data}}.",
+  "@chartWindowSpoken": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      },
+      "bedtime": {
+        "type": "String"
+      },
+      "wake": {
+        "type": "String"
+      },
+      "missing": {
+        "type": "int"
+      }
+    }
+  },
+  "chartWeekdayTitle": "By weekday",
+  "chartWeekdaySupport": "Average by wake day · {range}",
+  "@chartWeekdaySupport": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "chartWeekdayBest": "Best",
+  "chartWeekdaySpoken": "Average sleep by weekday for {range}. {best} is the longest average with {average}. {count} of 7 weekdays have data.",
+  "@chartWeekdaySpoken": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      },
+      "best": {
+        "type": "String"
+      },
+      "average": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insightsTitle": "Insights",
+  "insightBestNight": "Best night",
+  "insightShortestNight": "Shortest night",
+  "insightAverageBedtime": "Average bedtime",
+  "insightAverageWake": "Average wake",
+  "insightBedtimeVariability": "Bedtime varies by",
+  "insightSplitNights": "Nights with more than one session",
+  "insightDistribution": "Distribution",
+  "insightDistributionSpoken": "Sleep duration distribution. {underSix} nights under 6 hours, {sixToSeven} from 6 to 7 hours, {sevenToEight} from 7 to 8 hours, {eightToNine} from 8 to 9 hours and {ninePlus} of 9 hours or more.",
+  "@insightDistributionSpoken": {
+    "placeholders": {
+      "underSix": {
+        "type": "int"
+      },
+      "sixToSeven": {
+        "type": "int"
+      },
+      "sevenToEight": {
+        "type": "int"
+      },
+      "eightToNine": {
+        "type": "int"
+      },
+      "ninePlus": {
+        "type": "int"
+      }
+    }
+  },
+  "sleepBandUnderSix": "Under 6h",
+  "sleepBandSixToSeven": "6–7h",
+  "sleepBandSevenToEight": "7–8h",
+  "sleepBandEightToNine": "8–9h",
+  "sleepBandNinePlus": "9h+",
   "noSleepHistoryHealth": "No sleep history in Google Health",
   "noSleepHistory": "No sleep history yet",
   "noSleepHistoryHealthSupport": "Sleep sessions in Health Connect will appear here.",

@@ -26,9 +26,13 @@ import '../../sleep_tracking/domain/sleep_history.dart';
 import '../../sleep_tracking/domain/sleep_insights.dart';
 import '../../sleep_tracking/domain/sleep_session.dart';
 import '../../sleep_tracking/presentation/widgets/sleep_history_status.dart';
+import 'charts/sleep_duration_chart.dart';
+import 'charts/sleep_window_chart.dart';
+import 'charts/weekday_chart.dart';
 import 'widgets/session_editor.dart';
 import 'widgets/sleep_history_list.dart';
 import 'widgets/stats_hero_card.dart';
+import 'widgets/stats_insights_card.dart';
 import 'widgets/stats_metrics_card.dart';
 import 'widgets/stats_range_selector.dart';
 
@@ -210,6 +214,14 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                                   ),
                                   const SizedBox(height: 8),
                                   StatsMetricsCard(insights: insights),
+                                  const SizedBox(height: 8),
+                                  SleepDurationChart(insights: insights),
+                                  const SizedBox(height: 8),
+                                  SleepWindowChart(insights: insights),
+                                  const SizedBox(height: 8),
+                                  WeekdayChart(insights: insights),
+                                  const SizedBox(height: 8),
+                                  StatsInsightsCard(insights: insights),
                                   if (history.hasData) ...[
                                     const SizedBox(height: 24),
                                     Semantics(

@@ -379,6 +379,195 @@
       }
     }
   },
+  "chartSleepDurationTitle": "Duración del sueño",
+  "chartSleepDurationSupport": "{range} · {nights, plural, =1{1 noche registrada} other{{nights} noches registradas}} · Objetivo {goal}",
+  "@chartSleepDurationSupport": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      },
+      "nights": {
+        "type": "int"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "chartLegendSleep": "Sueño",
+  "chartLegendAverage": "Media",
+  "chartGoalLabel": "Objetivo {goal}",
+  "@chartGoalLabel": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "chartAverageLabel": "Media",
+  "chartTooltipDate": "{date} · {duration}",
+  "@chartTooltipDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "chartTooltipSessions": "{date} · {duration} · {sessions, plural, =1{1 sesión} other{{sessions} sesiones}}",
+  "@chartTooltipSessions": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      },
+      "sessions": {
+        "type": "int"
+      }
+    }
+  },
+  "chartTooltipAverageValue": "{duration} de media",
+  "@chartTooltipAverageValue": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "chartTooltipNights": "{count, plural, =1{1 noche} other{{count} noches}}",
+  "@chartTooltipNights": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "chartTooltipNoData": "{range} · Sin noche registrada",
+  "@chartTooltipNoData": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "chartDurationSpoken": "Duración del sueño en {range}. Media {average}. Mejor noche {best}. Noche más corta {worst}. {short, plural, =0{Ninguna noche por debajo del objetivo de {goal}} =1{1 noche por debajo del objetivo de {goal}} other{{short} noches por debajo del objetivo de {goal}}}. {missing, plural, =0{Ninguna noche sin datos} =1{1 noche sin datos} other{{missing} noches sin datos}}.",
+  "@chartDurationSpoken": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      },
+      "average": {
+        "type": "String"
+      },
+      "best": {
+        "type": "String"
+      },
+      "worst": {
+        "type": "String"
+      },
+      "short": {
+        "type": "int"
+      },
+      "missing": {
+        "type": "int"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "chartSleepWindowTitle": "Ventana de sueño",
+  "chartSleepWindowSupport": "De acostarse a despertar · {range}",
+  "@chartSleepWindowSupport": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "chartLegendWindow": "De acostarse a despertar",
+  "chartLegendRange": "Rango",
+  "chartWindowSpoken": "Ventana de sueño en {range}. Hora media de acostarse {bedtime} y de despertar {wake}. {missing, plural, =0{Todas las noches tienen datos} =1{1 noche no tiene datos} other{{missing} noches no tienen datos}}.",
+  "@chartWindowSpoken": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      },
+      "bedtime": {
+        "type": "String"
+      },
+      "wake": {
+        "type": "String"
+      },
+      "missing": {
+        "type": "int"
+      }
+    }
+  },
+  "chartWeekdayTitle": "Por día de la semana",
+  "chartWeekdaySupport": "Media según el día de despertar · {range}",
+  "@chartWeekdaySupport": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      }
+    }
+  },
+  "chartWeekdayBest": "Mejor",
+  "chartWeekdaySpoken": "Sueño medio por día de la semana en {range}. {best} es la media más larga con {average}. {count} de 7 días tienen datos.",
+  "@chartWeekdaySpoken": {
+    "placeholders": {
+      "range": {
+        "type": "String"
+      },
+      "best": {
+        "type": "String"
+      },
+      "average": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "insightsTitle": "Datos clave",
+  "insightBestNight": "Mejor noche",
+  "insightShortestNight": "Noche más corta",
+  "insightAverageBedtime": "Hora media de acostarse",
+  "insightAverageWake": "Hora media de despertar",
+  "insightBedtimeVariability": "Variación al acostarse",
+  "insightSplitNights": "Noches divididas",
+  "insightDistribution": "Distribución",
+  "insightDistributionSpoken": "Distribución de la duración del sueño. {underSix} noches de menos de 6 horas, {sixToSeven} de 6 a 7 horas, {sevenToEight} de 7 a 8 horas, {eightToNine} de 8 a 9 horas y {ninePlus} de 9 horas o más.",
+  "@insightDistributionSpoken": {
+    "placeholders": {
+      "underSix": {
+        "type": "int"
+      },
+      "sixToSeven": {
+        "type": "int"
+      },
+      "sevenToEight": {
+        "type": "int"
+      },
+      "eightToNine": {
+        "type": "int"
+      },
+      "ninePlus": {
+        "type": "int"
+      }
+    }
+  },
+  "sleepBandUnderSix": "Menos de 6 h",
+  "sleepBandSixToSeven": "6–7 h",
+  "sleepBandSevenToEight": "7–8 h",
+  "sleepBandEightToNine": "8–9 h",
+  "sleepBandNinePlus": "9 h+",
   "noSleepHistoryHealth": "No hay historial de sueño en Google Health",
   "noSleepHistory": "Aún no hay historial de sueño",
   "noSleepHistoryHealthSupport": "Las sesiones de sueño de Health Connect aparecerán aquí.",

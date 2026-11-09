@@ -1100,6 +1100,240 @@ abstract class AppLocalizations {
   /// **'−{duration}'**
   String durationSignedNegative(String duration);
 
+  /// No description provided for @chartSleepDurationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep duration'**
+  String get chartSleepDurationTitle;
+
+  /// No description provided for @chartSleepDurationSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'{range} · {nights, plural, =1{1 night recorded} other{{nights} nights recorded}} · Goal {goal}'**
+  String chartSleepDurationSupport(String range, int nights, String goal);
+
+  /// No description provided for @chartLegendSleep.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep'**
+  String get chartLegendSleep;
+
+  /// No description provided for @chartLegendAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Average'**
+  String get chartLegendAverage;
+
+  /// No description provided for @chartGoalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal {goal}'**
+  String chartGoalLabel(String goal);
+
+  /// No description provided for @chartAverageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Avg'**
+  String get chartAverageLabel;
+
+  /// No description provided for @chartTooltipDate.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} · {duration}'**
+  String chartTooltipDate(String date, String duration);
+
+  /// No description provided for @chartTooltipSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'{date} · {duration} · {sessions, plural, =1{1 session} other{{sessions} sessions}}'**
+  String chartTooltipSessions(String date, String duration, int sessions);
+
+  /// No description provided for @chartTooltipAverageValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{duration} avg'**
+  String chartTooltipAverageValue(String duration);
+
+  /// No description provided for @chartTooltipNights.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 night} other{{count} nights}}'**
+  String chartTooltipNights(int count);
+
+  /// No description provided for @chartTooltipNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'{range} · No night recorded'**
+  String chartTooltipNoData(String range);
+
+  /// No description provided for @chartDurationSpoken.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep duration for {range}. Average {average}. Best night {best}. Shortest night {worst}. {short, plural, =0{No nights under the {goal} goal} =1{1 night under the {goal} goal} other{{short} nights under the {goal} goal}}. {missing, plural, =0{No nights without data} =1{1 night with no data} other{{missing} nights with no data}}.'**
+  String chartDurationSpoken(
+    String range,
+    String average,
+    String best,
+    String worst,
+    int short,
+    int missing,
+    String goal,
+  );
+
+  /// No description provided for @chartSleepWindowTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep window'**
+  String get chartSleepWindowTitle;
+
+  /// No description provided for @chartSleepWindowSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Bedtime to wake · {range}'**
+  String chartSleepWindowSupport(String range);
+
+  /// No description provided for @chartLegendWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'Bedtime to wake'**
+  String get chartLegendWindow;
+
+  /// No description provided for @chartLegendRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Range'**
+  String get chartLegendRange;
+
+  /// No description provided for @chartWindowSpoken.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep window for {range}. Average bedtime {bedtime} and average wake {wake}. {missing, plural, =0{Every night has data} =1{1 night has no data} other{{missing} nights have no data}}.'**
+  String chartWindowSpoken(
+    String range,
+    String bedtime,
+    String wake,
+    int missing,
+  );
+
+  /// No description provided for @chartWeekdayTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'By weekday'**
+  String get chartWeekdayTitle;
+
+  /// No description provided for @chartWeekdaySupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Average by wake day · {range}'**
+  String chartWeekdaySupport(String range);
+
+  /// No description provided for @chartWeekdayBest.
+  ///
+  /// In en, this message translates to:
+  /// **'Best'**
+  String get chartWeekdayBest;
+
+  /// No description provided for @chartWeekdaySpoken.
+  ///
+  /// In en, this message translates to:
+  /// **'Average sleep by weekday for {range}. {best} is the longest average with {average}. {count} of 7 weekdays have data.'**
+  String chartWeekdaySpoken(
+    String range,
+    String best,
+    String average,
+    int count,
+  );
+
+  /// No description provided for @insightsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Insights'**
+  String get insightsTitle;
+
+  /// No description provided for @insightBestNight.
+  ///
+  /// In en, this message translates to:
+  /// **'Best night'**
+  String get insightBestNight;
+
+  /// No description provided for @insightShortestNight.
+  ///
+  /// In en, this message translates to:
+  /// **'Shortest night'**
+  String get insightShortestNight;
+
+  /// No description provided for @insightAverageBedtime.
+  ///
+  /// In en, this message translates to:
+  /// **'Average bedtime'**
+  String get insightAverageBedtime;
+
+  /// No description provided for @insightAverageWake.
+  ///
+  /// In en, this message translates to:
+  /// **'Average wake'**
+  String get insightAverageWake;
+
+  /// No description provided for @insightBedtimeVariability.
+  ///
+  /// In en, this message translates to:
+  /// **'Bedtime varies by'**
+  String get insightBedtimeVariability;
+
+  /// No description provided for @insightSplitNights.
+  ///
+  /// In en, this message translates to:
+  /// **'Nights with more than one session'**
+  String get insightSplitNights;
+
+  /// No description provided for @insightDistribution.
+  ///
+  /// In en, this message translates to:
+  /// **'Distribution'**
+  String get insightDistribution;
+
+  /// No description provided for @insightDistributionSpoken.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep duration distribution. {underSix} nights under 6 hours, {sixToSeven} from 6 to 7 hours, {sevenToEight} from 7 to 8 hours, {eightToNine} from 8 to 9 hours and {ninePlus} of 9 hours or more.'**
+  String insightDistributionSpoken(
+    int underSix,
+    int sixToSeven,
+    int sevenToEight,
+    int eightToNine,
+    int ninePlus,
+  );
+
+  /// No description provided for @sleepBandUnderSix.
+  ///
+  /// In en, this message translates to:
+  /// **'Under 6h'**
+  String get sleepBandUnderSix;
+
+  /// No description provided for @sleepBandSixToSeven.
+  ///
+  /// In en, this message translates to:
+  /// **'6–7h'**
+  String get sleepBandSixToSeven;
+
+  /// No description provided for @sleepBandSevenToEight.
+  ///
+  /// In en, this message translates to:
+  /// **'7–8h'**
+  String get sleepBandSevenToEight;
+
+  /// No description provided for @sleepBandEightToNine.
+  ///
+  /// In en, this message translates to:
+  /// **'8–9h'**
+  String get sleepBandEightToNine;
+
+  /// No description provided for @sleepBandNinePlus.
+  ///
+  /// In en, this message translates to:
+  /// **'9h+'**
+  String get sleepBandNinePlus;
+
   /// No description provided for @noSleepHistoryHealth.
   ///
   /// In en, this message translates to:

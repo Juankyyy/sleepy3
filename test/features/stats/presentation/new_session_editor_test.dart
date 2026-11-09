@@ -77,6 +77,15 @@ void main() {
     await tester.pump(const Duration(milliseconds: 600));
   }
 
+  Future<void> revealHistory(WidgetTester tester, String label) async {
+    await tester.scrollUntilVisible(
+      find.text(label),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+  }
+
   Future<void> pickDay(WidgetTester tester, String day) async {
     await tester.tap(find.text(day).last);
     await tester.pump();
@@ -163,6 +172,7 @@ void main() {
     expect(find.text('Session added.'), findsOneWidget);
     expect(store.inserted.single.startedAt, defaultStart);
     expect(store.inserted.single.endedAt, defaultEnd);
+    await revealHistory(tester, '11:00 PM – 7:00 AM');
     expect(find.text('11:00 PM – 7:00 AM'), findsOneWidget);
     expect(find.text('No sleep history yet'), findsNothing);
   });
@@ -241,6 +251,7 @@ void main() {
     expect(gateway.writes.single.startedAt, defaultStart);
     expect(gateway.writes.single.endedAt, defaultEnd);
     expect(store.inserted.single.startedAt, defaultStart);
+    await revealHistory(tester, '11:00 PM – 7:00 AM');
     expect(find.text('11:00 PM – 7:00 AM'), findsOneWidget);
   });
 

@@ -635,6 +635,200 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get chartSleepDurationTitle => 'Sleep duration';
+
+  @override
+  String chartSleepDurationSupport(String range, int nights, String goal) {
+    String _temp0 = intl.Intl.pluralLogic(
+      nights,
+      locale: localeName,
+      other: '$nights nights recorded',
+      one: '1 night recorded',
+    );
+    return '$range · $_temp0 · Goal $goal';
+  }
+
+  @override
+  String get chartLegendSleep => 'Sleep';
+
+  @override
+  String get chartLegendAverage => 'Average';
+
+  @override
+  String chartGoalLabel(String goal) {
+    return 'Goal $goal';
+  }
+
+  @override
+  String get chartAverageLabel => 'Avg';
+
+  @override
+  String chartTooltipDate(String date, String duration) {
+    return '$date · $duration';
+  }
+
+  @override
+  String chartTooltipSessions(String date, String duration, int sessions) {
+    String _temp0 = intl.Intl.pluralLogic(
+      sessions,
+      locale: localeName,
+      other: '$sessions sessions',
+      one: '1 session',
+    );
+    return '$date · $duration · $_temp0';
+  }
+
+  @override
+  String chartTooltipAverageValue(String duration) {
+    return '$duration avg';
+  }
+
+  @override
+  String chartTooltipNights(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nights',
+      one: '1 night',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String chartTooltipNoData(String range) {
+    return '$range · No night recorded';
+  }
+
+  @override
+  String chartDurationSpoken(
+    String range,
+    String average,
+    String best,
+    String worst,
+    int short,
+    int missing,
+    String goal,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      short,
+      locale: localeName,
+      other: '$short nights under the $goal goal',
+      one: '1 night under the $goal goal',
+      zero: 'No nights under the $goal goal',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      missing,
+      locale: localeName,
+      other: '$missing nights with no data',
+      one: '1 night with no data',
+      zero: 'No nights without data',
+    );
+    return 'Sleep duration for $range. Average $average. Best night $best. Shortest night $worst. $_temp0. $_temp1.';
+  }
+
+  @override
+  String get chartSleepWindowTitle => 'Sleep window';
+
+  @override
+  String chartSleepWindowSupport(String range) {
+    return 'Bedtime to wake · $range';
+  }
+
+  @override
+  String get chartLegendWindow => 'Bedtime to wake';
+
+  @override
+  String get chartLegendRange => 'Range';
+
+  @override
+  String chartWindowSpoken(
+    String range,
+    String bedtime,
+    String wake,
+    int missing,
+  ) {
+    String _temp0 = intl.Intl.pluralLogic(
+      missing,
+      locale: localeName,
+      other: '$missing nights have no data',
+      one: '1 night has no data',
+      zero: 'Every night has data',
+    );
+    return 'Sleep window for $range. Average bedtime $bedtime and average wake $wake. $_temp0.';
+  }
+
+  @override
+  String get chartWeekdayTitle => 'By weekday';
+
+  @override
+  String chartWeekdaySupport(String range) {
+    return 'Average by wake day · $range';
+  }
+
+  @override
+  String get chartWeekdayBest => 'Best';
+
+  @override
+  String chartWeekdaySpoken(
+    String range,
+    String best,
+    String average,
+    int count,
+  ) {
+    return 'Average sleep by weekday for $range. $best is the longest average with $average. $count of 7 weekdays have data.';
+  }
+
+  @override
+  String get insightsTitle => 'Insights';
+
+  @override
+  String get insightBestNight => 'Best night';
+
+  @override
+  String get insightShortestNight => 'Shortest night';
+
+  @override
+  String get insightAverageBedtime => 'Average bedtime';
+
+  @override
+  String get insightAverageWake => 'Average wake';
+
+  @override
+  String get insightBedtimeVariability => 'Bedtime varies by';
+
+  @override
+  String get insightSplitNights => 'Nights with more than one session';
+
+  @override
+  String get insightDistribution => 'Distribution';
+
+  @override
+  String insightDistributionSpoken(
+    int underSix,
+    int sixToSeven,
+    int sevenToEight,
+    int eightToNine,
+    int ninePlus,
+  ) {
+    return 'Sleep duration distribution. $underSix nights under 6 hours, $sixToSeven from 6 to 7 hours, $sevenToEight from 7 to 8 hours, $eightToNine from 8 to 9 hours and $ninePlus of 9 hours or more.';
+  }
+
+  @override
+  String get sleepBandUnderSix => 'Under 6h';
+
+  @override
+  String get sleepBandSixToSeven => '6–7h';
+
+  @override
+  String get sleepBandSevenToEight => '7–8h';
+
+  @override
+  String get sleepBandEightToNine => '8–9h';
+
+  @override
+  String get sleepBandNinePlus => '9h+';
+
+  @override
   String get noSleepHistoryHealth => 'No sleep history in Google Health';
 
   @override

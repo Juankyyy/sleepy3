@@ -150,9 +150,10 @@ void main() {
         matching: find.byType(Container),
       ),
     );
-    expect(container.constraints?.maxHeight, 24);
-    expect(container.padding, const EdgeInsets.symmetric(horizontal: 8));
-    expect(container.alignment, Alignment.centerLeft);
+    expect(
+      container.padding,
+      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    );
     expect(
       tester
           .getSize(
@@ -290,6 +291,40 @@ void main() {
     await gesture.up();
     await tester.pump();
     expect(selections, [0, 2, null]);
+  });
+
+  testWidgets('scrub area can select on tap without capturing drags', (
+    tester,
+  ) async {
+    final selections = <int?>[];
+    await pump(
+      tester,
+      SizedBox(
+        width: 200,
+        height: 100,
+        child: ChartScrubArea(
+          slotCount: 4,
+          axis: Axis.vertical,
+          dragEnabled: false,
+          enableHaptics: false,
+          onSelectionChanged: selections.add,
+          child: const SizedBox.expand(),
+        ),
+      ),
+    );
+
+    final origin = tester.getTopLeft(find.byType(ChartScrubArea));
+    final gesture = await tester.startGesture(origin + const Offset(20, 70));
+    await tester.pump(const Duration(milliseconds: 110));
+    expect(selections, [2]);
+
+    await gesture.moveTo(origin + const Offset(20, 30));
+    await tester.pump();
+    expect(selections, [2]);
+
+    await gesture.up();
+    await tester.pump();
+    expect(selections, [2, null]);
   });
 
   testWidgets('scrub area maps the vertical axis to rows', (tester) async {

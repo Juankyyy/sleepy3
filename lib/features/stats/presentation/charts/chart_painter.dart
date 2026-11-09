@@ -31,9 +31,15 @@ abstract class ChartPainter extends CustomPainter {
       left + 1,
       size.width - ChartDimensions.plotRightInset,
     );
+    // The canvas height is fixed, but the X labels grow with the text scale.
+    // Reserve more of the bottom inset so a 200% label is not clipped.
+    final bottomInset = math.max(
+      ChartDimensions.plotBottomInset,
+      palette.textScaler.scale(ChartDimensions.plotBottomInset),
+    );
     final bottom = math.max(
       ChartDimensions.plotTopInset + 1,
-      size.height - ChartDimensions.plotBottomInset,
+      size.height - bottomInset,
     );
     return Rect.fromLTRB(left, ChartDimensions.plotTopInset, right, bottom);
   }
@@ -78,25 +84,34 @@ abstract class ChartPainter extends CustomPainter {
     required Color color,
     String? label,
     Color? labelBackground,
+    double opacity = 1,
+    bool labelBelow = false,
   }) {
+    if (opacity <= 0) return;
+    final lineColor = color.withValues(alpha: opacity);
     final y = yFor(value, plot);
     canvas.drawLine(
       Offset(plot.left, y),
       Offset(plot.right, y),
       Paint()
-        ..color = color
+        ..color = lineColor
         ..strokeWidth = ChartDimensions.dataLineWidth,
     );
 
     if (label == null) return;
 
-    final text = textPainter(label, palette.axisLabel.copyWith(color: color));
+    final text = textPainter(
+      label,
+      palette.axisLabel.copyWith(color: lineColor),
+    );
     final left = plot.right - text.width;
-    final top = math.max(plot.top, y - text.height - 1);
+    final top = labelBelow
+        ? math.min(plot.bottom - text.height, y + 1)
+        : math.max(plot.top, y - text.height - 1);
     if (labelBackground != null) {
       canvas.drawRect(
         Rect.fromLTWH(left - 2, top - 1, text.width + 4, text.height + 2),
-        Paint()..color = labelBackground,
+        Paint()..color = labelBackground.withValues(alpha: opacity),
       );
     }
     text.paint(canvas, Offset(left, top));
@@ -114,9 +129,11 @@ abstract class ChartPainter extends CustomPainter {
     required double value,
     bool selected = false,
     double selectionProgress = 1,
+    double opacity = 1,
     Color? color,
     double widthFactor = ChartDimensions.barWidthFactor,
   }) {
+    if (opacity <= 0) return;
     final height = plot.height * axis.fractionFor(value);
     if (height <= 0) return;
 
@@ -149,13 +166,16 @@ abstract class ChartPainter extends CustomPainter {
       canvas.drawRRect(
         rrect.inflate(ChartDimensions.selectedHaloWidth / 2),
         Paint()
-          ..color = palette.selectionHalo.withValues(alpha: progress)
+          ..color = palette.selectionHalo.withValues(alpha: progress * opacity)
           ..style = PaintingStyle.stroke
           ..strokeWidth = ChartDimensions.selectedHaloWidth,
       );
     }
 
-    canvas.drawRRect(rrect, Paint()..color = color ?? palette.bar);
+    canvas.drawRRect(
+      rrect,
+      Paint()..color = (color ?? palette.bar).withValues(alpha: opacity),
+    );
   }
 
   /// Marks a slot with no data as a dashed line at the baseline.
@@ -166,7 +186,9 @@ abstract class ChartPainter extends CustomPainter {
     Rect plot,
     Rect slot, {
     double widthFactor = ChartDimensions.barWidthFactor,
+    double opacity = 1,
   }) {
+    if (opacity <= 0) return;
     final width = (slot.width * widthFactor)
         .clamp(ChartDimensions.barMinWidth, ChartDimensions.barMaxWidth)
         .toDouble();
@@ -175,7 +197,7 @@ abstract class ChartPainter extends CustomPainter {
       Offset(slot.center.dx - width / 2, plot.bottom - 0.75),
       Offset(slot.center.dx + width / 2, plot.bottom - 0.75),
       Paint()
-        ..color = palette.emptyMark
+        ..color = palette.emptyMark.withValues(alpha: opacity)
         ..strokeWidth = 1.5,
     );
   }
@@ -184,10 +206,17 @@ abstract class ChartPainter extends CustomPainter {
   void paintXAxisLabels(
     Canvas canvas,
     Rect plot,
-    Iterable<ChartXLabel> labels,
-  ) {
+    Iterable<ChartXLabel> labels, {
+    double opacity = 1,
+  }) {
+    if (opacity <= 0) return;
+    final style = palette.axisLabel.copyWith(
+      color: (palette.axisLabel.color ?? palette.emptyMark).withValues(
+        alpha: opacity,
+      ),
+    );
     for (final label in labels) {
-      final text = textPainter(label.label, palette.axisLabel);
+      final text = textPainter(label.label, style);
       final left = (label.center - text.width / 2)
           .clamp(plot.left, plot.right - text.width)
           .toDouble();

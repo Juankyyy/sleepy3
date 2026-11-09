@@ -120,13 +120,17 @@ void main() {
     return sleepStore;
   }
 
-  Future<void> openRow(WidgetTester tester, String label) async {
+  Future<void> revealRow(WidgetTester tester, String label) async {
     await tester.scrollUntilVisible(
       find.text(label),
       200,
       scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
+  }
+
+  Future<void> openRow(WidgetTester tester, String label) async {
+    await revealRow(tester, label);
     await tester.tap(find.text(label));
     await tester.pumpAndSettle();
   }
@@ -231,6 +235,8 @@ void main() {
     final handle = tester.ensureSemantics();
 
     await pumpStats(tester, sessions: [localSession()]);
+
+    await revealRow(tester, '10:32 PM – 6:45 AM');
 
     final node = tester.getSemantics(find.text('10:32 PM – 6:45 AM'));
     expect(
@@ -388,7 +394,12 @@ void main() {
     await openLocalEditor(tester);
     expect(find.text('Goal met · 13m over the 8h goal'), findsOneWidget);
 
-    await tester.tap(find.text('10:32 PM'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(SessionEditor),
+        matching: find.text('10:32 PM'),
+      ),
+    );
     await tester.pumpAndSettle();
 
     final dial = find.byWidgetPredicate(
@@ -468,7 +479,12 @@ void main() {
     final store = await pumpStats(tester, sessions: [localSession()]);
 
     await openLocalEditor(tester);
-    await tester.tap(find.text('10:32 PM'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(SessionEditor),
+        matching: find.text('10:32 PM'),
+      ),
+    );
     await tester.pumpAndSettle();
 
     final dial = find.byWidgetPredicate(
@@ -544,8 +560,20 @@ void main() {
 
     await openRow(tester, '22:32 – 06:45');
 
-    expect(find.text('22:32'), findsOneWidget);
-    expect(find.text('06:45'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(SessionEditor),
+        matching: find.text('22:32'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(SessionEditor),
+        matching: find.text('06:45'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('warns when a local session is also in Google Health', (

@@ -55,7 +55,7 @@ class ChartLegend extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              Text(entry.label, style: style),
+              Flexible(child: Text(entry.label, style: style)),
             ],
           ),
       ],

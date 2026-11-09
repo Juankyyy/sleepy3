@@ -81,11 +81,13 @@ class _PlainTooltip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: ChartDimensions.plainTooltipHeight,
       padding: const EdgeInsets.symmetric(
         horizontal: ChartDimensions.plainTooltipPadding,
+        // 24dp container with the 16dp labelMedium line leaves 4dp top and
+        // bottom. At larger text scales the container grows instead of
+        // clipping the label.
+        vertical: (ChartDimensions.plainTooltipHeight - 16) / 2,
       ),
-      alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
         color: container,
         borderRadius: M3EShapes.radiusExtraSmall,
