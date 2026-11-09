@@ -50,4 +50,15 @@ extension SleepDurationLocalizations on AppLocalizations {
     if (minutes == 0) return durationHours(hours);
     return durationHoursMinutes(hours, minutes);
   }
+
+  /// A signed compact duration: `+18m`, `−1h 12m` or `0m`.
+  ///
+  /// The sign is part of the copy so a debt never depends on color alone.
+  String formatSignedCompactDuration(Duration duration) {
+    if (duration == Duration.zero) return formatGoalDelta(duration);
+    final formatted = formatGoalDelta(duration.abs());
+    return duration.isNegative
+        ? durationSignedNegative(formatted)
+        : durationSignedPositive(formatted);
+  }
 }

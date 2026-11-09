@@ -16,7 +16,8 @@ import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
 import 'package:sleepy3/features/stats/presentation/stats_screen.dart';
 import 'package:sleepy3/features/stats/presentation/widgets/sleep_history_list.dart';
-import 'package:sleepy3/features/stats/presentation/widgets/stats_summary_card.dart';
+import 'package:sleepy3/features/stats/presentation/widgets/stats_hero_card.dart';
+import 'package:sleepy3/features/stats/presentation/widgets/stats_metrics_card.dart';
 import 'package:sleepy3/l10n/l10n.dart';
 
 import '../../health/fakes.dart';
@@ -104,6 +105,16 @@ void main() {
     return sleepStore;
   }
 
+  Future<void> scrollToHistory(WidgetTester tester) async {
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -900));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> scrollToTop(WidgetTester tester) async {
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, 2000));
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('shows an empty state when there is no history', (tester) async {
     await pumpStats(tester, clock: () => DateTime(2026, 10, 21, 10));
 
@@ -133,20 +144,51 @@ void main() {
     expect(find.text('Average sleep'), findsOneWidget);
     expect(find.text('7h 21m'), findsOneWidget);
     expect(find.text('Across 3 nights · 22h 3m total'), findsOneWidget);
+    expect(find.text('3 of 7 nights'), findsOneWidget);
+    expect(find.text('Goal hit rate'), findsOneWidget);
+    expect(find.text('33%'), findsOneWidget);
+    expect(find.text('1 of 3 nights'), findsOneWidget);
+    expect(find.text('Schedule consistency'), findsOneWidget);
+    expect(find.text('bedtime'), findsOneWidget);
+    expect(find.text('Sleep balance'), findsOneWidget);
+    expect(find.text('−1h 57m'), findsOneWidget);
+    expect(find.text('debt · vs 8h goal'), findsOneWidget);
+    expect(find.text('Best streak'), findsOneWidget);
+    expect(find.text('1 night'), findsOneWidget);
+    expect(find.text('current 1'), findsOneWidget);
+    expect(find.textContaining('vs previous'), findsNothing);
+
+    final card = tester.widget<M3ECard>(
+      find.descendant(
+        of: find.byType(StatsHeroCard),
+        matching: find.byType(M3ECard),
+      ),
+    );
+    expect(card.variant, M3ECardVariant.outlined);
+
+    final metricsCard = tester.widget<M3ECard>(
+      find.descendant(
+        of: find.byType(StatsMetricsCard),
+        matching: find.byType(M3ECard),
+      ),
+    );
+    expect(metricsCard.variant, M3ECardVariant.outlined);
+    final table = tester.widget<Table>(
+      find.descendant(
+        of: find.byType(StatsMetricsCard),
+        matching: find.byType(Table),
+      ),
+    );
+    expect(table.columnWidths, hasLength(2));
+
+    await scrollToHistory(tester);
+
     expect(find.text('Today'), findsOneWidget);
     expect(find.text('8h 13m'), findsOneWidget);
     expect(find.text('10:32 PM – 6:45 AM'), findsOneWidget);
     expect(find.text('Yesterday'), findsOneWidget);
     expect(find.text('Thu, Oct 15'), findsOneWidget);
     expect(find.text('Wed, Oct 14'), findsNothing);
-
-    final card = tester.widget<M3ECard>(
-      find.descendant(
-        of: find.byType(StatsSummaryCard),
-        matching: find.byType(M3ECard),
-      ),
-    );
-    expect(card.variant, M3ECardVariant.outlined);
 
     final cards = tester
         .widgetList<M3ECard>(
@@ -226,6 +268,35 @@ void main() {
     expect(find.byIcon(M3EIcons.edit_outlined), findsNothing);
   });
 
+  testWidgets('compares the range with the previous period', (tester) async {
+    final previous = [
+      closed(DateTime(2026, 10, 8, 23), DateTime(2026, 10, 9, 6)),
+      closed(DateTime(2026, 10, 9, 23), DateTime(2026, 10, 10, 6)),
+      closed(DateTime(2026, 10, 10, 23), DateTime(2026, 10, 11, 6)),
+      closed(DateTime(2026, 10, 11, 23), DateTime(2026, 10, 12, 6)),
+    ];
+    final current = [
+      closed(DateTime(2026, 10, 19, 23), DateTime(2026, 10, 20, 7)),
+      closed(DateTime(2026, 10, 20, 23), DateTime(2026, 10, 21, 7)),
+    ];
+
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: [...previous, ...current]),
+    );
+
+    expect(find.text('vs previous week: +1h'), findsOneWidget);
+    expect(find.byIcon(M3EIcons.arrow_upward_rounded), findsOneWidget);
+    expect(find.text('2 of 7 nights'), findsOneWidget);
+    expect(find.text('100%'), findsOneWidget);
+    expect(find.text('2 of 2 nights'), findsOneWidget);
+    expect(find.text('0m'), findsOneWidget);
+    expect(find.text('even · vs 8h goal'), findsOneWidget);
+    expect(find.text('2 nights'), findsOneWidget);
+    expect(find.text('current 2'), findsOneWidget);
+  });
+
   testWidgets('marks the goal exactly at eight hours', (tester) async {
     final underGoal = closed(
       DateTime(2026, 10, 21, 23, 1),
@@ -241,6 +312,8 @@ void main() {
       clock: () => DateTime(2026, 10, 22, 10),
       initial: SleepSnapshot(closedSessions: [underGoal, exactGoal]),
     );
+
+    await scrollToHistory(tester);
 
     expect(
       find.descendant(
@@ -281,7 +354,7 @@ void main() {
     expect(find.bySemanticsLabel(RegExp('goal met')), findsOneWidget);
   });
 
-  testWidgets('uses the two-line compact cards for 30 days and All', (
+  testWidgets('uses the two-line compact cards for Month and All', (
     tester,
   ) async {
     await pumpStats(
@@ -290,8 +363,9 @@ void main() {
       initial: SleepSnapshot(closedSessions: sessions),
     );
 
-    await tester.tap(find.text('30 days'));
+    await tester.tap(find.text('Month'));
     await tester.pumpAndSettle();
+    await scrollToHistory(tester);
 
     final cards = tester
         .widgetList<M3ECard>(
@@ -336,8 +410,10 @@ void main() {
     final duration = tester.widget<Text>(find.text('8h 13m'));
     expect(duration.style?.fontSize, 22);
 
+    await scrollToTop(tester);
     await tester.tap(find.text('All'));
     await tester.pumpAndSettle();
+    await scrollToHistory(tester);
 
     final allCards = tester
         .widgetList<M3ECard>(
@@ -362,6 +438,8 @@ void main() {
       clock: () => DateTime(2026, 10, 21, 18),
       initial: SleepSnapshot(closedSessions: [night, nap]),
     );
+
+    await scrollToHistory(tester);
 
     final cards = tester
         .widgetList<M3ECard>(
@@ -396,11 +474,15 @@ void main() {
       textScale: 2,
     );
 
-    await tester.tap(find.text('30 days'));
+    await tester.tap(find.text('Month'));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
 
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+    await tester.scrollUntilVisible(
+      find.text('Today'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Today'), findsOneWidget);
@@ -423,6 +505,8 @@ void main() {
       clock: () => DateTime(2026, 10, 21, 10),
       initial: SleepSnapshot(closedSessions: [editable, readOnly]),
     );
+
+    await scrollToHistory(tester);
 
     expect(find.byIcon(M3EIcons.edit_outlined), findsNothing);
     expect(
@@ -469,6 +553,8 @@ void main() {
       }),
     );
 
+    await scrollToHistory(tester);
+
     expect(find.text('Samsung Health'), findsOneWidget);
     expect(find.byIcon(M3EIcons.open_in_new_outlined), findsOneWidget);
     expect(
@@ -505,6 +591,8 @@ void main() {
       }),
     );
 
+    await scrollToHistory(tester);
+
     expect(find.text('Samsung Health'), findsOneWidget);
     expect(find.byIcon(M3EIcons.open_in_new_outlined), findsOneWidget);
     expect(find.byIcon(M3EIcons.smartphone), findsNothing);
@@ -528,6 +616,8 @@ void main() {
       clock: () => DateTime(2026, 10, 21, 10),
       initial: SleepSnapshot(closedSessions: [downloadedOwn]),
     );
+
+    await scrollToHistory(tester);
 
     expect(find.byIcon(M3EIcons.open_in_new_outlined), findsNothing);
     expect(find.text('Another app'), findsNothing);
@@ -566,6 +656,8 @@ void main() {
       initial: SleepSnapshot(closedSessions: [downloaded]),
     );
 
+    await scrollToHistory(tester);
+
     expect(find.text('Another app'), findsOneWidget);
     expect(find.byIcon(M3EIcons.open_in_new_outlined), findsOneWidget);
   });
@@ -591,6 +683,8 @@ void main() {
         'com.sec.android.app.shealth': 'Samsung Health',
       }),
     );
+
+    await scrollToHistory(tester);
 
     expect(
       find.bySemanticsLabel(
@@ -622,14 +716,20 @@ void main() {
       textScale: 2,
     );
 
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -800));
+    await tester.scrollUntilVisible(
+      find.text('Samsung Health'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Samsung Health'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('switches between 7 days, 30 days and All', (tester) async {
+  testWidgets('switches between Week, Month, 3 months, Year and All', (
+    tester,
+  ) async {
     await pumpStats(
       tester,
       clock: () => DateTime(2026, 10, 21, 10),
@@ -637,23 +737,32 @@ void main() {
     );
 
     var chips = tester.widgetList<M3EChip>(find.byType(M3EChip)).toList();
-    expect(chips.map((chip) => chip.label), ['7 days', '30 days', 'All']);
+    expect(chips.map((chip) => chip.label), [
+      'Week',
+      'Month',
+      '3 months',
+      'Year',
+      'All',
+    ]);
     expect(chips[0].selected, isTrue);
     expect(chips[1].selected, isFalse);
 
-    await tester.tap(find.text('30 days'));
+    await tester.tap(find.text('Month'));
     await tester.pumpAndSettle();
 
     chips = tester.widgetList<M3EChip>(find.byType(M3EChip)).toList();
     expect(chips[1].selected, isTrue);
     expect(find.text('Across 4 nights · 30h 3m total'), findsOneWidget);
+
+    await scrollToHistory(tester);
     expect(find.text('Wed, Oct 14'), findsOneWidget);
 
+    await scrollToTop(tester);
     await tester.tap(find.text('All'));
     await tester.pumpAndSettle();
 
     chips = tester.widgetList<M3EChip>(find.byType(M3EChip)).toList();
-    expect(chips[2].selected, isTrue);
+    expect(chips[4].selected, isTrue);
     expect(find.text('Across 4 nights · 30h 3m total'), findsOneWidget);
   });
 
@@ -666,8 +775,11 @@ void main() {
       initial: SleepSnapshot(closedSessions: older),
     );
 
-    expect(find.text('—'), findsOneWidget);
-    expect(find.text('No nights in this range'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(StatsHeroCard), matching: find.text('—')),
+      findsOneWidget,
+    );
+    expect(find.text('No nights in this range'), findsNWidgets(5));
     expect(find.text('Show all'), findsOneWidget);
     expect(find.text('History'), findsNothing);
 
@@ -677,6 +789,8 @@ void main() {
     expect(find.text('No nights in this range'), findsNothing);
     expect(find.text('Show all'), findsNothing);
     expect(find.text('8h 0m'), findsWidgets);
+
+    await scrollToHistory(tester);
     expect(find.text('Wed, Sep 2'), findsOneWidget);
     expect(find.text('History'), findsOneWidget);
   });
@@ -694,7 +808,7 @@ void main() {
       ),
     );
 
-    expect(find.text('No nights in this range'), findsOneWidget);
+    expect(find.text('No nights in this range'), findsNWidgets(5));
     expect(find.text('Show all'), findsNothing);
     expect(find.text('History'), findsNothing);
   });
@@ -747,6 +861,8 @@ void main() {
       use24HourFormat: true,
     );
 
+    await scrollToHistory(tester);
+
     expect(find.text('22:32 – 06:45'), findsOneWidget);
     expect(find.text('10:32 PM – 6:45 AM'), findsNothing);
   });
@@ -769,6 +885,14 @@ void main() {
       findsOneWidget,
     );
     expect(
+      find.bySemanticsLabel(RegExp('Goal hit rate, 33%, 1 of 3 nights')),
+      findsOneWidget,
+    );
+    expect(find.bySemanticsLabel('Time range'), findsOneWidget);
+
+    await scrollToHistory(tester);
+
+    expect(
       find.bySemanticsLabel(
         RegExp('Today, 8 hours 13 minutes, goal met, 10:32 PM to 6:45 AM'),
       ),
@@ -780,7 +904,6 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.bySemanticsLabel('Time range'), findsOneWidget);
 
     handle.dispose();
   });
@@ -796,9 +919,13 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Stats'), findsOneWidget);
     expect(find.text('Average sleep'), findsOneWidget);
-    expect(find.text('7 days'), findsOneWidget);
+    expect(find.text('Week'), findsOneWidget);
 
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+    await tester.scrollUntilVisible(
+      find.text('Today'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Today'), findsOneWidget);
@@ -840,6 +967,14 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Stats'), findsOneWidget);
     expect(find.text('Average sleep'), findsOneWidget);
+
+    final table = tester.widget<Table>(
+      find.descendant(
+        of: find.byType(StatsMetricsCard),
+        matching: find.byType(Table),
+      ),
+    );
+    expect(table.columnWidths, hasLength(4));
   });
 
   testWidgets('shows a loading card while the history loads', (tester) async {
@@ -1164,6 +1299,33 @@ void main() {
       expect(find.text('Across 1 night · 8h 0m total'), findsOneWidget);
     });
 
+    testWidgets('3 months without history access asks and explains the limit', (
+      tester,
+    ) async {
+      final gateway = FakeHealthConnectGateway(
+        sessions: [old, recent],
+        historyPermission: false,
+        grantHistoryOnRequest: false,
+      );
+
+      await pumpStats(
+        tester,
+        clock: () => DateTime(2026, 10, 21, 10),
+        source: SleepDataSource.healthConnect,
+        gateway: gateway,
+      );
+
+      expect(gateway.historyPermissionRequestCalls, 0);
+
+      await tester.tap(find.text('3 months'));
+      await tester.pumpAndSettle();
+
+      expect(gateway.historyPermissionRequestCalls, 1);
+      expect(find.text('Only the last 30 days are available'), findsOneWidget);
+      expect(find.text('Allow full history'), findsOneWidget);
+      expect(find.text('Wed, Sep 2'), findsNothing);
+    });
+
     testWidgets('All requests full history and reveals older sessions', (
       tester,
     ) async {
@@ -1187,8 +1349,10 @@ void main() {
 
       expect(gateway.historyPermissionRequestCalls, 1);
       expect(find.text('Only the last 30 days are available'), findsNothing);
-      expect(find.text('Wed, Sep 2'), findsOneWidget);
       expect(find.text('Across 2 nights · 16h 0m total'), findsOneWidget);
+
+      await scrollToHistory(tester);
+      expect(find.text('Wed, Sep 2'), findsOneWidget);
     });
 
     testWidgets('Allow full history in the banner reloads after a denial', (
@@ -1217,6 +1381,9 @@ void main() {
 
       expect(gateway.historyPermissionRequestCalls, 2);
       expect(find.text('Only the last 30 days are available'), findsNothing);
+      expect(find.text('Across 2 nights · 16h 0m total'), findsOneWidget);
+
+      await scrollToHistory(tester);
       expect(find.text('Wed, Sep 2'), findsOneWidget);
     });
   });
@@ -1232,7 +1399,20 @@ void main() {
     expect(find.text('Estadísticas'), findsOneWidget);
     expect(find.text('Historial'), findsOneWidget);
     expect(find.text('Sueño medio'), findsOneWidget);
-    expect(find.text('7 días'), findsOneWidget);
+    expect(find.text('Semana'), findsOneWidget);
+    expect(find.text('3 de 7 noches'), findsOneWidget);
+    expect(find.text('Objetivo cumplido'), findsOneWidget);
+    expect(find.text('33 %'), findsOneWidget);
+    expect(find.text('1 de 3 noches'), findsOneWidget);
+    expect(find.text('Consistencia del horario'), findsOneWidget);
+    expect(find.text('Balance de sueño'), findsOneWidget);
+    expect(find.text('−1 h 57 min'), findsOneWidget);
+    expect(find.text('deuda · vs objetivo de 8 h'), findsOneWidget);
+    expect(find.text('Mejor racha'), findsOneWidget);
+    expect(find.text('1 noche'), findsOneWidget);
+    expect(find.text('actual 1'), findsOneWidget);
+
+    await scrollToHistory(tester);
     expect(find.text('Hoy'), findsOneWidget);
   });
 }

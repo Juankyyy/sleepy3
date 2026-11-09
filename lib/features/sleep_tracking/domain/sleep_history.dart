@@ -3,10 +3,16 @@ import 'sleep_session.dart';
 /// The window of sleep history shown on the Stats screen.
 enum SleepHistoryRange {
   /// Today and the six previous local days.
-  sevenDays(7),
+  week(7),
 
   /// Today and the twenty-nine previous local days.
-  thirtyDays(30),
+  month(30),
+
+  /// Today and the eighty-nine previous local days.
+  threeMonths(90),
+
+  /// Today and the three hundred sixty-four previous local days.
+  year(365),
 
   /// Every stored night up to today.
   all(null);
@@ -15,6 +21,12 @@ enum SleepHistoryRange {
 
   /// Number of calendar days in the window, or null for all history.
   final int? dayCount;
+
+  /// Whether reading the whole range needs Health Connect's full history.
+  ///
+  /// Android only exposes records from the last 30 days without that
+  /// permission, so Week and Month never need it.
+  bool get requiresFullHistory => dayCount == null || dayCount! > 30;
 }
 
 /// One local wake day with the sessions that ended on it.
@@ -33,6 +45,66 @@ class SleepHistoryDay {
 
   /// Sum of the sessions, with negative durations clamped to zero.
   final Duration total;
+
+  /// Number of closed sessions that ended on this day.
+  int get sessionsCount => sessions.length;
+
+  /// Whether the night is split into more than one session.
+  bool get split => sessions.length > 1;
+
+  /// The earliest start among sessions with a positive duration, in local
+  /// time.
+  ///
+  /// A negative session is clock skew, not sleep, so it does not define the
+  /// rhythm of the night. Null when no session recorded actual sleep.
+  DateTime? get bedtime {
+    SleepSession? earliest;
+    for (final session in sessions) {
+      if (session.duration <= Duration.zero) continue;
+      if (earliest == null || session.startedAt.isBefore(earliest.startedAt)) {
+        earliest = session;
+      }
+    }
+    return earliest?.startedAt.toLocal();
+  }
+
+  /// The latest end among sessions with a positive duration, in local time.
+  ///
+  /// Null when no session recorded actual sleep.
+  DateTime? get wake {
+    SleepSession? latest;
+    for (final session in sessions) {
+      if (session.duration <= Duration.zero) continue;
+      final endedAt = session.endedAt;
+      if (endedAt == null) continue;
+      if (latest == null || endedAt.isAfter(latest.endedAt!)) {
+        latest = session;
+      }
+    }
+    return latest?.endedAt?.toLocal();
+  }
+
+  /// Wall-clock time from [bedtime] to [wake], including any gap.
+  ///
+  /// Null when the day has no positive session. A clock-skewed end before the
+  /// start is clamped to zero.
+  Duration? get timeInBed {
+    final start = bedtime;
+    final end = wake;
+    if (start == null || end == null) return null;
+    final elapsed = end.difference(start);
+    return elapsed.isNegative ? Duration.zero : elapsed;
+  }
+
+  /// Time inside [timeInBed] that the positive sessions do not cover.
+  ///
+  /// Overlapping sessions clamp the gap to zero.
+  Duration get gaps {
+    final inBed = timeInBed;
+    if (inBed == null) return Duration.zero;
+    final gap = inBed - total;
+    return gap.isNegative ? Duration.zero : gap;
+  }
 }
 
 /// One session as shown in the history list, tied to its wake day.

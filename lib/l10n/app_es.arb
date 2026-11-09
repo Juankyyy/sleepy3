@@ -222,8 +222,10 @@
   },
   "history": "Historial",
   "timeRange": "Rango de tiempo",
-  "range7Days": "7 días",
-  "range30Days": "30 días",
+  "rangeWeek": "Semana",
+  "rangeMonth": "Mes",
+  "rangeThreeMonths": "3 meses",
+  "rangeYear": "Año",
   "rangeAll": "Todo",
   "averageSleep": "Sueño medio",
   "noNightsInRange": "No hay noches en este rango",
@@ -254,6 +256,129 @@
     }
   },
   "summarySpokenNoNights": "Sueño medio, no hay noches en este rango",
+  "heroCoverageWindow": "{recorded} de {window, plural, =1{1 noche} other{{window} noches}}",
+  "@heroCoverageWindow": {
+    "placeholders": {
+      "recorded": {
+        "type": "int"
+      },
+      "window": {
+        "type": "int"
+      }
+    }
+  },
+  "heroCoverageAll": "{count, plural, =1{1 noche registrada} other{{count} noches registradas}}",
+  "@heroCoverageAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "heroComparison": "vs {previous}: {delta}",
+  "@heroComparison": {
+    "placeholders": {
+      "previous": {
+        "type": "String"
+      },
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "previousRangeWeek": "semana anterior",
+  "previousRangeMonth": "mes anterior",
+  "previousRangeThreeMonths": "3 meses anteriores",
+  "previousRangeYear": "año anterior",
+  "metricGoalHitRate": "Objetivo cumplido",
+  "metricGoalHitSupport": "{met} de {total, plural, =1{1 noche} other{{total} noches}}",
+  "@metricGoalHitSupport": {
+    "placeholders": {
+      "met": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "metricPercent": "{percent} %",
+  "@metricPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "metricScheduleConsistency": "Consistencia del horario",
+  "metricBedtime": "al acostarse",
+  "metricVariability": "±{duration}",
+  "@metricVariability": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "metricSleepBalance": "Balance de sueño",
+  "metricBalanceSurplus": "superávit · vs objetivo de {goal}",
+  "@metricBalanceSurplus": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "metricBalanceDebt": "deuda · vs objetivo de {goal}",
+  "@metricBalanceDebt": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "metricBalanceEven": "equilibrio · vs objetivo de {goal}",
+  "@metricBalanceEven": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "metricBestStreak": "Mejor racha",
+  "metricBestStreakSupport": "actual {count}",
+  "@metricBestStreakSupport": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "metricNights": "{count, plural, =1{1 noche} other{{count} noches}}",
+  "@metricNights": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "metricNeedsTwoNights": "Faltan 2 noches",
+  "durationSignedPositive": "+{duration}",
+  "@durationSignedPositive": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "durationSignedNegative": "−{duration}",
+  "@durationSignedNegative": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
   "noSleepHistoryHealth": "No hay historial de sueño en Google Health",
   "noSleepHistory": "Aún no hay historial de sueño",
   "noSleepHistoryHealthSupport": "Las sesiones de sueño de Health Connect aparecerán aquí.",

@@ -48,8 +48,10 @@ class StatsRangeSelector extends StatelessWidget {
 
   String _label(AppLocalizations l10n, SleepHistoryRange range) {
     return switch (range) {
-      SleepHistoryRange.sevenDays => l10n.range7Days,
-      SleepHistoryRange.thirtyDays => l10n.range30Days,
+      SleepHistoryRange.week => l10n.rangeWeek,
+      SleepHistoryRange.month => l10n.rangeMonth,
+      SleepHistoryRange.threeMonths => l10n.rangeThreeMonths,
+      SleepHistoryRange.year => l10n.rangeYear,
       SleepHistoryRange.all => l10n.rangeAll,
     };
   }

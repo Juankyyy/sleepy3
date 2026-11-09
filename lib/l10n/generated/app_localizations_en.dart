@@ -467,10 +467,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get timeRange => 'Time range';
 
   @override
-  String get range7Days => '7 days';
+  String get rangeWeek => 'Week';
 
   @override
-  String get range30Days => '30 days';
+  String get rangeMonth => 'Month';
+
+  @override
+  String get rangeThreeMonths => '3 months';
+
+  @override
+  String get rangeYear => 'Year';
 
   @override
   String get rangeAll => 'All';
@@ -508,6 +514,125 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get summarySpokenNoNights => 'Average sleep, no nights in this range';
+
+  @override
+  String heroCoverageWindow(int recorded, int window) {
+    String _temp0 = intl.Intl.pluralLogic(
+      window,
+      locale: localeName,
+      other: '$window nights',
+      one: '1 night',
+    );
+    return '$recorded of $_temp0';
+  }
+
+  @override
+  String heroCoverageAll(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nights recorded',
+      one: '1 night recorded',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String heroComparison(String previous, String delta) {
+    return 'vs $previous: $delta';
+  }
+
+  @override
+  String get previousRangeWeek => 'previous week';
+
+  @override
+  String get previousRangeMonth => 'previous month';
+
+  @override
+  String get previousRangeThreeMonths => 'previous 3 months';
+
+  @override
+  String get previousRangeYear => 'previous year';
+
+  @override
+  String get metricGoalHitRate => 'Goal hit rate';
+
+  @override
+  String metricGoalHitSupport(int met, int total) {
+    String _temp0 = intl.Intl.pluralLogic(
+      total,
+      locale: localeName,
+      other: '$total nights',
+      one: '1 night',
+    );
+    return '$met of $_temp0';
+  }
+
+  @override
+  String metricPercent(int percent) {
+    return '$percent%';
+  }
+
+  @override
+  String get metricScheduleConsistency => 'Schedule consistency';
+
+  @override
+  String get metricBedtime => 'bedtime';
+
+  @override
+  String metricVariability(String duration) {
+    return '±$duration';
+  }
+
+  @override
+  String get metricSleepBalance => 'Sleep balance';
+
+  @override
+  String metricBalanceSurplus(String goal) {
+    return 'surplus · vs $goal goal';
+  }
+
+  @override
+  String metricBalanceDebt(String goal) {
+    return 'debt · vs $goal goal';
+  }
+
+  @override
+  String metricBalanceEven(String goal) {
+    return 'even · vs $goal goal';
+  }
+
+  @override
+  String get metricBestStreak => 'Best streak';
+
+  @override
+  String metricBestStreakSupport(int count) {
+    return 'current $count';
+  }
+
+  @override
+  String metricNights(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count nights',
+      one: '1 night',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get metricNeedsTwoNights => 'Needs 2 nights';
+
+  @override
+  String durationSignedPositive(String duration) {
+    return '+$duration';
+  }
+
+  @override
+  String durationSignedNegative(String duration) {
+    return '−$duration';
+  }
 
   @override
   String get noSleepHistoryHealth => 'No sleep history in Google Health';

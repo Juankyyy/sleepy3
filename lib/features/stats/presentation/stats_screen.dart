@@ -23,12 +23,14 @@ import '../../sleep_tracking/application/sleep_session_edit_service.dart';
 import '../../sleep_tracking/application/sleep_tracking_controller.dart';
 import '../../sleep_tracking/domain/session_edit.dart';
 import '../../sleep_tracking/domain/sleep_history.dart';
+import '../../sleep_tracking/domain/sleep_insights.dart';
 import '../../sleep_tracking/domain/sleep_session.dart';
 import '../../sleep_tracking/presentation/widgets/sleep_history_status.dart';
 import 'widgets/session_editor.dart';
 import 'widgets/sleep_history_list.dart';
+import 'widgets/stats_hero_card.dart';
+import 'widgets/stats_metrics_card.dart';
 import 'widgets/stats_range_selector.dart';
-import 'widgets/stats_summary_card.dart';
 
 /// The Stats destination: a range summary and the full session history.
 class StatsScreen extends ConsumerStatefulWidget {
@@ -70,7 +72,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
   static const _settleDuration = Duration(milliseconds: 320);
   static const _settleCurve = Curves.easeOutCubic;
 
-  SleepHistoryRange _range = SleepHistoryRange.sevenDays;
+  SleepHistoryRange _range = SleepHistoryRange.week;
 
   late final AnimationController _pullController;
   bool _dragging = false;
@@ -132,6 +134,11 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
           sessions: state.closedSessions,
           range: _range,
         );
+        final insights = buildSleepInsights(
+          now: today,
+          sessions: state.closedSessions,
+          range: _range,
+        );
         // Only offer the shortcut when there is something older to show. A
         // range can be empty because every session is in the future (clock
         // skew); All would be empty too, so no button.
@@ -186,11 +193,11 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                                     visible:
                                         source ==
                                             SleepDataSource.healthConnect &&
-                                        _range == SleepHistoryRange.all,
+                                        _range.requiresFullHistory,
                                   ),
                                   const SizedBox(height: 24),
-                                  StatsSummaryCard(
-                                    history: history,
+                                  StatsHeroCard(
+                                    insights: insights,
                                     onShowAll: showAll
                                         ? () {
                                             unawaited(
@@ -201,6 +208,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                                           }
                                         : null,
                                   ),
+                                  const SizedBox(height: 8),
+                                  StatsMetricsCard(insights: insights),
                                   if (history.hasData) ...[
                                     const SizedBox(height: 24),
                                     Semantics(
@@ -256,7 +265,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                                 use24HourFormat:
                                     MediaQuery.alwaysUse24HourFormatOf(context),
                                 source: source,
-                                compact: _range != SleepHistoryRange.sevenDays,
+                                compact: _range != SleepHistoryRange.week,
                                 onEdit: (session) =>
                                     unawaited(_openEditor(session)),
                               ),
@@ -319,16 +328,16 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
     }
   }
 
-  /// Applies a range, asking for the full history first when the user selects
-  /// All in Google Health mode.
+  /// Applies a range, asking for the full history first when the range is
+  /// wider than the 30-day fallback in Google Health mode.
   ///
-  /// A denial still selects All: the list keeps the last 30 days already
+  /// A denial still selects the range: the list keeps the last 30 days already
   /// loaded and the banner explains the limit.
   Future<void> _selectRange(SleepHistoryRange range) async {
     if (range == _range) return;
 
     final needsHistory =
-        range == SleepHistoryRange.all &&
+        range.requiresFullHistory &&
         ref.read(sleepDataSourceProvider) == SleepDataSource.healthConnect &&
         ref.read(healthHistoryPermissionProvider) !=
             HealthHistoryAccess.authorized;

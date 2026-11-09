@@ -896,17 +896,29 @@ abstract class AppLocalizations {
   /// **'Time range'**
   String get timeRange;
 
-  /// No description provided for @range7Days.
+  /// No description provided for @rangeWeek.
   ///
   /// In en, this message translates to:
-  /// **'7 days'**
-  String get range7Days;
+  /// **'Week'**
+  String get rangeWeek;
 
-  /// No description provided for @range30Days.
+  /// No description provided for @rangeMonth.
   ///
   /// In en, this message translates to:
-  /// **'30 days'**
-  String get range30Days;
+  /// **'Month'**
+  String get rangeMonth;
+
+  /// No description provided for @rangeThreeMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'3 months'**
+  String get rangeThreeMonths;
+
+  /// No description provided for @rangeYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Year'**
+  String get rangeYear;
 
   /// No description provided for @rangeAll.
   ///
@@ -949,6 +961,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Average sleep, no nights in this range'**
   String get summarySpokenNoNights;
+
+  /// No description provided for @heroCoverageWindow.
+  ///
+  /// In en, this message translates to:
+  /// **'{recorded} of {window, plural, =1{1 night} other{{window} nights}}'**
+  String heroCoverageWindow(int recorded, int window);
+
+  /// No description provided for @heroCoverageAll.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 night recorded} other{{count} nights recorded}}'**
+  String heroCoverageAll(int count);
+
+  /// No description provided for @heroComparison.
+  ///
+  /// In en, this message translates to:
+  /// **'vs {previous}: {delta}'**
+  String heroComparison(String previous, String delta);
+
+  /// No description provided for @previousRangeWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'previous week'**
+  String get previousRangeWeek;
+
+  /// No description provided for @previousRangeMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'previous month'**
+  String get previousRangeMonth;
+
+  /// No description provided for @previousRangeThreeMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'previous 3 months'**
+  String get previousRangeThreeMonths;
+
+  /// No description provided for @previousRangeYear.
+  ///
+  /// In en, this message translates to:
+  /// **'previous year'**
+  String get previousRangeYear;
+
+  /// No description provided for @metricGoalHitRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal hit rate'**
+  String get metricGoalHitRate;
+
+  /// No description provided for @metricGoalHitSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'{met} of {total, plural, =1{1 night} other{{total} nights}}'**
+  String metricGoalHitSupport(int met, int total);
+
+  /// No description provided for @metricPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}%'**
+  String metricPercent(int percent);
+
+  /// No description provided for @metricScheduleConsistency.
+  ///
+  /// In en, this message translates to:
+  /// **'Schedule consistency'**
+  String get metricScheduleConsistency;
+
+  /// No description provided for @metricBedtime.
+  ///
+  /// In en, this message translates to:
+  /// **'bedtime'**
+  String get metricBedtime;
+
+  /// No description provided for @metricVariability.
+  ///
+  /// In en, this message translates to:
+  /// **'±{duration}'**
+  String metricVariability(String duration);
+
+  /// No description provided for @metricSleepBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep balance'**
+  String get metricSleepBalance;
+
+  /// No description provided for @metricBalanceSurplus.
+  ///
+  /// In en, this message translates to:
+  /// **'surplus · vs {goal} goal'**
+  String metricBalanceSurplus(String goal);
+
+  /// No description provided for @metricBalanceDebt.
+  ///
+  /// In en, this message translates to:
+  /// **'debt · vs {goal} goal'**
+  String metricBalanceDebt(String goal);
+
+  /// No description provided for @metricBalanceEven.
+  ///
+  /// In en, this message translates to:
+  /// **'even · vs {goal} goal'**
+  String metricBalanceEven(String goal);
+
+  /// No description provided for @metricBestStreak.
+  ///
+  /// In en, this message translates to:
+  /// **'Best streak'**
+  String get metricBestStreak;
+
+  /// No description provided for @metricBestStreakSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'current {count}'**
+  String metricBestStreakSupport(int count);
+
+  /// No description provided for @metricNights.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 night} other{{count} nights}}'**
+  String metricNights(int count);
+
+  /// No description provided for @metricNeedsTwoNights.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs 2 nights'**
+  String get metricNeedsTwoNights;
+
+  /// No description provided for @durationSignedPositive.
+  ///
+  /// In en, this message translates to:
+  /// **'+{duration}'**
+  String durationSignedPositive(String duration);
+
+  /// No description provided for @durationSignedNegative.
+  ///
+  /// In en, this message translates to:
+  /// **'−{duration}'**
+  String durationSignedNegative(String duration);
 
   /// No description provided for @noSleepHistoryHealth.
   ///

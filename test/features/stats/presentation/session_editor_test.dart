@@ -120,9 +120,19 @@ void main() {
     return sleepStore;
   }
 
-  Future<void> openLocalEditor(WidgetTester tester) async {
-    await tester.tap(find.text('10:32 PM – 6:45 AM'));
+  Future<void> openRow(WidgetTester tester, String label) async {
+    await tester.scrollUntilVisible(
+      find.text(label),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
+    await tester.tap(find.text(label));
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> openLocalEditor(WidgetTester tester) async {
+    await openRow(tester, '10:32 PM – 6:45 AM');
   }
 
   Future<void> pickDay(WidgetTester tester, String day) async {
@@ -140,8 +150,7 @@ void main() {
       locale: const Locale('es'),
     );
 
-    await tester.tap(find.text('22:32 – 06:45'));
-    await tester.pumpAndSettle();
+    await openRow(tester, '22:32 – 06:45');
 
     expect(find.text('Sesión'), findsOneWidget);
     expect(find.text('Me dormí'), findsOneWidget);
@@ -203,12 +212,6 @@ void main() {
   testWidgets('fits at 200% text', (tester) async {
     await pumpStats(tester, sessions: [localSession()], textScale: 2);
 
-    // The summary grows at 200% text and pushes the history row below it.
-    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
-    await tester.pumpAndSettle();
-
-    expect(find.text('10:32 PM – 6:45 AM'), findsOneWidget);
-
     await openLocalEditor(tester);
 
     expect(tester.takeException(), isNull);
@@ -219,8 +222,7 @@ void main() {
   testWidgets('the card opens the editor from the row content', (tester) async {
     await pumpStats(tester, sessions: [localSession()]);
 
-    await tester.tap(find.text('10:32 PM – 6:45 AM'));
-    await tester.pumpAndSettle();
+    await openRow(tester, '10:32 PM – 6:45 AM');
 
     expect(find.text('Session'), findsOneWidget);
   });
@@ -298,6 +300,12 @@ void main() {
       disableAnimations: false,
     );
 
+    await tester.scrollUntilVisible(
+      find.text('10:32 PM – 6:45 AM'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pump();
     await tester.tap(find.text('10:32 PM – 6:45 AM'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 600));
@@ -332,8 +340,7 @@ void main() {
       ],
     );
 
-    await tester.tap(find.text('11:10 PM – 6:12 AM'));
-    await tester.pumpAndSettle();
+    await openRow(tester, '11:10 PM – 6:12 AM');
 
     expect(find.text('58m short of the 8h goal'), findsOneWidget);
     expect(
@@ -363,8 +370,7 @@ void main() {
       ],
     );
 
-    await tester.tap(find.text('10:00 PM – 6:00 AM'));
-    await tester.pumpAndSettle();
+    await openRow(tester, '10:00 PM – 6:00 AM');
 
     expect(find.text('Goal met'), findsOneWidget);
     expect(
@@ -536,8 +542,7 @@ void main() {
   testWidgets('uses the system 24-hour format in the editor', (tester) async {
     await pumpStats(tester, sessions: [localSession()], use24HourFormat: true);
 
-    await tester.tap(find.text('22:32 – 06:45'));
-    await tester.pumpAndSettle();
+    await openRow(tester, '22:32 – 06:45');
 
     expect(find.text('22:32'), findsOneWidget);
     expect(find.text('06:45'), findsOneWidget);
@@ -685,8 +690,7 @@ void main() {
     );
 
     expect(find.byIcon(M3EIcons.edit_outlined), findsNothing);
-    await tester.tap(find.text('10:32 PM – 6:45 AM'));
-    await tester.pumpAndSettle();
+    await openRow(tester, '10:32 PM – 6:45 AM');
 
     expect(
       find.text(
@@ -801,8 +805,7 @@ void main() {
     );
 
     expect(find.byIcon(M3EIcons.edit_outlined), findsNothing);
-    await tester.tap(find.text('10:00 PM – 6:00 AM'));
-    await tester.pumpAndSettle();
+    await openRow(tester, '10:00 PM – 6:00 AM');
 
     expect(find.text('Session'), findsOneWidget);
     expect(find.text('Fell asleep'), findsOneWidget);
@@ -847,8 +850,7 @@ void main() {
     );
 
     expect(find.byIcon(M3EIcons.edit_outlined), findsNothing);
-    await tester.tap(find.text('10:00 PM – 6:00 AM'));
-    await tester.pumpAndSettle();
+    await openRow(tester, '10:00 PM – 6:00 AM');
 
     expect(find.text('Session'), findsOneWidget);
     expect(find.text('Read-only session'), findsOneWidget);
@@ -916,8 +918,7 @@ void main() {
       gateway: gateway,
     );
 
-    await tester.tap(find.text('10:00 PM – 6:00 AM'));
-    await tester.pumpAndSettle();
+    await openRow(tester, '10:00 PM – 6:00 AM');
 
     expect(find.text('Session'), findsOneWidget);
     expect(find.textContaining('created in another app'), findsOneWidget);
@@ -944,8 +945,7 @@ void main() {
       appInfo: FakeAppInfoGateway({'com.sleepy3.app.debug': 'Sleepy3 Debug'}),
     );
 
-    await tester.tap(find.text('10:00 PM – 6:00 AM'));
-    await tester.pumpAndSettle();
+    await openRow(tester, '10:00 PM – 6:00 AM');
 
     expect(find.text('Read-only session'), findsOneWidget);
     expect(find.textContaining('created in Sleepy3 Debug'), findsOneWidget);
@@ -971,8 +971,7 @@ void main() {
       }),
     );
 
-    await tester.tap(find.text('10:00 PM – 6:00 AM'));
-    await tester.pumpAndSettle();
+    await openRow(tester, '10:00 PM – 6:00 AM');
 
     expect(find.text('Session'), findsOneWidget);
     expect(find.textContaining('created in Google Health'), findsOneWidget);
@@ -1009,8 +1008,7 @@ void main() {
 
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('10:00 PM – 6:00 AM'));
-    await tester.pumpAndSettle();
+    await openRow(tester, '10:00 PM – 6:00 AM');
 
     expect(tester.takeException(), isNull);
     expect(find.text('Session'), findsOneWidget);
@@ -1041,8 +1039,7 @@ void main() {
       size: const Size(800, 900),
     );
 
-    await tester.tap(find.text('10:00 PM – 6:00 AM'));
-    await tester.pumpAndSettle();
+    await openRow(tester, '10:00 PM – 6:00 AM');
 
     expect(find.text('Session'), findsOneWidget);
     expect(find.text('Close'), findsOneWidget);

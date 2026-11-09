@@ -12,7 +12,7 @@ void main() {
     final history = buildSleepHistory(
       now: now,
       sessions: const [],
-      range: SleepHistoryRange.sevenDays,
+      range: SleepHistoryRange.week,
     );
 
     expect(history.hasData, isFalse);
@@ -31,7 +31,7 @@ void main() {
         closed(DateTime(2026, 10, 20, 23), DateTime(2026, 10, 21, 6, 30)),
         closed(DateTime(2026, 10, 19, 23), DateTime(2026, 10, 20, 7)),
       ],
-      range: SleepHistoryRange.sevenDays,
+      range: SleepHistoryRange.week,
     );
 
     expect(history.days.map((day) => day.date).toList(), [
@@ -62,7 +62,7 @@ void main() {
     final history = buildSleepHistory(
       now: DateTime(2026, 10, 21, 22),
       sessions: [night, evening],
-      range: SleepHistoryRange.sevenDays,
+      range: SleepHistoryRange.week,
     );
 
     expect(history.days.single.sessions.map((session) => session.startedAt), [
@@ -79,7 +79,7 @@ void main() {
     final history = buildSleepHistory(
       now: now,
       sessions: [closed(DateTime(2026, 10, 20, 23), DateTime(2026, 10, 21, 7))],
-      range: SleepHistoryRange.sevenDays,
+      range: SleepHistoryRange.week,
     );
 
     expect(history.days.single.date, DateTime(2026, 10, 21));
@@ -96,7 +96,7 @@ void main() {
         closed(DateTime(2026, 10, 21, 4), DateTime(2026, 10, 21, 10)),
         closed(DateTime(2026, 10, 20, 1), DateTime(2026, 10, 20, 7)),
       ],
-      range: SleepHistoryRange.sevenDays,
+      range: SleepHistoryRange.week,
     );
 
     expect(history.nights, 2);
@@ -114,55 +114,88 @@ void main() {
         closed(DateTime(2026, 10, 21, 1), DateTime(2026, 10, 21, 7)),
         closed(DateTime(2026, 10, 19, 1), DateTime(2026, 10, 19, 9)),
       ],
-      range: SleepHistoryRange.sevenDays,
+      range: SleepHistoryRange.week,
     );
 
     expect(history.nights, 2);
     expect(history.average, const Duration(hours: 7));
   });
 
-  test('applies the 7-day, 30-day and all boundaries', () {
+  test('applies the week, month, three-month, year and all boundaries', () {
+    DateTime daysAgo(int days) => DateTime(now.year, now.month, now.day - days);
+    SleepSession nightAgo(int days) =>
+        closed(daysAgo(days).subtract(const Duration(hours: 6)), daysAgo(days));
+
     final sessions = [
-      closed(DateTime(2026, 10, 21, 1), DateTime(2026, 10, 21, 7)),
-      // Six days before today: the first day of the 7-day window.
-      closed(DateTime(2026, 10, 15, 1), DateTime(2026, 10, 15, 7)),
-      // Seven days before today: outside 7, inside 30.
-      closed(DateTime(2026, 10, 14, 1), DateTime(2026, 10, 14, 7)),
-      // Twenty-nine days before today: the first day of the 30-day window.
-      closed(DateTime(2026, 9, 22, 1), DateTime(2026, 9, 22, 7)),
-      // Thirty days before today: only in All.
-      closed(DateTime(2026, 9, 21, 1), DateTime(2026, 9, 21, 7)),
+      nightAgo(0),
+      // Six days before today: the first day of the week window.
+      nightAgo(6),
+      // Seven days before today: outside week, inside month.
+      nightAgo(7),
+      // Twenty-nine days before today: the first day of the month window.
+      nightAgo(29),
+      // Thirty days before today: outside month, inside three months.
+      nightAgo(30),
+      // Eighty-nine days before today: the first day of three months.
+      nightAgo(89),
+      // Ninety days before today: outside three months, inside year.
+      nightAgo(90),
+      // Three hundred sixty-four days before today: the first day of year.
+      nightAgo(364),
+      // Three hundred sixty-five days before today: only in All.
+      nightAgo(365),
     ];
 
     final week = buildSleepHistory(
       now: now,
       sessions: sessions,
-      range: SleepHistoryRange.sevenDays,
+      range: SleepHistoryRange.week,
     );
-    expect(week.days.map((day) => day.date).toList(), [
-      DateTime(2026, 10, 21),
-      DateTime(2026, 10, 15),
-    ]);
+    expect(week.days.map((day) => day.date).toList(), [daysAgo(0), daysAgo(6)]);
 
     final month = buildSleepHistory(
       now: now,
       sessions: sessions,
-      range: SleepHistoryRange.thirtyDays,
+      range: SleepHistoryRange.month,
     );
     expect(month.days.map((day) => day.date).toList(), [
-      DateTime(2026, 10, 21),
-      DateTime(2026, 10, 15),
-      DateTime(2026, 10, 14),
-      DateTime(2026, 9, 22),
+      daysAgo(0),
+      daysAgo(6),
+      daysAgo(7),
+      daysAgo(29),
     ]);
+
+    final threeMonths = buildSleepHistory(
+      now: now,
+      sessions: sessions,
+      range: SleepHistoryRange.threeMonths,
+    );
+    expect(threeMonths.days.last.date, daysAgo(89));
+    expect(threeMonths.days, hasLength(6));
+
+    final year = buildSleepHistory(
+      now: now,
+      sessions: sessions,
+      range: SleepHistoryRange.year,
+    );
+    expect(year.days.last.date, daysAgo(364));
+    expect(year.days, hasLength(8));
 
     final all = buildSleepHistory(
       now: now,
       sessions: sessions,
       range: SleepHistoryRange.all,
     );
-    expect(all.days, hasLength(5));
-    expect(all.days.last.date, DateTime(2026, 9, 21));
+    expect(all.days, hasLength(9));
+    expect(all.days.last.date, daysAgo(365));
+  });
+
+  test('marks which ranges need the full Health Connect history', () {
+    expect(SleepHistoryRange.week.requiresFullHistory, isFalse);
+    expect(SleepHistoryRange.month.requiresFullHistory, isFalse);
+    expect(SleepHistoryRange.threeMonths.requiresFullHistory, isTrue);
+    expect(SleepHistoryRange.year.requiresFullHistory, isTrue);
+    expect(SleepHistoryRange.all.requiresFullHistory, isTrue);
   });
 
   test('ignores open and future sessions', () {
@@ -184,7 +217,7 @@ void main() {
     final history = buildSleepHistory(
       now: now,
       sessions: [closed(DateTime(2026, 10, 21, 7), DateTime(2026, 10, 21, 6))],
-      range: SleepHistoryRange.sevenDays,
+      range: SleepHistoryRange.week,
     );
 
     expect(history.hasData, isTrue);
@@ -202,7 +235,7 @@ void main() {
         closed(DateTime(2026, 3, 28, 23), DateTime(2026, 3, 29, 7)),
         closed(DateTime(2026, 3, 29, 23, 30), DateTime(2026, 3, 30, 7)),
       ],
-      range: SleepHistoryRange.sevenDays,
+      range: SleepHistoryRange.week,
     );
 
     expect(history.days.map((day) => day.date).toList(), [
@@ -220,12 +253,12 @@ void main() {
     final before = buildSleepHistory(
       now: DateTime(2026, 10, 21, 23, 59, 59),
       sessions: sessions,
-      range: SleepHistoryRange.sevenDays,
+      range: SleepHistoryRange.week,
     );
     final after = buildSleepHistory(
       now: DateTime(2026, 10, 22, 0, 0, 1),
       sessions: sessions,
-      range: SleepHistoryRange.sevenDays,
+      range: SleepHistoryRange.week,
     );
 
     expect(before.days.single.date, DateTime(2026, 10, 21));
