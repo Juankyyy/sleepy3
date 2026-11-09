@@ -60,11 +60,13 @@ Health Connect only accepts sleep sessions between 10 minutes and 24 hours. If a
 
 ## Stats
 
-Stats groups nights by the day you woke up and offers 7-day, 30-day and all-history filters, with the average, total and number of nights. Each night is a tonal card with a ring that compares it with the 8-hour goal, replaced by a Material 3 Expressive clover badge once the goal is met; the 30-day and all-history views use a denser two-line card so more nights fit on screen. Sessions written by another app show an external-app arrow and that app's name, or **Another app** when Android cannot resolve it; your own sessions stay unmarked.
+Stats groups nights by the day you woke up and offers **Week**, **Month**, **3 months**, **Year** and **All** ranges. The hero shows your average sleep, the total, how many nights have data and how the range compares with the previous one; the metric card adds goal hit rate, schedule consistency, sleep balance against the 8-hour goal and your best streak. Three charts break the range down: **Sleep duration** against the goal, the **Sleep window** from bedtime to wake and the average **By weekday**, each with a spoken summary for screen readers.
+
+Each night is a tonal card with a ring that compares it with the 8-hour goal, replaced by a Material 3 Expressive clover badge once the goal is met; the Month, 3 months, Year and All views use a denser two-line card so more nights fit on screen. Sessions written by another app show an external-app arrow and that app's name, or **Another app** when Android cannot resolve it; your own sessions stay unmarked.
 
 Pull down on Stats to refresh. The list stays in place while an M3 Expressive loader descends from the top; pending Google Health uploads are retried first, then the selected source is read again. In Local mode a refresh never uploads a new session.
 
-Tap any card to open it. Sessions written by the app you are using open in a detail view with the night's duration against the 8-hour goal, where you can change the start or end time or delete the session after confirming. The goal mark moves only in this view: once the goal is met the clover turns continuously, once every 8 seconds, while the crescent stays upright, and a shorter night draws its ring once on open. With Android's **Remove animations** enabled, both marks stay still. If Google Health needs write access, the delete dialog offers **Allow** and tries again. Sessions created by another app open read-only, with locked fields and a card that names the app when Android can resolve it (otherwise it says another app). In Local mode, sessions downloaded from Health Connect are read-only too. In Google Health mode, your own records stay editable even without a local copy. A record written by the other Sleepy3 build (release vs debug) is read-only from the build you are using, because Health Connect only lets the app that wrote it change it.
+Tap any card to open it. Sessions written by the app you are using open in a detail view with the night's duration against the 8-hour goal, where you can change the start or end time or delete the session after confirming. Below the times, **Night context** compares the session with your last seven nights and ranks it inside the selected range; read-only sessions show it too. The goal mark moves only in this view: once the goal is met the clover turns continuously, once every 8 seconds, while the crescent stays upright, and a shorter night draws its ring once on open. With Android's **Remove animations** enabled, both marks stay still. If Google Health needs write access, the delete dialog offers **Allow** and tries again. Sessions created by another app open read-only, with locked fields and a card that names the app when Android can resolve it (otherwise it says another app). In Local mode, sessions downloaded from Health Connect are read-only too. In Google Health mode, your own records stay editable even without a local copy. A record written by the other Sleepy3 build (release vs debug) is read-only from the build you are using, because Health Connect only lets the app that wrote it change it.
 
 Use the round, primary-colored plus button beside the glass dock at the bottom of Stats to add a session you forgot to track. The dock and the button are centered as one group; the dock shifts a little to the left while you are in Stats, and the button slides in from the dock when the history is ready. The form starts with the last night (23:00 to 07:00, or up to the current time before 07:00), and dates cannot go past today. It applies the same rules as the editor: the wake time must be after the sleep time, a night lasts at least 10 minutes and less than 24 hours, neither time can be in the future, and it cannot overlap another session or the night in progress. In Google Health mode Sleepy3 saves the local safety copy first, then uploads it; if the upload fails the session stays pending for **Retry** and only Health Connect records appear in the visible list.
 
@@ -91,7 +93,7 @@ In Google Health mode, the app asks for permission the first time. If you declin
 
 They never change the selected source, and repeating one does not create duplicates.
 
-Health Connect hides records older than 30 days unless you give Sleepy3 the history permission. The app asks when you choose **All** in Stats or start **Import**. If you decline, Stats shows the last 30 days with an **Allow full history** button, and Import reports that it only copied 30 days.
+Health Connect hides records older than 30 days unless you give Sleepy3 the history permission. The app asks when you choose **3 months**, **Year** or **All** in Stats or start **Import**. If you decline, Stats keeps the last 30 days with an **Allow full history** button and the charts say **Last 30 days available**, and Import reports that it only copied 30 days.
 
 ## Your data
 
@@ -107,7 +109,7 @@ Health Connect hides records older than 30 days unless you give Sleepy3 the hist
 
 **Android won't install the APK over my old copy.** Android requires the same signing key. Uninstall the old app first; that also deletes its local database.
 
-**Stats "All" stops at 30 days.** Allow full history for Sleepy3 in Health Connect, then tap **Allow full history** in Stats or reopen the app.
+**Stats stops at 30 days.** Allow full history for Sleepy3 in Health Connect, then tap **Allow full history** in Stats or reopen the app. The 3 months, Year and All ranges need that permission.
 
 **Health Connect is missing.** On Android 13 or lower, install the Health Connect app from the Play Store, then try again.
 
@@ -125,6 +127,7 @@ Health Connect hides records older than 30 days unless you give Sleepy3 the hist
 - [x] English and Spanish, and a 12/24-hour clock setting (0.2.1).
 - [x] Optional nightly sleep reminder with a chosen time (0.2.2).
 - [x] Slide to wake, live sleep duration and saved feedback (0.2.2).
+- [x] Advanced Stats with five ranges, duration, window and weekday charts, insights and night context.
 - [ ] Home-screen widget with Sleep and Wake buttons.
 - [ ] Motion and accessibility polish.
 

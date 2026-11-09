@@ -4,7 +4,8 @@
 **Plataforma:** Android
 **Stack principal:** Flutter + Material 3 Expressive
 **Estado:** v0.2.2, última release estable (sin widget). Home (con una sola acción
-contextual), Stats (historial tonal con marcas de objetivo animadas, pull-to-refresh, alta
+contextual), Stats (dashboard de cinco rangos con gráficos de duración, ventana y día de la
+semana, insights, historial tonal con marcas de objetivo animadas, pull-to-refresh, alta
 manual, edición y borrado de sesiones y detalles de solo lectura para registros de otras
 apps), Settings, la persistencia local y Health Connect (Local/Google Health) funcionan. El
 widget de pantalla de inicio es el siguiente bloque (0.3.0).
@@ -320,26 +321,62 @@ Reglas:
 
 ### 3.3 Stats e historial
 
-- `Stats` tiene tres filtros de rango: `7 days`, `30 days` y `All`. Son filter chips M3
-  de selección única; por defecto se abre en `7 days`.
-- La ventana de 7 días incluye hoy y los seis días locales anteriores. La de 30 días
-  incluye hoy y los veintinueve anteriores. `All` incluye todo el historial cerrado hasta
-  hoy. Las sesiones que terminan después de hoy no se muestran.
-- La tarjeta de resumen muestra la media de los días con datos, el número de noches y el
-  total del rango. Si no hay noches en el rango muestra `—`, `No nights in this range` y,
-  cuando existe historial más antiguo, un botón `Show all` que cambia el filtro a `All`.
-- En modo `Google Health`, elegir `All` pide el permiso de historial de Health Connect. Si
-  ya estaba concedido, no se vuelve a preguntar. Si se deniega, el rango sigue siendo
-  `All`, pero la lectura se limita a los últimos 30 días; un banner explica el límite y
-  ofrece `Allow full history`, que vuelve a pedir el permiso y recarga el historial. Los
-  rangos `7 days` y `30 days` no piden nada. Al volver del segundo plano se relee el
-  permiso por si el usuario lo cambió en Health Connect.
+- `Stats` es un dashboard de una sola columna: cabecera, cinco filtros de rango, hero,
+  card de métricas, tres gráficos, card de insights y el historial. El FAB y el
+  pull-to-refresh no cambian.
+- Rangos: `Week` (7 días), `Month` (30), `3 months` (90), `Year` (365 rolling) y `All`
+  (todo el historial cerrado). Son filter chips M3 de selección única con check leading;
+  por defecto se abre en `Week`. `Year` son los últimos 365 días, no el año natural.
+- La ventana incluye hoy y los días anteriores del rango; `All` empieza en la primera
+  noche registrada. Las sesiones que terminan después de hoy y la sesión abierta no
+  entran.
+- Una noche se agrupa por el día local de despertar, igual que el historial. Varias
+  sesiones el mismo día cuentan como una sola noche: la duración es la suma de las
+  sesiones positivas, el bedtime es el inicio más temprano y el wake el fin más tardío.
+- Hero: `Average sleep` con la media de las noches registradas, `Across {n} nights ·
+  {total} total`, la comparación con el periodo anterior (`vs previous week: +18 min`)
+  y la cobertura (`5 of 7 nights`; en `All`, `X nights recorded`). En `All` no hay
+  comparación. En los rangos fijos se oculta si el periodo anterior no tiene datos o su
+  cobertura es menor del 50 %. Sin noches muestra `—`, `No nights in this range` y
+  `Show all` cuando hay historial más antiguo.
+- Card de métricas 2×2 (4 columnas desde 600 dp): `Goal hit rate` (porcentaje y noches
+  que cumplen), `Schedule consistency` (desviación circular del bedtime, `±32 min`),
+  `Sleep balance` (`total − 8 h × noches registradas`, con `surplus` o `debt` en el
+  apoyo) y `Best streak` (mejor racha del rango y racha actual). Sin datos suficientes,
+  el valor es `—` y el apoyo explica por qué; nunca se inventa un 0 %.
+- Gráfico `Sleep duration`: barras por bucket (día en `Week`/`Month`, semana en
+  `3 months`, mes en `Year`, semanal o mensual en `All` según 180 días), línea de
+  objetivo de 8 h, línea de media y huecos para noches sin datos. El tooltip da fecha,
+  duración y número de sesiones; en buckets largos usa el tooltip rico con el rango y la
+  media por noche.
+- Gráfico `Sleep window`: una fila por bucket con una cápsula desde el bedtime hasta el
+  wake, banda de mínimos/máximos y línea de media circular. El eje va de 18:00 a 12:00.
+- Gráfico `By weekday`: media por día de despertar, de lunes a domingo; los días sin
+  datos son huecos y el mejor día se marca con la etiqueta `Best`.
+- Card `Insights`: mejor noche, noche más corta, hora media de acostarse y de
+  despertarse, variación del bedtime, noches con más de una sesión y distribución
+  (`<6 h`, `6–7 h`, `7–8 h`, `8–9 h`, `9 h+`). Texto factual, sin consejos ni lenguaje
+  médico.
+- Reglas de cálculo: media y mediana solo sobre días con datos; una noche cumple el
+  objetivo si su total es ≥ 8 h (8 h exactas cuentan); la racha actual solo cuenta si la
+  última noche es hoy o ayer; las horas de acostarse y levantarse usan media y
+  desviación circulares en minutos desde medianoche, nunca media aritmética; los días se
+  agrupan con aritmética de calendario para que el DST no desplace buckets; las
+  duraciones negativas se clampan a cero y se excluyen del ritmo.
+- En modo `Google Health`, elegir `3 months`, `Year` o `All` pide el permiso de historial
+  de Health Connect. Si ya estaba concedido, no se vuelve a preguntar. Si se deniega, el
+  rango sigue seleccionado, la lectura se limita a los últimos 30 días, un banner explica
+  el límite y ofrece `Allow full history`, y los gráficos cambian su apoyo por
+  `Last 30 days available` en lugar de afirmar que cubren el rango completo. `Week` y
+  `Month` no piden nada. Al volver del segundo plano se relee el permiso por si el
+  usuario lo cambió en Health Connect.
 - Debajo, una tarjeta tonal por sesión cerrada, de la más reciente a la más antigua,
-  también dentro de un mismo día. En `7 days` cada tarjeta tiene tres líneas: el día de
+  también dentro de un mismo día. En `Week` cada tarjeta tiene tres líneas: el día de
   despertar en una píldora (`Today`, `Yesterday`, `Tue, Oct 20` o con año si no es el año
-  actual), la duración como headline y `inicio – fin` como supporting text. En `30 days`
-  y `All` la tarjeta es compacta de dos líneas: la píldora del día y, si la sesión viene
-  de otra app, su cápsula de origen arriba, y duración y rango en la segunda línea.
+  actual), la duración como headline y `inicio – fin` como supporting text. En `Month`,
+  `3 months`, `Year` y `All` la tarjeta es compacta de dos líneas: la píldora del día y,
+  si la sesión viene de otra app, su cápsula de origen arriba, y duración y rango en la
+  segunda línea.
 - Las tarjetas parten de la pareja de filled card `surfaceContainerHighest` / `onSurface`.
   La sesión más reciente del día más reciente usa el acento `primaryContainer` /
   `onPrimaryContainer`; las dos siguientes mezclan ese acento con la base al 2/3 y 1/3, y
@@ -352,7 +389,7 @@ Reglas:
   inicial compara la duración con el objetivo de 8 h de Home: por debajo es un anillo de
   progreso con un icono `bedtime`; al llegar o superarlo se sustituye por un
   `clover8Leaf` de la librería de formas M3, relleno `primary` y con el icono en
-  `onPrimary`. Mide 44 dp en `7 days` y 36 dp en `30 days`/`All`. La forma es un refuerzo
+  `onPrimary`. Mide 44 dp en `Week` y 36 dp en los demás rangos. La forma es un refuerzo
   decorativo: la etiqueta hablada añade `goal met` cuando se cumple. En la lista la marca
   es estática; el movimiento vive solo en los detalles de la sesión.
 - Las sesiones escritas por otra app muestran una cápsula junto a la píldora del día,
@@ -425,6 +462,14 @@ Reglas:
   abre `M3EDatePicker` o `M3ETimePicker`. La fecha omite el año cuando es el actual.
   Duración y objetivo se recalculan con el borrador; un aviso explica cuando la sesión
   también está en Google Health.
+- Bajo `Woke up`, la card `Night context` compara la sesión con la media de las últimas
+  7 noches registradas hasta su día de despertar (`+12 min vs your 7-night average`,
+  `Bedtime 22 min later`, `Wake 5 min earlier`) y, dentro del rango seleccionado en Stats,
+  la sitúa como `Longest session in this range` o `2nd longest session in this range`. Con
+  menos de 2 noches oculta la comparación y muestra `Not enough nights yet.`; si la noche
+  tiene varias sesiones, el apoyo lo dice y las comparaciones siguen siendo de la sesión,
+  no del total del día. La card aparece también en solo lectura y no cambia el candado
+  ni el texto de la card `Read-only session`.
 - La vista de solo lectura reutiliza el contenido del editor: pantalla completa en
   compacto con solo la X de cierre y diálogo básico en mediano y expandido con una única
   acción `Close`. No muestra `Save` ni `Delete`.
@@ -696,11 +741,13 @@ Reglas:
 - Sleepy3 lee y escribe en Health Connect, no en la nube de Google Health. Un registro que
   solo esté en la nube aparece cuando Google Health lo sincroniza con Health Connect.
 - El historial completo (más de 30 días) requiere `READ_HEALTH_DATA_HISTORY`. Sleepy3 lo
-  pide al elegir `All` en Stats o al usar `Import`; si se deniega, aplica un límite de 30
-  días por su cuenta. Stats muestra el banner `Only the last 30 days are available` con
-  `Allow full history`, e `Import` añade al resultado `Only the last 30 days were
-  downloaded.`. El permiso se relee al cargar el historial y al volver del segundo plano,
-  así que una concesión hecha en Health Connect se aplica sin reiniciar la app.
+  pide al elegir `3 months`, `Year` o `All` en Stats o al usar `Import`; si se deniega,
+  aplica un límite de 30 días por su cuenta. Stats muestra el banner
+  `Only the last 30 days are available` con `Allow full history`, los gráficos cambian su
+  apoyo por `Last 30 days available`, e `Import` añade al resultado
+  `Only the last 30 days were downloaded.`. El permiso se relee al cargar el historial y
+  al volver del segundo plano, así que una concesión hecha en Health Connect se aplica sin
+  reiniciar la app.
 
 ### 3.7 Accesibilidad
 
@@ -896,30 +943,74 @@ Reglas:
   - Título `Stats` en `headlineMedium` emphasized y línea de apoyo en `bodyMedium`;
     márgenes laterales de 16 dp, y 24 dp desde 600 dp de ancho (decisión de layout, no
     token M3).
-  - Filtros `7 days` / `30 days` / `All` con `M3EChip` tipo filter: 32 dp de alto, radio
-    8 dp y 8 dp entre chips. El activo añade un check leading, además del color, para no
-    depender solo del color.
-  - Tarjeta de resumen `M3ECard` outlined (radio 12 dp, padding 16 dp): etiqueta
-    `Average sleep` en `labelMedium`, valor en `displaySmall` emphasized con cifras
-    tabulares, apoyo en `bodyMedium` y `Show all` como botón de texto.
+  - Filtros `Week` / `Month` / `3 months` / `Year` / `All` con `M3EChip` tipo filter:
+    32 dp de alto, radio 8 dp y 8 dp entre chips. El activo añade un check leading,
+    además del color, para no depender solo del color. Un `Wrap` absorbe el quinto chip
+    sin romper el layout al 200 % de texto.
+  - Hero `M3ECard` outlined (radio 12 dp, padding 16 dp): etiqueta `Average sleep` en
+    `labelMedium`, valor en `displaySmall` emphasized con cifras tabulares, apoyo en
+    `bodyMedium` (`Across {n} nights · {total} total`), línea de comparación con icono de
+    subida/bajada y cobertura en `bodySmall`. `Show all` es un botón de texto. Sin datos
+    muestra `—` y `No nights in this range`; nunca dibuja un 0 como noche real.
+  - Card de métricas `M3ECard` outlined (radio 12 dp, padding 0): `Table` 2×2 en
+    compacto y 4 columnas desde 600 dp, con divisores `outlineVariant` de 1 dp y 16 dp
+    dentro de cada celda. Valores en `headlineSmall` emphasized con cifras tabulares,
+    etiquetas `labelMedium` y apoyo `bodySmall`.
+  - Gráficos: cada uno es una `M3ECard` outlined (radio 12 dp, padding 16 dp) con título
+    `titleMedium` emphasized, apoyo `bodySmall` en `onSurfaceVariant`, un único
+    `CustomPaint` de 180 dp y `RepaintBoundary`; la card `Sleep window` crece en alto con
+    una fila por bucket. La leyenda usa muestras de línea/barra y texto, nunca solo color.
+    M3 no publica un componente de gráficos: la altura, los anchos, el stagger y el radio
+    de barra son decisiones de diseño de Sleepy3.
+  - `Sleep duration`: barras `primary` con radio superior de 4 dp, ancho adaptativo entre
+    4 y 28 dp; línea de objetivo `outline` de 1.5 dp con etiqueta `Goal 8h`; línea de
+    media `tertiary` (o `onSurfaceVariant` si no llega a 3:1 sobre `surface`); grid
+    `outlineVariant` de 1 dp al 60 %; noches sin datos como marca discontinua, nunca una
+    barra a cero. El tooltip da el valor y el número de sesiones, y en buckets semanales
+    o mensuales usa el tooltip rico con el rango y la media por noche.
+  - `Sleep window`: una cápsula `primary` con extremos full por bucket, banda de
+    mínimos/máximos `primaryContainer` al 20 %, línea de media `tertiary` y eje de 18:00
+    a 12:00 con etiquetas `6 PM` / `12 AM` / `6 AM` / `12 PM` (o 18:00 / 00:00 / 06:00 /
+    12:00 en 24 h). En rangos largos cada fila es un bucket semanal o mensual con la
+    media y el rango, no una fila por noche.
+  - `By weekday`: siete barras `primary` de lunes a domingo, con los días sin datos como
+    hueco; el mejor día lleva la etiqueta `Best` y el tooltip indica cuántas noches
+    sostienen la media.
+  - Motion: `M3EMotion.expressiveSpatialDefault` para crecimiento, posición y morph, y
+    `effectsDefault`/`effectsFast` para color y opacidad, sin overshoot en opacidad. El
+    stagger de 16 ms por barra se usa solo en la primera entrada de `Sleep duration`; al
+    cambiar de rango las barras hacen morph desde el valor actual, las nuevas empiezan a
+    cero y las que desaparecen se desvanecen. Con `disableAnimations` se dibuja el estado
+    final de inmediato, sin entrada, stagger ni morph.
+  - Interacción: una sola zona de scrub por gráfico selecciona la barra más cercana con
+    tap o arrastre; solo hay un tooltip a la vez y se cierra al soltar o tocar fuera. El
+    tooltip plano es `inverseSurface` / `onInverseSurface`, 24 dp de alto, 8 dp de
+    padding y 4 dp de separación; el rico usa `surfaceContainer` / `onSurfaceVariant` y
+    radio 12 dp. La barra seleccionada escala 1.02 con spring espacial y un halo
+    `primaryContainer` de 2 dp; hay un `selectionClick` háptico al cambiar de barra.
+  - Accesibilidad de gráficos: cada canvas va dentro de `ExcludeSemantics` y un
+    `Semantics` con un solo resumen hablado (rango, media, mejor y peor noche, noches
+    bajo objetivo y noches sin datos). No se crean 30 tab stops: el historial sigue
+    siendo la vista accesible noche a noche. Las etiquetas del eje se espacian más al
+    200 % y el canvas mantiene su altura.
   - Encabezado de lista `History` en `titleMedium` emphasized.
   - Historial con una `M3ECard` filled por sesión, radio 20 dp (decisión de diseño: M3 usa
-    `CornerMedium`, 12 dp) y padding 16 dp en `7 days` o 12 dp en `30 days`/`All`; gap 8 dp
+    `CornerMedium`, 12 dp) y padding 16 dp en `Week` o 12 dp en los demás rangos; gap 8 dp
     o 6 dp. La tarjeta destacada usa
     `primaryContainer` / `onPrimaryContainer`; las dos siguientes mezclan ese acento con
     `surfaceContainerHighest` al 2/3 y 1/3, y desde la cuarta todas usan
     `surfaceContainerHighest` / `onSurface`. El degradado empieza en la sesión destacada
     y es una decisión de diseño (M3 no tiene un rol de recencia); solo la destacada usa
-    `onPrimaryContainer`. En `7 days` la tarjeta tiene tres líneas: píldora del día con
+    `onPrimaryContainer`. En `Week` la tarjeta tiene tres líneas: píldora del día con
     el `on*` de la tarjeta al 10 % y texto `on*` (decisión de diseño, no un rol M3),
     duración `headlineSmall` emphasized (24/32) con cifras tabulares y rango
-    `bodyMedium`. En `30 days`/`All` es de dos líneas: píldora `labelSmall` con el mismo
+    `bodyMedium`. En los demás rangos es de dos líneas: píldora `labelSmall` con el mismo
     tinte, duración `titleLarge` emphasized (22/28) y rango `bodySmall`, con el rango al
     final de la segunda línea.
-    El anillo mide 44 dp con trazo de 4 dp en `7 days` y 36 dp con trazo de 3 dp en
-    `30 days`/`All`, en `primary` sobre un track del 18–22 % del `on*`, con `bedtime`
+    El anillo mide 44 dp con trazo de 4 dp en `Week` y 36 dp con trazo de 3 dp en los
+    demás rangos, en `primary` sobre un track del 18–22 % del `on*`, con `bedtime`
     de 18/15 dp. La cápsula de origen comparte el stadium y el tinte del 10 % de la
-    píldora del día; la flecha `open_in_new` mide 14 dp en `7 days` y 12 dp en compacto
+    píldora del día; la flecha `open_in_new` mide 14 dp en `Week` y 12 dp en compacto
     (decisión de diseño) y el nombre usa `labelMedium` (12/16) o `labelSmall` (11/16). El
     chevron mide 20/18 dp. Todas las tarjetas son botones con etiqueta hablada y pista
     `Opens the session`; crecen con el texto del sistema y no usan alturas fijas. Las de
@@ -936,6 +1027,14 @@ Reglas:
     (`event_outlined`/`schedule_outlined`). La fecha omite el año cuando es el actual.
     Errores inline en `bodySmall` con rol `error`, y una acción `Delete session`
     separada y de bajo énfasis. Respeta el formato de 24 h del sistema.
+    Bajo `Woke up`, la card `Night context` es una `M3ECard` outlined con radio 12 dp,
+    padding 16 dp y título `titleMedium` emphasized precedido por `insights_outlined` de
+    20 dp. Cada lectura usa un icono de 20 dp (`arrow_upward`/`arrow_downward` para la
+    duración, `bedtime` para acostarse, `wb_sunny` para despertar, `emoji_events` para el
+    ranking y `groups` para la noche dividida) y texto `bodyMedium`; la nota de noche
+    dividida usa `bodySmall` en `onSurfaceVariant`. Nunca usa el color como único
+    indicador: el texto dice `later`, `earlier` u `on your average`. La misma card se
+    muestra en solo lectura, debajo de los campos bloqueados.
   - La vista de solo lectura usa el mismo hero. La card `Read-only session` es una
     `M3ECard` filled en `surfaceContainerHighest`, con radio 12 dp y padding 16 dp. El
     candado `lock_outlined` de 20 dp va en `onSurfaceVariant` dentro de un círculo
@@ -1023,9 +1122,22 @@ Reglas:
 | Título de Stats | `Stats` |
 | Apoyo de Stats | `Your sleep, night by night.` |
 | Durmiendo en Stats | `Sleeping since {time} · it will appear when you wake.` |
-| Filtros de Stats | `7 days`, `30 days`, `All` |
+| Filtros de Stats | `Week`, `Month`, `3 months`, `Year`, `All` |
 | Resumen de Stats | `Average sleep` |
+| Apoyo del hero | `Across {n} nights · {total} total`, `5 of 7 nights`, `X nights recorded` |
+| Comparación del hero | `vs previous week: +18 min` |
+| Métricas | `Goal hit rate`, `Schedule consistency`, `Sleep balance`, `Best streak` |
+| Valores de métricas | `86%`, `±32 min`, `+1h 20m`, `4 nights`, `current 2` |
+| Títulos de gráficos | `Sleep duration`, `Sleep window`, `By weekday` |
+| Apoyos de gráficos | `Week · 5 nights recorded · Goal 8h`, `Bedtime to wake · Week`, `Average by wake day · Week` |
+| Leyendas de gráficos | `Sleep`, `Goal 8h`, `Average`, `Bedtime to wake`, `Range` |
+| Tooltips de gráficos | `Tue, Oct 20 · 7h 20m`, `Oct 14 – Oct 20 · 7h 5m avg` |
+| Insights | `Insights`, `Best night`, `Shortest night`, `Average bedtime`, `Average wake`, `Bedtime varies by`, `Nights with more than one session`, `Distribution` |
+| Distribución | `Under 6h`, `6–7h`, `7–8h`, `8–9h`, `9h+` |
+| Días de la semana | `Mon`…`Sun`, `Best` |
 | Sin noches en el rango | `No nights in this range` |
+| Historial limitado en gráficos | `Last 30 days available` |
+| Night context | `Night context`, `Not enough nights yet.`, `+12 min vs your 7-night average`, `Bedtime 22 min later`, `Wake 5 min earlier`, `Longest session in this range`, `2nd longest session in this range` |
 | Mostrar todo el historial | `Show all` |
 | Límite de historial en Stats | `Only the last 30 days are available` / `Allow full history in Google Health to see older sessions.` / `Allow full history` |
 | Historial denegado desde el banner | `Google Health needs permission to read older sleep sessions.` |
@@ -1538,10 +1650,12 @@ dart run build_runner build
   - Si ya hay una fila `origin='local'` con el mismo UUID o las mismas horas, se omite.
   - Las acciones no cambian la fuente mostrada. Si faltan permisos, se piden al pulsarlas.
 - Historial:
-  - `READ_HEALTH_DATA_HISTORY` se pide al elegir `All` en Stats o al iniciar `Import`.
+  - `READ_HEALTH_DATA_HISTORY` se pide al elegir `3 months`, `Year` o `All` en Stats o al
+    iniciar `Import`.
   - Con el permiso, las lecturas empiezan en el epoch; sin él, en los últimos 30 días.
-  - Stats muestra `Only the last 30 days are available` y `Allow full history` cuando el
-    permiso falta; `Import` avisa en el resultado de que solo bajó 30 días.
+  - Stats muestra `Only the last 30 days are available`, `Allow full history` y el apoyo
+    `Last 30 days available` en los gráficos cuando el permiso falta; `Import` avisa en el
+    resultado de que solo bajó 30 días.
   - El permiso se comprueba de nuevo al cargar el historial y al volver del segundo plano.
 - Si el usuario deniega permisos o Health Connect no está disponible, no se bloquea el
   registro local; Settings explica el estado y ofrece `Connect` o `Install`.
@@ -1591,10 +1705,20 @@ dart run tool/generate_brand_assets.dart
 - Resumen de 3 días: agrupación por día de despertar, sesiones que cruzan medianoche,
   suma por día, media sobre días con datos, cambio de fecha, DST, estado vacío, límite
   del 100 % y semántica.
-- Stats: agrupación por día, ventanas 7/30/todas, varias sesiones por día, sesiones
-  abiertas y futuras excluidas, cambio de fecha, DST, `Show all`, 12/24 h, semántica,
-  layout a 360 dp con texto al 200 %, densidad compacta en 30/All y `LocalDayBuilder` al
-  pasar medianoche o volver del segundo plano.
+- Stats: cinco rangos (`Week`, `Month`, `3 months`, `Year`, `All`), agrupación por día,
+  ventanas exactas, varias sesiones por día, sesiones abiertas y futuras excluidas, cambio
+  de fecha, DST, `Show all`, 12/24 h, semántica, layout a 360 dp y 600 dp con texto al
+  200 %, claro/oscuro, español, densidad compacta en `Month`/`3 months`/`Year`/`All` y
+  `LocalDayBuilder` al pasar medianoche o volver del segundo plano.
+- Insights: media, mediana, cobertura, balance, rachas actual y mejor, objetivo exacto a
+  8 h, media y desviación circulares, weekday sin datos, bandas de duración, comparación
+  con el periodo anterior y su caso de cobertura insuficiente, buckets diarios, semanales
+  y mensuales, `All` adaptativo, DST en Europe/Madrid y duraciones negativas.
+- Gráficos: duración, ventana de sueño y día de la semana en los cinco rangos, huecos sin
+  barras a cero, tooltip plano y rico, una sola zona de scrub, resumen hablado, morph al
+  cambiar de rango, reduced motion, texto al 200 %, ventana de 600 dp y español.
+- Night context: comparación con las 7 noches anteriores, caso de menos de 2 noches,
+  ranking dentro del rango, noche dividida, editor y solo lectura, y texto al 200 %.
 - Stats editable: todas las tarjetas son botones, sin icono de edición; las de solo lectura
   abren `Session` con la card de la app y campos bloqueados, editor adaptativo,
   guardado sin cambios, cambio de fecha y hora, validación inline (incluidos los límites
@@ -1608,9 +1732,10 @@ dart run tool/generate_brand_assets.dart
 - Solo lectura: app label por `AppInfoBridge`, fallback a `another app`, campos sin
   pickers ni iconos, sin `Save`/`Delete`, cierre con X o `Close` y copias descargadas
   con y sin `source_id`.
-- Stats en Google Health: `All` pide historial, una concesión recarga el historial
-  completo, una denegación mantiene los 30 días con el banner y `Allow full history`
-  vuelve a pedir el permiso.
+- Stats en Google Health: `3 months`, `Year` y `All` piden historial, una concesión
+  recarga el historial completo, una denegación mantiene los 30 días con el banner
+  `Only the last 30 days are available`, el apoyo `Last 30 days available` en los
+  gráficos y `Allow full history`, que vuelve a pedir el permiso.
 - Pull-to-refresh de Stats: el loader de 48 dp aparece y se retrae, la lista no se vacía,
   Google Health reintenta pendientes antes de leer, Local no sube altas, un fallo conserva
   las filas y muestra el snackbar, el empty state también se puede tirar y el layout aguanta
@@ -1676,10 +1801,12 @@ dart run tool/generate_brand_assets.dart
 - Persistencia Drift y restauración de sesión abierta.
 - Cabecera con chip día/noche, reloj en vivo con segundos y línea de sesión.
 - Resumen de los últimos 3 días con datos reales, media y barras contra una meta de 8 h.
-- Pantalla `Stats` con filtros 7 días / 30 días / todo, resumen del rango y una fila por
-  sesión. Todas las filas abren la sesión: el editor adaptativo permite cambiar fecha y
-  hora o borrar; las sesiones de otras apps y las copias descargadas abren una vista de
-  solo lectura con la card de la app de origen. En `Google Health` solo se modifican los
+- Pantalla `Stats` con dashboard de cinco rangos (`Week`, `Month`, `3 months`, `Year`,
+  `All`), hero con media, total, comparación y cobertura, card de métricas, gráficos de
+  duración, ventana de sueño y día de la semana, card de insights y una fila por sesión.
+  Todas las filas abren la sesión: el editor adaptativo permite cambiar fecha y hora o
+  borrar; las sesiones de otras apps y las copias descargadas abren una vista de solo
+  lectura con la card de la app de origen. En `Google Health` solo se modifican los
   registros de Sleepy3.
 - Pantalla `Settings` con tema `System`/`Light`/`Dark` persistido, formato de hora
   `12-hour`/`24-hour` persistido y aplicado a toda la app, idioma `English`/`Español`
@@ -1696,7 +1823,7 @@ dart run tool/generate_brand_assets.dart
 - Health Connect: permisos de sueño e historial, lectura y escritura, cola de pendientes,
   reintento al abrir o volver a la app, banner de pendientes, acciones
   `Import`/`Sync`/`Add`, actualización del mismo registro tras una edición, borrado
-  propagado y fallback de 30 días en Stats `All`.
+  propagado y fallback de 30 días en los rangos largos de Stats.
 - Builds debug (`com.sleepy3.app.debug`) y release firmada que conviven en el dispositivo.
 - Icono de launcher adaptativo con capa monocroma y splash de marca con zoom out, en
   claro y oscuro.
@@ -1711,18 +1838,20 @@ dart run tool/generate_brand_assets.dart
   Connect; la 0.2.1 añade la interfaz en inglés y español y el formato de hora 12/24; la
   0.2.2 añade el recordatorio nocturno, el deslizamiento para despertar y la duración en
   vivo. Ninguna incluye el widget.
+- Stats avanzadas en `feat/stats-charts`: cinco rangos, hero y métricas, gráficos M3 de
+  duración, ventana y día de la semana, insights y `Night context` por sesión. Pendiente
+  de validación en dispositivo y release.
 - Tests de estado, persistencia y UI.
 
 ### Siguiente
 
 1. Widget de pantalla de inicio con Glance y `home_widget` (0.3.0).
-2. Pulido de motion y accesibilidad.
+2. Validación en dispositivo y release de las Stats avanzadas.
 
 ---
 
 ## 12. Decisiones abiertas
 
-- Si se agregará un gráfico de 7 días a `Stats` en una versión posterior.
 - Si el widget mostrará la duración en vivo o solo el estado.
 - Si los reintentos pasarán a WorkManager en segundo plano o seguirán al abrir/volver a
   la app.
