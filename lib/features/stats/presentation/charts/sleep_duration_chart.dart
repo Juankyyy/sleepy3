@@ -30,9 +30,18 @@ import 'chart_tooltip.dart';
 /// step, 16ms entry stagger and 2% selected-bar scale. M3 publishes no chart
 /// component and no stagger value.
 class SleepDurationChart extends StatelessWidget {
-  const SleepDurationChart({super.key, required this.insights});
+  const SleepDurationChart({
+    super.key,
+    required this.insights,
+    this.historyLimited = false,
+  });
 
   final SleepInsights insights;
+
+  /// Whether the selected range is wider than the Health Connect history
+  /// permission allows. The card then names the 30 available days instead of
+  /// the range the chips show.
+  final bool historyLimited;
 
   @override
   Widget build(BuildContext context) {
@@ -40,15 +49,19 @@ class SleepDurationChart extends StatelessWidget {
     final palette = ChartPalette.of(context);
     final goal = l10n.formatGoalDelta(dailySleepGoal);
     final range = chartRangeLabel(l10n, insights.range);
+    final supportRange = historyLimited
+        ? l10n.historyLast30DaysAvailable
+        : range;
+    final spokenRange = historyLimited ? l10n.historyLast30DaysRange : range;
 
     return ChartScene(
       title: l10n.chartSleepDurationTitle,
       support: l10n.chartSleepDurationSupport(
-        range,
+        supportRange,
         insights.recordedDays,
         goal,
       ),
-      semanticSummary: _spokenSummary(context, range, goal),
+      semanticSummary: _spokenSummary(context, spokenRange, goal),
       legend: insights.hasData
           ? [
               ChartLegendEntry(

@@ -544,7 +544,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String heroComparison(String previous, String delta) {
-    return 'vs $previous: $delta';
+    return 'frente a $previous: $delta';
   }
 
   @override
@@ -594,17 +594,17 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String metricBalanceSurplus(String goal) {
-    return 'superávit · vs objetivo de $goal';
+    return 'superávit · frente al objetivo de $goal';
   }
 
   @override
   String metricBalanceDebt(String goal) {
-    return 'deuda · vs objetivo de $goal';
+    return 'deuda · frente al objetivo de $goal';
   }
 
   @override
   String metricBalanceEven(String goal) {
-    return 'equilibrio · vs objetivo de $goal';
+    return 'equilibrio · frente al objetivo de $goal';
   }
 
   @override
@@ -627,7 +627,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get metricNeedsTwoNights => 'Faltan 2 noches';
+  String get metricNeedsTwoNights => 'Necesita 2 noches';
 
   @override
   String durationSignedPositive(String duration) {
@@ -1336,6 +1336,12 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get historyLast30Days => 'Solo están disponibles los últimos 30 días';
+
+  @override
+  String get historyLast30DaysAvailable => 'Últimos 30 días disponibles';
+
+  @override
+  String get historyLast30DaysRange => 'los últimos 30 días';
 
   @override
   String get historyAllowFullSupport =>

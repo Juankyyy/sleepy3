@@ -103,6 +103,14 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
     final state = ref.watch(sleepTrackingControllerProvider);
     final controller = ref.read(sleepTrackingControllerProvider.notifier);
     final source = ref.watch(sleepDataSourceProvider);
+    // Ranges wider than the 30-day Health Connect fallback can be selected
+    // after a denial. The list keeps the loaded nights, so the charts must say
+    // what is actually available instead of claiming the full range.
+    final historyLimited =
+        source == SleepDataSource.healthConnect &&
+        _range.requiresFullHistory &&
+        ref.watch(healthHistoryPermissionProvider) !=
+            HealthHistoryAccess.authorized;
     final l10n = context.l10n;
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
@@ -215,11 +223,20 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                                   const SizedBox(height: 8),
                                   StatsMetricsCard(insights: insights),
                                   const SizedBox(height: 8),
-                                  SleepDurationChart(insights: insights),
+                                  SleepDurationChart(
+                                    insights: insights,
+                                    historyLimited: historyLimited,
+                                  ),
                                   const SizedBox(height: 8),
-                                  SleepWindowChart(insights: insights),
+                                  SleepWindowChart(
+                                    insights: insights,
+                                    historyLimited: historyLimited,
+                                  ),
                                   const SizedBox(height: 8),
-                                  WeekdayChart(insights: insights),
+                                  WeekdayChart(
+                                    insights: insights,
+                                    historyLimited: historyLimited,
+                                  ),
                                   const SizedBox(height: 8),
                                   StatsInsightsCard(insights: insights),
                                   if (history.hasData) ...[

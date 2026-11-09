@@ -275,7 +275,7 @@
       }
     }
   },
-  "heroComparison": "vs {previous}: {delta}",
+  "heroComparison": "frente a {previous}: {delta}",
   "@heroComparison": {
     "placeholders": {
       "previous": {
@@ -321,7 +321,7 @@
     }
   },
   "metricSleepBalance": "Balance de sueño",
-  "metricBalanceSurplus": "superávit · vs objetivo de {goal}",
+  "metricBalanceSurplus": "superávit · frente al objetivo de {goal}",
   "@metricBalanceSurplus": {
     "placeholders": {
       "goal": {
@@ -329,7 +329,7 @@
       }
     }
   },
-  "metricBalanceDebt": "deuda · vs objetivo de {goal}",
+  "metricBalanceDebt": "deuda · frente al objetivo de {goal}",
   "@metricBalanceDebt": {
     "placeholders": {
       "goal": {
@@ -337,7 +337,7 @@
       }
     }
   },
-  "metricBalanceEven": "equilibrio · vs objetivo de {goal}",
+  "metricBalanceEven": "equilibrio · frente al objetivo de {goal}",
   "@metricBalanceEven": {
     "placeholders": {
       "goal": {
@@ -362,7 +362,7 @@
       }
     }
   },
-  "metricNeedsTwoNights": "Faltan 2 noches",
+  "metricNeedsTwoNights": "Necesita 2 noches",
   "durationSignedPositive": "+{duration}",
   "@durationSignedPositive": {
     "placeholders": {
@@ -886,6 +886,8 @@
   "healthPermissionWrite": "Google Health necesita permiso para escribir datos de sueño.",
   "copyFailed": "Algo salió mal. Inténtalo de nuevo.",
   "historyLast30Days": "Solo están disponibles los últimos 30 días",
+  "historyLast30DaysAvailable": "Últimos 30 días disponibles",
+  "historyLast30DaysRange": "los últimos 30 días",
   "historyAllowFullSupport": "Permite el historial completo en Google Health para ver sesiones anteriores.",
   "historyAllowFullAction": "Permitir historial completo",
   "historyPermissionDenied": "Google Health necesita permiso para leer sesiones de sueño anteriores.",

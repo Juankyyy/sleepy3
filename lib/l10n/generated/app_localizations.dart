@@ -2054,6 +2054,18 @@ abstract class AppLocalizations {
   /// **'Only the last 30 days are available'**
   String get historyLast30Days;
 
+  /// No description provided for @historyLast30DaysAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 days available'**
+  String get historyLast30DaysAvailable;
+
+  /// No description provided for @historyLast30DaysRange.
+  ///
+  /// In en, this message translates to:
+  /// **'the last 30 days'**
+  String get historyLast30DaysRange;
+
   /// No description provided for @historyAllowFullSupport.
   ///
   /// In en, this message translates to:

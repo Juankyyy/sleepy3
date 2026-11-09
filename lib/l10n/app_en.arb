@@ -901,6 +901,8 @@
   "healthPermissionWrite": "Google Health needs permission to write sleep.",
   "copyFailed": "Something went wrong. Try again.",
   "historyLast30Days": "Only the last 30 days are available",
+  "historyLast30DaysAvailable": "Last 30 days available",
+  "historyLast30DaysRange": "the last 30 days",
   "historyAllowFullSupport": "Allow full history in Google Health to see older sessions.",
   "historyAllowFullAction": "Allow full history",
   "historyPermissionDenied": "Google Health needs permission to read older sleep sessions.",

@@ -27,15 +27,28 @@ import 'chart_tooltip.dart';
 /// 6dp range bands and the tap-only selection. The row count follows the range
 /// buckets, so the card grows instead of squeezing thirty nights into 180dp.
 class SleepWindowChart extends StatelessWidget {
-  const SleepWindowChart({super.key, required this.insights});
+  const SleepWindowChart({
+    super.key,
+    required this.insights,
+    this.historyLimited = false,
+  });
 
   final SleepInsights insights;
+
+  /// Whether the selected range is wider than the Health Connect history
+  /// permission allows. The card then names the 30 available days instead of
+  /// the range the chips show.
+  final bool historyLimited;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final palette = ChartPalette.of(context);
     final range = chartRangeLabel(l10n, insights.range);
+    final supportRange = historyLimited
+        ? l10n.historyLast30DaysAvailable
+        : range;
+    final spokenRange = historyLimited ? l10n.historyLast30DaysRange : range;
     final scaler = MediaQuery.textScalerOf(context);
     final rowHeight = math.max(24.0, scaler.scale(12) + 10);
     final bottomInset = math.max(
@@ -53,8 +66,8 @@ class SleepWindowChart extends StatelessWidget {
 
     return ChartScene(
       title: l10n.chartSleepWindowTitle,
-      support: l10n.chartSleepWindowSupport(range),
-      semanticSummary: _spokenSummary(context, range),
+      support: l10n.chartSleepWindowSupport(supportRange),
+      semanticSummary: _spokenSummary(context, spokenRange),
       canvasHeight: canvasHeight,
       legend: hasData
           ? [

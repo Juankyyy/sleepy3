@@ -1326,6 +1326,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get historyLast30Days => 'Only the last 30 days are available';
 
   @override
+  String get historyLast30DaysAvailable => 'Last 30 days available';
+
+  @override
+  String get historyLast30DaysRange => 'the last 30 days';
+
+  @override
   String get historyAllowFullSupport =>
       'Allow full history in Google Health to see older sessions.';
 

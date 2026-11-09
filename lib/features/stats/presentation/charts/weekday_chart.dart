@@ -23,20 +23,33 @@ import 'chart_tooltip.dart';
 /// My design decisions (not in M3): the 180dp canvas, the 4dp bar radius and
 /// the small `Best` label above the longest day. M3 has no chart component.
 class WeekdayChart extends StatelessWidget {
-  const WeekdayChart({super.key, required this.insights});
+  const WeekdayChart({
+    super.key,
+    required this.insights,
+    this.historyLimited = false,
+  });
 
   final SleepInsights insights;
+
+  /// Whether the selected range is wider than the Health Connect history
+  /// permission allows. The card then names the 30 available days instead of
+  /// the range the chips show.
+  final bool historyLimited;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final range = chartRangeLabel(l10n, insights.range);
+    final supportRange = historyLimited
+        ? l10n.historyLast30DaysAvailable
+        : range;
+    final spokenRange = historyLimited ? l10n.historyLast30DaysRange : range;
     final hasData = insights.weekdayStats.any((stat) => stat != null);
 
     return ChartScene(
       title: l10n.chartWeekdayTitle,
-      support: l10n.chartWeekdaySupport(range),
-      semanticSummary: _spokenSummary(context, range),
+      support: l10n.chartWeekdaySupport(supportRange),
+      semanticSummary: _spokenSummary(context, spokenRange),
       child: hasData
           ? _WeekdayChartBody(insights: insights)
           : ChartEmptyState(message: l10n.noNightsInRange),
