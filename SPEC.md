@@ -281,6 +281,13 @@ Reglas:
   ayer sin reiniciar la app.
 - Los días se calculan con aritmética de calendario, no restando 24 h, para que un cambio
   de horario (DST) no desplace ni mezcle los grupos.
+- Tras Wake, el historial se relee sin vaciar la lista visible (`refreshHistory`): el
+  resumen actualizado y la línea de sesión siguen en pantalla en lugar de mostrar la
+  tarjeta de carga.
+- La tarjeta de resumen y la tarjeta de carga comparten un alto fijo. Una copia invisible
+  de la tarjeta de resumen con la duración más larga reserva el hueco, y la tarjeta visible
+  lo llena. Así la columna centrada de Home no se recoloca al cargar. El estado de error
+  conserva su tarjeta propia con `Retry`.
 
 ### 3.2 Navegación
 
@@ -759,7 +766,9 @@ Reglas:
     de M3.
   - Reloj en vivo en `displayLarge` emphasized, con segundos, cifras tabulares y
     `AM`/`PM` en `titleMedium` cuando el sistema usa 12 h.
-  - Fecha en `bodyMedium` y línea de sesión en `bodyMedium` emphasized.
+  - Fecha en `bodyMedium` y línea de sesión en `bodyMedium` emphasized. La línea de
+    sesión hace crossfade (220 ms) cuando cambia, para que el paso a «durmiendo» no
+    sea un salto de texto.
   - El reloj es una línea única. Si el tamaño de texto del sistema no cabe en el ancho,
     solo el reloj se reduce; el resto del texto respeta la escala del sistema.
   - La pantalla solo hace scroll cuando el contenido no cabe por encima de la barra
@@ -1184,10 +1193,14 @@ splash.
   cubren carga y error; al cambiar de fuente se vacía la lista visible antes de recargar.
 - `SleepTrackingController.refreshHistory` relee sin vaciar `closedSessions` y devuelve
   `false` si la fuente falla; `reloadHistory` mantiene el vaciado y la tarjeta de carga
-  para Retry, Wake, cambios de fuente y banners. `StatsScreen` monta su propio overlay con
-  `M3ELoadingIndicator` de 48 dp (38 dp activo), captura el pull con
-  `OverscrollNotification`/`ScrollUpdateNotification`, desactiva el overscroll nativo y no
-  transforma el contenido. El empty state comparte el mismo `CustomScrollView`.
+  para Retry, cambios de fuente y banners. `wake()` usa `refreshHistory` para conservar el
+  resumen y la línea de sesión. En Home, el hueco de la tarjeta de resumen/carga tiene un
+  alto fijo: una copia invisible de la tarjeta con la duración más larga lo reserva y la
+  tarjeta visible lo llena, de modo que la columna centrada no se mueve. `StatsScreen`
+  monta su propio overlay con `M3ELoadingIndicator` de 48 dp (38 dp activo), captura el
+  pull con `OverscrollNotification`/`ScrollUpdateNotification`, desactiva el overscroll
+  nativo y no transforma el contenido. El empty state comparte el mismo
+  `CustomScrollView`.
 - `SleepTrackingController.updateClosedSession` y `deleteClosedSession` pasan por
   `SleepSessionEditService` dentro de la misma cola serializada que el resto de escrituras.
   El servicio decide si va primero Health Connect o la fila local, devuelve un resultado

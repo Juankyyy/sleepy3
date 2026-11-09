@@ -44,11 +44,38 @@ class HomeClock extends StatelessWidget {
         const SizedBox(height: 8),
         Semantics(
           liveRegion: true,
-          child: Text(
-            sessionLine,
-            textAlign: TextAlign.center,
-            style: theme.typography.emphasized.bodyMedium.copyWith(
-              color: scheme.onSurfaceVariant,
+          child: AnimatedSwitcher(
+            duration: MediaQuery.maybeOf(context)?.disableAnimations ?? false
+                ? Duration.zero
+                : const Duration(milliseconds: 220),
+            switchInCurve: const Cubic(0.2, 0.8, 0.2, 1),
+            switchOutCurve: const Cubic(0.3, 0, 0.8, 0.15),
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.12),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              ),
+            ),
+            layoutBuilder: (currentChild, previousChildren) => Stack(
+              alignment: Alignment.center,
+              children: [
+                ...previousChildren.map(
+                  (child) => ExcludeSemantics(child: child),
+                ),
+                ?currentChild,
+              ],
+            ),
+            child: Text(
+              sessionLine,
+              key: ValueKey<String>(sessionLine),
+              textAlign: TextAlign.center,
+              style: theme.typography.emphasized.bodyMedium.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
             ),
           ),
         ),

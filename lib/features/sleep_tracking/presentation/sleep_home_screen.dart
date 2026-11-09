@@ -299,7 +299,12 @@ class SleepHomeScreen extends ConsumerWidget {
   }
 }
 
-/// The three-day summary, or the loading/error state of the history.
+/// The three-day summary, or the loading state of the history.
+///
+/// The card keeps one height for the whole load: an invisible reference with
+/// the longest duration copy reserves the slot, and the visible card fills it.
+/// Home centers its content vertically, so a shorter loading card would move
+/// the clock and the action every time the history was read.
 class _HistorySummary extends StatelessWidget {
   const _HistorySummary({
     required this.state,
@@ -307,23 +312,77 @@ class _HistorySummary extends StatelessWidget {
     required this.onRetry,
   });
 
+  /// Same layout as the real summary, with the longest duration copy, so the
+  /// slot is never shorter than the card it will show at the current width and
+  /// text scale.
+  static final _heightReference = RecentSleepSummary(
+    days: [
+      for (var offset = 0; offset < recentSleepSummaryDayCount; offset++)
+        SleepDaySummary(
+          date: DateTime(2000, 1, 1 + offset),
+          duration: const Duration(hours: 23, minutes: 59),
+        ),
+    ],
+    average: const Duration(hours: 23, minutes: 59),
+  );
+
   final SleepTrackingState state;
   final DateTime now;
   final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
-    return switch (state.historyStatus) {
+    final Widget? content = switch (state.historyStatus) {
       SleepHistoryStatus.initial ||
       SleepHistoryStatus.loading => const SleepHistoryLoadingCard(),
-      SleepHistoryStatus.error => SleepHistoryErrorCard(onRetry: onRetry),
       SleepHistoryStatus.ready => RecentSleepSummaryCard(
+        key: const Key('home-history-summary'),
         summary: buildRecentSleepSummary(
           now: now,
           sessions: state.closedSessions,
         ),
       ),
+      SleepHistoryStatus.error => null,
     };
+
+    if (content == null) {
+      return SleepHistoryErrorCard(onRetry: onRetry);
+    }
+
+    return _StableHistorySlot(
+      reference: RecentSleepSummaryCard(
+        key: const Key('home-history-sizer'),
+        summary: _heightReference,
+      ),
+      child: content,
+    );
+  }
+}
+
+/// Reserves the height of [reference] and stretches [child] to fill it.
+///
+/// Both cards are laid out at the same width; the reference stays invisible and
+/// out of the semantics tree, so it only contributes its size.
+class _StableHistorySlot extends StatelessWidget {
+  const _StableHistorySlot({required this.reference, required this.child});
+
+  final Widget reference;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Visibility(
+          visible: false,
+          maintainSize: true,
+          maintainAnimation: true,
+          maintainState: true,
+          child: reference,
+        ),
+        Positioned.fill(child: child),
+      ],
+    );
   }
 }
 

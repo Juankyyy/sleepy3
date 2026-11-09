@@ -20,6 +20,10 @@ class SleepHistoryLoadingCard extends StatelessWidget {
       variant: M3ECardVariant.outlined,
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        // Home stretches this card to the summary height; the content stays
+        // centered inside the fixed slot. Stats gives it loose constraints,
+        // where this alignment has no effect.
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           M3ELoadingIndicator(
             size: 32,

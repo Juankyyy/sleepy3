@@ -17,6 +17,7 @@ import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_contr
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
 import 'package:sleepy3/features/sleep_tracking/presentation/sleep_home_screen.dart';
+import 'package:sleepy3/features/sleep_tracking/presentation/widgets/sleep_history_status.dart';
 import 'package:sleepy3/features/sleep_tracking/presentation/widgets/track_action_button.dart';
 
 import '../../health/fakes.dart';
@@ -75,6 +76,12 @@ void main() {
     await tester.pump();
   }
 
+  /// Text inside the visible summary, ignoring the invisible height reference.
+  Finder summaryText(String text) => find.descendant(
+    of: find.byKey(const Key('home-history-summary')),
+    matching: find.text(text),
+  );
+
   testWidgets('the single action drives the sleep state machine', (
     tester,
   ) async {
@@ -121,7 +128,7 @@ void main() {
     expect(find.text('AM'), findsOneWidget);
     expect(find.text('Wednesday, October 21'), findsOneWidget);
     expect(find.text('Last 3 days · 7h 45m avg'), findsOneWidget);
-    expect(find.text('Today'), findsOneWidget);
+    expect(summaryText('Today'), findsOneWidget);
     expect(store.finishes, hasLength(1));
     buttons = tester.widgetList<M3EButton>(find.byType(M3EButton)).toList();
     expect(buttons, hasLength(1));
@@ -347,9 +354,9 @@ void main() {
     );
 
     expect(find.text('Last 3 days · 7h 30m avg'), findsOneWidget);
-    expect(find.text('Today'), findsOneWidget);
-    expect(find.text('Yesterday'), findsOneWidget);
-    expect(find.text('2 days ago'), findsOneWidget);
+    expect(summaryText('Today'), findsOneWidget);
+    expect(summaryText('Yesterday'), findsOneWidget);
+    expect(summaryText('2 days ago'), findsOneWidget);
     expect(find.text('8h 0m'), findsOneWidget);
     expect(find.text('7h 0m'), findsOneWidget);
     expect(find.text('—'), findsOneWidget);
@@ -378,6 +385,24 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Sleeping since 22:30'), findsOneWidget);
+  });
+
+  testWidgets('crossfades the session line when sleep starts', (tester) async {
+    final now = DateTime(2026, 10, 20, 22, 30);
+    await pumpHome(tester, clock: () => now);
+    expect(find.text('Tap Sleep when you turn off the lights'), findsOneWidget);
+
+    await tester.tap(find.text('Sleep'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    // Both copies coexist during the 220 ms crossfade.
+    expect(find.text('Tap Sleep when you turn off the lights'), findsOneWidget);
+    expect(find.text('Sleeping since 10:30 PM'), findsOneWidget);
+
+    await tester.pumpAndSettle();
+    expect(find.text('Tap Sleep when you turn off the lights'), findsNothing);
+    expect(find.text('Sleeping since 10:30 PM'), findsOneWidget);
   });
 
   testWidgets('exposes the clock and the day/night status to screen readers', (
@@ -554,12 +579,113 @@ void main() {
 
     expect(find.text('Loading sleep history…'), findsOneWidget);
     expect(find.text('Last 3 days · — avg'), findsNothing);
+    expect(
+      tester.getSize(find.byType(SleepHistoryLoadingCard)).height,
+      tester.getSize(find.byKey(const Key('home-history-sizer'))).height,
+    );
 
     store.closedLoadGate!.complete();
     await tester.pumpAndSettle();
 
     expect(find.text('Loading sleep history…'), findsNothing);
     expect(find.text('Last 3 days · — avg'), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const Key('home-history-summary'))).height,
+      tester.getSize(find.byKey(const Key('home-history-sizer'))).height,
+    );
+  });
+
+  testWidgets('keeps the summary slot height at 200% text', (tester) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+    final store = FakeSleepSessionStore(
+      snapshot: SleepSnapshot(
+        closedSessions: [
+          SleepSession(
+            startedAt: DateTime(2026, 10, 20, 22),
+            endedAt: DateTime(2026, 10, 21, 6),
+          ),
+        ],
+      ),
+    )..closedLoadGate = Completer<void>();
+
+    await pumpHome(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      store: store,
+      settle: false,
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.getSize(find.byType(SleepHistoryLoadingCard)).height,
+      tester.getSize(find.byKey(const Key('home-history-sizer'))).height,
+    );
+
+    store.closedLoadGate!.complete();
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.getSize(find.byKey(const Key('home-history-summary'))).height,
+      tester.getSize(find.byKey(const Key('home-history-sizer'))).height,
+    );
+  });
+
+  testWidgets('wake keeps the summary height while the history reloads', (
+    tester,
+  ) async {
+    var now = DateTime(2026, 10, 20, 22, 30);
+    final store = await pumpHome(tester, clock: () => now);
+
+    await tester.tap(find.text('Sleep'));
+    await tester.pumpAndSettle();
+
+    now = now.add(const Duration(hours: 8));
+    await tester.pump(const Duration(seconds: 1));
+
+    final summaryHeight = tester
+        .getSize(find.byKey(const Key('home-history-summary')))
+        .height;
+    final actionTop = tester
+        .getTopLeft(find.byKey(const Key('track-action-surface')))
+        .dy;
+
+    store.closedLoadGate = Completer<void>();
+    await wake(tester);
+    // Let the write queue reach the background history read.
+    for (var pump = 0; pump < 10 && store.closedLoads < 2; pump++) {
+      await tester.pump();
+    }
+
+    expect(store.closedLoads, 2);
+    expect(find.text('Loading sleep history…'), findsNothing);
+    expect(find.text('Last 3 days · 8h 0m avg'), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const Key('home-history-summary'))).height,
+      summaryHeight,
+    );
+    expect(
+      tester.getTopLeft(find.byKey(const Key('track-action-surface'))).dy,
+      actionTop,
+    );
+
+    store.closedLoadGate!.complete();
+    await tester.pumpAndSettle();
+    await tester.pump(TrackActionButton.savedHold);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Last 3 days · 8h 0m avg'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.byKey(const Key('track-action-surface'))).dy,
+      actionTop,
+    );
   });
 
   testWidgets('shows an error card and Retry reloads the history', (

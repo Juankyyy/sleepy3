@@ -214,6 +214,33 @@ void main() {
       },
     );
 
+    test(
+      'wake refreshes the history without dropping the visible rows',
+      () async {
+        create();
+        await controller.historyLoad;
+        await controller.sleep();
+        now = now.add(const Duration(hours: 8));
+        store.closedLoadGate = Completer<void>();
+
+        final wake = controller.wake();
+        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(Duration.zero);
+
+        expect(store.closedLoads, 2);
+        var state = container.read(sleepTrackingControllerProvider);
+        expect(state.historyStatus, SleepHistoryStatus.ready);
+        expect(state.closedSessions, hasLength(1));
+        expect(state.lastSession?.duration, const Duration(hours: 8));
+
+        store.closedLoadGate!.complete();
+        expect(await wake, SleepWakeOutcome.closed);
+        state = container.read(sleepTrackingControllerProvider);
+        expect(state.historyStatus, SleepHistoryStatus.ready);
+        expect(state.closedSessions, hasLength(1));
+      },
+    );
+
     test('a sleep exactly at the recordable minimum is recorded', () async {
       create();
       await controller.historyLoad;

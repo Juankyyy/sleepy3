@@ -99,8 +99,8 @@ class SleepTrackingState {
 ///
 /// Taps update [state] immediately, then persist through an ordered write
 /// queue. The local row is always written, even in Google Health mode, as a
-/// safety copy. The visible closed history is then reloaded from the selected
-/// source.
+/// safety copy. The visible closed history is then refreshed without dropping
+/// the rows already on screen.
 class SleepTrackingController extends Notifier<SleepTrackingState> {
   Future<void> _writeQueue = Future<void>.value();
   final SleepHistoryController _history = SleepHistoryController();
@@ -188,14 +188,16 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
     // In Google Health mode the finished session must reach Health Connect
     // before the visible history is read again. A failure leaves the local
     // row pending; Home and Stats show the sync banner and never mix it into
-    // the Health Connect list until a retry confirms it.
+    // the Health Connect list until a retry confirms it. The read keeps the
+    // ready rows visible, so the summary card and the session line stay on
+    // screen instead of flashing the loading card.
     if (source == SleepDataSource.healthConnect) {
       await ref
           .read(healthSyncControllerProvider.notifier)
           .uploadFinishedSession(finished);
     }
 
-    await reloadHistory();
+    await refreshHistory();
     return SleepWakeOutcome.closed;
   }
 
@@ -376,18 +378,20 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
 
   /// Reloads the closed history from the selected source.
   ///
-  /// Used by the Retry action and after Wake. The open session is untouched.
-  /// The list is cleared and shows the loading state until the read finishes;
-  /// use [refreshHistory] for a manual refresh that keeps the rows visible.
+  /// Used by the Retry action and by loads that must clear the visible list.
+  /// The open session is untouched. The list is cleared and shows the loading
+  /// state until the read finishes; use [refreshHistory] for a reload that
+  /// keeps the rows visible, such as the one after Wake.
   Future<void> reloadHistory() async {
     await _startHistoryLoad();
   }
 
   /// Re-reads the closed history without dropping the rows already on screen.
   ///
-  /// Used by the Stats pull-to-refresh. Returns false only when the selected
-  /// source failed and the visible history was kept. A load superseded by a
-  /// source switch returns true because the new source's load owns the screen.
+  /// Used by the Stats pull-to-refresh and after Wake. Returns false only when
+  /// the selected source failed and the visible history was kept. A load
+  /// superseded by a source switch returns true because the new source's load
+  /// owns the screen.
   Future<bool> refreshHistory() => _startHistoryLoad(keepVisible: true);
 
   Future<bool> _startHistoryLoad({bool keepVisible = false}) {
