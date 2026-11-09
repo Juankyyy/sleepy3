@@ -14,6 +14,8 @@ import '../../../health/domain/sleepy3_health_source.dart';
 import '../../../sleep_tracking/application/sleep_session_edit_service.dart';
 import '../../../sleep_tracking/application/sleep_tracking_controller.dart';
 import '../../../sleep_tracking/domain/session_edit.dart';
+import '../../../sleep_tracking/domain/session_night_context.dart';
+import '../../../sleep_tracking/domain/sleep_history.dart';
 import '../../../sleep_tracking/domain/sleep_session.dart';
 import 'session_form_parts.dart';
 
@@ -27,9 +29,15 @@ Future<SleepSessionEditResult?> showSessionEditor(
   required SleepSession session,
   required SleepDataSource source,
   required SessionEditAccess access,
+  required SleepHistoryRange range,
 }) async {
   if (access == SessionEditAccess.readOnly) {
-    return _showReadOnlySession(context, session: session, source: source);
+    return _showReadOnlySession(
+      context,
+      session: session,
+      source: source,
+      range: range,
+    );
   }
 
   final l10n = context.l10n;
@@ -51,6 +59,7 @@ Future<SleepSessionEditResult?> showSessionEditor(
         session: session,
         source: source,
         access: access,
+        range: range,
         dialogController: dialogController,
       ),
       confirmLabel: l10n.save,
@@ -72,11 +81,13 @@ Future<SleepSessionEditResult?> _showReadOnlySession(
   BuildContext context, {
   required SleepSession session,
   required SleepDataSource source,
+  required SleepHistoryRange range,
 }) {
   final content = SessionEditor(
     session: session,
     source: source,
     access: SessionEditAccess.readOnly,
+    range: range,
   );
   final theme = M3ETheme.of(context);
   final l10n = context.l10n;
@@ -118,6 +129,7 @@ class SessionEditor extends ConsumerStatefulWidget {
     required this.session,
     required this.source,
     required this.access,
+    required this.range,
     this.dialogController,
   }) : assert(session.endedAt != null, 'The editor needs a closed session');
 
@@ -126,6 +138,9 @@ class SessionEditor extends ConsumerStatefulWidget {
 
   /// Whether the session can be changed in the selected source.
   final SessionEditAccess access;
+
+  /// The range selected in Stats, used by the Night context ranking.
+  final SleepHistoryRange range;
 
   /// Keeps the discard confirmation in sync with the draft.
   final M3EDialogController? dialogController;
@@ -461,6 +476,13 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
     final duration = _endedAt.difference(_startedAt);
     final canEdit = _canEdit;
     final now = ref.read(sleepClockProvider)();
+    final state = ref.watch(sleepTrackingControllerProvider);
+    final nightContext = buildSessionNightContext(
+      now: now,
+      session: widget.session.withTimes(_startedAt, _endedAt),
+      sessions: state.closedSessions,
+      range: widget.range,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -496,6 +518,8 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
           onPickDate: _pickEndDate,
           onPickTime: _pickEndTime,
         ),
+        const SizedBox(height: 24),
+        SessionNightContextCard(nightContext: nightContext),
         if (canEdit && _showsHealthNotice) ...[
           const SizedBox(height: 16),
           SessionHealthNotice(

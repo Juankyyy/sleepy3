@@ -39,6 +39,16 @@ void main() {
     );
   }
 
+  /// Seven 8-hour nights ending October 14 through October 20.
+  List<SleepSession> previousNights() => [
+    for (var day = 14; day <= 20; day++)
+      localSession(
+        id: 100 + day,
+        startedAt: DateTime(2026, 10, day - 1, 23),
+        endedAt: DateTime(2026, 10, day, 7),
+      ),
+  ];
+
   Future<FakeSleepSessionStore> pumpStats(
     WidgetTester tester, {
     List<SleepSession> sessions = const [],
@@ -146,6 +156,14 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> tapDeleteSession(WidgetTester tester) async {
+    final delete = find.text('Delete session');
+    await tester.ensureVisible(delete);
+    await tester.pumpAndSettle();
+    await tester.tap(delete);
+    await tester.pumpAndSettle();
+  }
+
   testWidgets('renders the editor in Spanish', (tester) async {
     await pumpStats(
       tester,
@@ -161,6 +179,7 @@ void main() {
     expect(find.text('Me desperté'), findsOneWidget);
     expect(find.text('Guardar'), findsOneWidget);
     expect(find.text('Eliminar sesión'), findsOneWidget);
+    expect(find.text('Contexto de la noche'), findsOneWidget);
   });
 
   testWidgets(
@@ -279,6 +298,127 @@ void main() {
           .first,
     );
     expect(hero.color, Sleepy3Theme.light().colorScheme.primaryContainer);
+  });
+
+  testWidgets('compares the session with the previous seven nights', (
+    tester,
+  ) async {
+    await pumpStats(tester, sessions: [localSession(), ...previousNights()]);
+
+    await openLocalEditor(tester);
+
+    expect(find.text('Night context'), findsOneWidget);
+    expect(find.text('+13m vs your 7-night average'), findsOneWidget);
+    expect(find.text('Bedtime 28m earlier'), findsOneWidget);
+    expect(find.text('Wake 15m earlier'), findsOneWidget);
+    expect(find.text('Longest session in this range'), findsOneWidget);
+    expect(find.text('Not enough nights yet.'), findsNothing);
+  });
+
+  testWidgets('explains when there are not enough nights yet', (tester) async {
+    await pumpStats(tester, sessions: [localSession()]);
+
+    await openLocalEditor(tester);
+
+    expect(find.text('Night context'), findsOneWidget);
+    expect(find.text('Not enough nights yet.'), findsOneWidget);
+    expect(find.text('Longest session in this range'), findsOneWidget);
+    expect(find.textContaining('7-night average'), findsNothing);
+  });
+
+  testWidgets('uses the selected Stats range for the ranking', (tester) async {
+    final olderLonger = localSession(
+      id: 200,
+      startedAt: DateTime(2026, 10, 9, 21),
+      endedAt: DateTime(2026, 10, 10, 6),
+    );
+    await pumpStats(
+      tester,
+      sessions: [localSession(), olderLonger, ...previousNights()],
+    );
+
+    await tester.tap(find.text('Month'));
+    await tester.pumpAndSettle();
+    await openLocalEditor(tester);
+
+    expect(find.text('2nd longest session in this range'), findsOneWidget);
+  });
+
+  testWidgets('uses the Spanish ordinal for the ranking', (tester) async {
+    final olderLonger = localSession(
+      id: 200,
+      startedAt: DateTime(2026, 10, 9, 21),
+      endedAt: DateTime(2026, 10, 10, 6),
+    );
+    await pumpStats(
+      tester,
+      sessions: [localSession(), olderLonger, ...previousNights()],
+      locale: const Locale('es'),
+      use24HourFormat: true,
+    );
+
+    await tester.tap(find.text('Mes'));
+    await tester.pumpAndSettle();
+    await openRow(tester, '22:32 – 06:45');
+
+    expect(find.text('Contexto de la noche'), findsOneWidget);
+    expect(find.text('2.ª sesión más larga de este rango'), findsOneWidget);
+  });
+
+  testWidgets('notes a night split across several sessions', (tester) async {
+    final nap = localSession(
+      id: 2,
+      startedAt: DateTime(2026, 10, 21, 13),
+      endedAt: DateTime(2026, 10, 21, 14),
+    );
+    await pumpStats(
+      tester,
+      sessions: [localSession(), nap, ...previousNights()],
+    );
+
+    await openLocalEditor(tester);
+
+    expect(find.text('One of 2 sessions that night'), findsOneWidget);
+  });
+
+  testWidgets('fits the night context at 200% text', (tester) async {
+    await pumpStats(
+      tester,
+      sessions: [localSession(), ...previousNights()],
+      textScale: 2,
+    );
+
+    await openLocalEditor(tester);
+
+    expect(find.text('Night context'), findsOneWidget);
+    expect(find.text('+13m vs your 7-night average'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('shows the night context in a read-only session', (tester) async {
+    final handle = tester.ensureSemantics();
+    final viewed = HealthSleepSession(
+      uuid: 'other-app',
+      startedAt: DateTime(2026, 10, 20, 22, 32),
+      endedAt: DateTime(2026, 10, 21, 6, 45),
+      sourceId: 'com.sec.android.app.shealth',
+    );
+
+    await pumpStats(
+      tester,
+      source: SleepDataSource.healthConnect,
+      gateway: FakeHealthConnectGateway(sessions: [viewed]),
+    );
+
+    await openRow(tester, '10:32 PM – 6:45 AM');
+
+    expect(find.text('Read-only session'), findsOneWidget);
+    expect(find.text('Night context'), findsOneWidget);
+    expect(find.text('Not enough nights yet.'), findsOneWidget);
+    expect(find.text('Save'), findsNothing);
+    expect(find.text('Delete session'), findsNothing);
+
+    handle.dispose();
   });
 
   testWidgets('keeps the goal mark still when animations are off', (
@@ -750,8 +890,7 @@ void main() {
     final store = await pumpStats(tester, sessions: [localSession()]);
 
     await openLocalEditor(tester);
-    await tester.tap(find.text('Delete session'));
-    await tester.pumpAndSettle();
+    await tapDeleteSession(tester);
 
     expect(find.text('Delete session?'), findsOneWidget);
     await tester.tap(find.text('Delete'));
@@ -796,8 +935,7 @@ void main() {
     );
 
     await openLocalEditor(tester);
-    await tester.tap(find.text('Delete session'));
-    await tester.pumpAndSettle();
+    await tapDeleteSession(tester);
     await tester.tap(find.text('Delete'));
     await tester.pumpAndSettle();
 

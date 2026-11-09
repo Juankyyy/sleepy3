@@ -639,6 +639,78 @@
       }
     }
   },
+  "nightContextTitle": "Night context",
+  "nightContextNotEnough": "Not enough nights yet.",
+  "nightContextDurationDelta": "{delta} vs your {nights, plural, =1{1-night} other{{nights}-night}} average",
+  "@nightContextDurationDelta": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      },
+      "nights": {
+        "type": "int"
+      }
+    }
+  },
+  "nightContextDurationEven": "Same as your {nights, plural, =1{1-night} other{{nights}-night}} average",
+  "@nightContextDurationEven": {
+    "placeholders": {
+      "nights": {
+        "type": "int"
+      }
+    }
+  },
+  "nightContextBedtimeLater": "Bedtime {delta} later",
+  "@nightContextBedtimeLater": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "nightContextBedtimeEarlier": "Bedtime {delta} earlier",
+  "@nightContextBedtimeEarlier": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "nightContextBedtimeEven": "Bedtime on your average",
+  "nightContextWakeLater": "Wake {delta} later",
+  "@nightContextWakeLater": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "nightContextWakeEarlier": "Wake {delta} earlier",
+  "@nightContextWakeEarlier": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "nightContextWakeEven": "Wake on your average",
+  "nightContextLongest": "Longest session in this range",
+  "nightContextRanked": "{ordinal} longest session in this range",
+  "@nightContextRanked": {
+    "placeholders": {
+      "ordinal": {
+        "type": "String"
+      }
+    }
+  },
+  "nightContextSplitNight": "One of {count, plural, =1{1 session} other{{count} sessions}} that night",
+  "@nightContextSplitNight": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "goalDefault": "Your 8h goal",
   "goalMet": "Goal met",
   "goalOver": "Goal met · {delta} over the 8h goal",

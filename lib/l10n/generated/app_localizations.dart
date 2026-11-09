@@ -1508,6 +1508,84 @@ abstract class AppLocalizations {
   /// **'{duration}, {goal}, woke {date}'**
   String sessionHeroSpoken(String duration, String goal, String date);
 
+  /// No description provided for @nightContextTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Night context'**
+  String get nightContextTitle;
+
+  /// No description provided for @nightContextNotEnough.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough nights yet.'**
+  String get nightContextNotEnough;
+
+  /// No description provided for @nightContextDurationDelta.
+  ///
+  /// In en, this message translates to:
+  /// **'{delta} vs your {nights, plural, =1{1-night} other{{nights}-night}} average'**
+  String nightContextDurationDelta(String delta, int nights);
+
+  /// No description provided for @nightContextDurationEven.
+  ///
+  /// In en, this message translates to:
+  /// **'Same as your {nights, plural, =1{1-night} other{{nights}-night}} average'**
+  String nightContextDurationEven(int nights);
+
+  /// No description provided for @nightContextBedtimeLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Bedtime {delta} later'**
+  String nightContextBedtimeLater(String delta);
+
+  /// No description provided for @nightContextBedtimeEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'Bedtime {delta} earlier'**
+  String nightContextBedtimeEarlier(String delta);
+
+  /// No description provided for @nightContextBedtimeEven.
+  ///
+  /// In en, this message translates to:
+  /// **'Bedtime on your average'**
+  String get nightContextBedtimeEven;
+
+  /// No description provided for @nightContextWakeLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Wake {delta} later'**
+  String nightContextWakeLater(String delta);
+
+  /// No description provided for @nightContextWakeEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'Wake {delta} earlier'**
+  String nightContextWakeEarlier(String delta);
+
+  /// No description provided for @nightContextWakeEven.
+  ///
+  /// In en, this message translates to:
+  /// **'Wake on your average'**
+  String get nightContextWakeEven;
+
+  /// No description provided for @nightContextLongest.
+  ///
+  /// In en, this message translates to:
+  /// **'Longest session in this range'**
+  String get nightContextLongest;
+
+  /// No description provided for @nightContextRanked.
+  ///
+  /// In en, this message translates to:
+  /// **'{ordinal} longest session in this range'**
+  String nightContextRanked(String ordinal);
+
+  /// No description provided for @nightContextSplitNight.
+  ///
+  /// In en, this message translates to:
+  /// **'One of {count, plural, =1{1 session} other{{count} sessions}} that night'**
+  String nightContextSplitNight(int count);
+
   /// No description provided for @goalDefault.
   ///
   /// In en, this message translates to:

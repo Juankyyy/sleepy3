@@ -929,6 +929,79 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get nightContextTitle => 'Night context';
+
+  @override
+  String get nightContextNotEnough => 'Not enough nights yet.';
+
+  @override
+  String nightContextDurationDelta(String delta, int nights) {
+    String _temp0 = intl.Intl.pluralLogic(
+      nights,
+      locale: localeName,
+      other: '$nights-night',
+      one: '1-night',
+    );
+    return '$delta vs your $_temp0 average';
+  }
+
+  @override
+  String nightContextDurationEven(int nights) {
+    String _temp0 = intl.Intl.pluralLogic(
+      nights,
+      locale: localeName,
+      other: '$nights-night',
+      one: '1-night',
+    );
+    return 'Same as your $_temp0 average';
+  }
+
+  @override
+  String nightContextBedtimeLater(String delta) {
+    return 'Bedtime $delta later';
+  }
+
+  @override
+  String nightContextBedtimeEarlier(String delta) {
+    return 'Bedtime $delta earlier';
+  }
+
+  @override
+  String get nightContextBedtimeEven => 'Bedtime on your average';
+
+  @override
+  String nightContextWakeLater(String delta) {
+    return 'Wake $delta later';
+  }
+
+  @override
+  String nightContextWakeEarlier(String delta) {
+    return 'Wake $delta earlier';
+  }
+
+  @override
+  String get nightContextWakeEven => 'Wake on your average';
+
+  @override
+  String get nightContextLongest => 'Longest session in this range';
+
+  @override
+  String nightContextRanked(String ordinal) {
+    return '$ordinal longest session in this range';
+  }
+
+  @override
+  String nightContextSplitNight(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sessions',
+      one: '1 session',
+    );
+    return 'One of $_temp0 that night';
+  }
+
+  @override
   String get goalDefault => 'Your 8h goal';
 
   @override

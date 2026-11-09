@@ -624,6 +624,78 @@
       }
     }
   },
+  "nightContextTitle": "Contexto de la noche",
+  "nightContextNotEnough": "Aún no hay suficientes noches.",
+  "nightContextDurationDelta": "{delta} frente a tu media de {nights, plural, =1{1 noche} other{{nights} noches}}",
+  "@nightContextDurationDelta": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      },
+      "nights": {
+        "type": "int"
+      }
+    }
+  },
+  "nightContextDurationEven": "Igual que tu media de {nights, plural, =1{1 noche} other{{nights} noches}}",
+  "@nightContextDurationEven": {
+    "placeholders": {
+      "nights": {
+        "type": "int"
+      }
+    }
+  },
+  "nightContextBedtimeLater": "Te acostaste {delta} más tarde",
+  "@nightContextBedtimeLater": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "nightContextBedtimeEarlier": "Te acostaste {delta} más temprano",
+  "@nightContextBedtimeEarlier": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "nightContextBedtimeEven": "Te acostaste a tu hora media",
+  "nightContextWakeLater": "Te despertaste {delta} más tarde",
+  "@nightContextWakeLater": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "nightContextWakeEarlier": "Te despertaste {delta} más temprano",
+  "@nightContextWakeEarlier": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      }
+    }
+  },
+  "nightContextWakeEven": "Te despertaste a tu hora media",
+  "nightContextLongest": "La sesión más larga de este rango",
+  "nightContextRanked": "{ordinal} sesión más larga de este rango",
+  "@nightContextRanked": {
+    "placeholders": {
+      "ordinal": {
+        "type": "String"
+      }
+    }
+  },
+  "nightContextSplitNight": "Una de {count, plural, =1{1 sesión} other{{count} sesiones}} de esa noche",
+  "@nightContextSplitNight": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "goalDefault": "Tu objetivo de 8 h",
   "goalMet": "Objetivo cumplido",
   "goalOver": "Objetivo cumplido · {delta} por encima del objetivo de 8 h",

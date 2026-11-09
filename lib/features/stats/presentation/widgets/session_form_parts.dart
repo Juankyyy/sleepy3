@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../../l10n/l10n.dart';
 import '../../../sleep_tracking/domain/session_edit.dart';
+import '../../../sleep_tracking/domain/session_night_context.dart';
 import '../../../sleep_tracking/domain/sleep_goal.dart';
 import '../session_edit_error_text.dart';
 import 'sleep_goal_mark.dart';
@@ -276,6 +277,180 @@ class SessionHealthNotice extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Factual context for one session, without implying that it is editable.
+///
+/// From M3: outlined card, 12dp corners, 16dp padding, `titleMedium`
+/// emphasized for the title, `bodyMedium` for the readings and `bodySmall` for
+/// the split-night note.
+/// My design decisions (not in M3): the 20dp leading icons and the 8dp gaps
+/// between readings. The card never uses color alone: every reading spells out
+/// `later`, `earlier` or `on your average`.
+class SessionNightContextCard extends StatelessWidget {
+  const SessionNightContextCard({super.key, required this.nightContext});
+
+  final SessionNightContext nightContext;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = M3ETheme.of(context);
+    final scheme = theme.colorScheme;
+    final l10n = context.l10n;
+    final rank = nightContext.rank;
+
+    return M3ECard(
+      variant: M3ECardVariant.outlined,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Semantics(
+            header: true,
+            child: Row(
+              children: [
+                Icon(
+                  M3EIcons.insights_outlined,
+                  size: 20,
+                  color: scheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    l10n.nightContextTitle,
+                    style: theme.typography.emphasized.titleMedium.copyWith(
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (nightContext.hasComparison) ...[
+            _NightContextLine(
+              icon: _durationIcon(nightContext.durationDelta!),
+              text: _durationText(l10n),
+            ),
+            if (nightContext.bedtimeDelta case final delta?) ...[
+              const SizedBox(height: 8),
+              _NightContextLine(
+                icon: M3EIcons.bedtime_outlined,
+                text: _bedtimeText(l10n, delta),
+              ),
+            ],
+            if (nightContext.wakeDelta case final delta?) ...[
+              const SizedBox(height: 8),
+              _NightContextLine(
+                icon: M3EIcons.wb_sunny_outlined,
+                text: _wakeText(l10n, delta),
+              ),
+            ],
+          ] else
+            Text(
+              l10n.nightContextNotEnough,
+              style: theme.typography.baseline.bodyMedium.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          if (rank != null) ...[
+            const SizedBox(height: 8),
+            _NightContextLine(
+              icon: M3EIcons.emoji_events_outlined,
+              text: rank == 1
+                  ? l10n.nightContextLongest
+                  : l10n.nightContextRanked(l10n.formatOrdinal(rank)),
+            ),
+          ],
+          if (nightContext.isSplitNight) ...[
+            const SizedBox(height: 8),
+            _NightContextLine(
+              icon: M3EIcons.groups_outlined,
+              text: l10n.nightContextSplitNight(nightContext.nightSessionCount),
+              supporting: true,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String _durationText(AppLocalizations l10n) {
+    final delta = nightContext.durationDelta!;
+    if (delta == Duration.zero) {
+      return l10n.nightContextDurationEven(nightContext.baselineNights);
+    }
+    return l10n.nightContextDurationDelta(
+      l10n.formatSignedCompactDuration(delta),
+      nightContext.baselineNights,
+    );
+  }
+
+  String _bedtimeText(AppLocalizations l10n, Duration delta) {
+    final formatted = l10n.formatGoalDelta(delta.abs());
+    if (delta > Duration.zero) return l10n.nightContextBedtimeLater(formatted);
+    if (delta < Duration.zero) {
+      return l10n.nightContextBedtimeEarlier(formatted);
+    }
+    return l10n.nightContextBedtimeEven;
+  }
+
+  String _wakeText(AppLocalizations l10n, Duration delta) {
+    final formatted = l10n.formatGoalDelta(delta.abs());
+    if (delta > Duration.zero) return l10n.nightContextWakeLater(formatted);
+    if (delta < Duration.zero) return l10n.nightContextWakeEarlier(formatted);
+    return l10n.nightContextWakeEven;
+  }
+
+  IconData _durationIcon(Duration delta) {
+    if (delta > Duration.zero) return M3EIcons.arrow_upward_rounded;
+    if (delta < Duration.zero) return M3EIcons.arrow_downward_rounded;
+    return M3EIcons.trending_flat;
+  }
+}
+
+class _NightContextLine extends StatelessWidget {
+  const _NightContextLine({
+    required this.icon,
+    required this.text,
+    this.supporting = false,
+  });
+
+  final IconData icon;
+  final String text;
+
+  /// Supporting notes use `bodySmall` and `onSurfaceVariant`.
+  final bool supporting;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = M3ETheme.of(context);
+    final scheme = theme.colorScheme;
+    final style =
+        (supporting
+                ? theme.typography.baseline.bodySmall
+                : theme.typography.baseline.bodyMedium)
+            .copyWith(
+              color: supporting ? scheme.onSurfaceVariant : scheme.onSurface,
+            );
+
+    return Semantics(
+      container: true,
+      label: text,
+      child: ExcludeSemantics(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Icon(icon, size: 20, color: scheme.onSurfaceVariant),
+            ),
+            const SizedBox(width: 8),
+            Expanded(child: Text(text, style: style)),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -323,6 +323,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
       session: session,
       source: source,
       access: access,
+      range: _range,
     );
     if (!mounted || result == null) return;
 

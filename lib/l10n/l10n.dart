@@ -62,3 +62,23 @@ extension SleepDurationLocalizations on AppLocalizations {
         : durationSignedPositive(formatted);
   }
 }
+
+/// Small copy helpers that are not about durations.
+extension AppLocalizationsFormatting on AppLocalizations {
+  /// A ranking ordinal, `2nd` in English and `2.ª` in Spanish.
+  ///
+  /// The Night context card ranks a session (`la sesión`), so Spanish uses the
+  /// feminine ordinal.
+  String formatOrdinal(int value) {
+    if (localeName.startsWith('es')) return '$value.ª';
+
+    final mod100 = value % 100;
+    if (mod100 >= 11 && mod100 <= 13) return '${value}th';
+    return switch (value % 10) {
+      1 => '${value}st',
+      2 => '${value}nd',
+      3 => '${value}rd',
+      _ => '${value}th',
+    };
+  }
+}
