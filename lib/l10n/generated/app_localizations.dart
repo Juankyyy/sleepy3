@@ -554,6 +554,60 @@ abstract class AppLocalizations {
   /// **'Wake'**
   String get wakeAction;
 
+  /// No description provided for @slideToWake.
+  ///
+  /// In en, this message translates to:
+  /// **'Slide to wake'**
+  String get slideToWake;
+
+  /// No description provided for @slideToWakeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Slide the circle to the right, or double tap to confirm.'**
+  String get slideToWakeHint;
+
+  /// Replaces the elapsed time during the first minute of an open sleep session.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get wakeSlideJustNow;
+
+  /// Accessible label for the Wake slide during the first minute of an open sleep session.
+  ///
+  /// In en, this message translates to:
+  /// **'You just fell asleep. Slide to wake.'**
+  String get wakeSlideJustNowSemantics;
+
+  /// Accessible label for the Wake slide while a sleep session is open.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleeping for {duration}. Slide to wake.'**
+  String wakeSlideSemantics(String duration);
+
+  /// No description provided for @savingSession.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving session'**
+  String get savingSession;
+
+  /// No description provided for @sessionSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Session saved'**
+  String get sessionSaved;
+
+  /// No description provided for @sessionDiscarded.
+  ///
+  /// In en, this message translates to:
+  /// **'Session discarded'**
+  String get sessionDiscarded;
+
+  /// No description provided for @sessionSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the session'**
+  String get sessionSaveFailed;
+
   /// No description provided for @dayStatus.
   ///
   /// In en, this message translates to:

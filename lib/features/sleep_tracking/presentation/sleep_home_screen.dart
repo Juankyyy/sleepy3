@@ -28,6 +28,7 @@ class SleepHomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(sleepTrackingControllerProvider);
     final controller = ref.read(sleepTrackingControllerProvider.notifier);
+    final open = state.openSession;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Padding(
@@ -69,9 +70,12 @@ class SleepHomeScreen extends ConsumerWidget {
                             const SizedBox(height: 32),
                             TrackActionButton(
                               isSleeping: state.isSleeping,
+                              sleepDuration: open == null
+                                  ? null
+                                  : now.difference(open.startedAt),
                               onSleep: () => unawaited(controller.sleep()),
-                              onWake: () =>
-                                  unawaited(_wake(context, ref, state, now)),
+                              onWake: (onSaving) =>
+                                  _wake(context, ref, state, now, onSaving),
                             ),
                             // 16dp between the action and the summary.
                             const SizedBox(height: 16),
@@ -96,42 +100,52 @@ class SleepHomeScreen extends ConsumerWidget {
     );
   }
 
-  /// Confirms or fixes an out-of-range sleep, then lets the controller state
-  /// machine run. The controller still rules: it re-checks the clock when the
-  /// user confirms, so a sleep that crossed a limit while a dialog was open is
-  /// handled with the fresh times, and it discards without a dialog when Wake
-  /// reaches it through another path.
-  Future<void> _wake(
+  /// Confirms or fixes an out-of-range sleep, then closes it.
+  ///
+  /// The controller still rules: it re-checks the clock when the user confirms,
+  /// so a sleep that crossed a limit while a dialog was open is handled with
+  /// the fresh times, and it discards without a dialog when Wake reaches it
+  /// through another path. [onSaving] runs only when a write will happen, after
+  /// the dialogs, so the slide never shows "Saving session" behind one. A null
+  /// result means the user chose to keep sleeping.
+  Future<SleepWakeOutcome?> _wake(
     BuildContext context,
     WidgetRef ref,
     SleepTrackingState state,
     DateTime now,
+    VoidCallback onSaving,
   ) async {
     final open = state.openSession;
-    if (open == null) return;
+    if (open == null) return null;
 
     final controller = ref.read(sleepTrackingControllerProvider.notifier);
     final duration = now.difference(open.startedAt);
+    var discard = false;
 
     if (duration < minimumRecordableSleep) {
       final confirmed = await _confirmShortSleepDiscard(context);
-      if (confirmed != true) return; // Keep sleeping: nothing was recorded.
+      if (confirmed != true) {
+        return null; // Keep sleeping: nothing was recorded.
+      }
+      discard = true;
     } else if (duration >= maximumRecordableSleep) {
-      if (!context.mounted) return;
+      if (!context.mounted) return null;
       final action = await _resolveLongSleep(context);
       switch (action) {
         case null:
-          return; // Keep sleeping: nothing was recorded.
+          return null; // Keep sleeping: nothing was recorded.
         case _LongSleepAction.discard:
-          break;
+          discard = true;
         case _LongSleepAction.editStart:
-          if (!context.mounted) return;
+          if (!context.mounted) return null;
           final fixed = await _fixOpenSessionStart(context, ref, open);
-          if (!fixed) return;
+          if (!fixed) return null;
       }
     }
 
-    await controller.wake();
+    if (!context.mounted) return null;
+    if (!discard) onSaving();
+    return controller.wake();
   }
 
   Future<bool?> _confirmShortSleepDiscard(BuildContext context) {

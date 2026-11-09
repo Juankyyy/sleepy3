@@ -10,15 +10,15 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue" alt="GPL-3.0 license"></a>
 </p>
 
-**Sleep tracking with one button and nothing to fill in.** Tap **Sleep** when you go to bed; the button becomes **Wake** until you get up. Sleepy3 keeps the exact times on your phone and stays out of your way.
+**Sleep tracking with one control and nothing to fill in.** Tap **Sleep** when you go to bed; the control shows the live sleep duration and a slide to wake until you get up. Sleepy3 keeps the exact times on your phone and stays out of your way.
 
 ## Why Sleepy3
 
-- **Two taps.** One button starts the night, the other ends it. No forms, no timers, no guessing.
+- **Two moves.** Tap Sleep to start the night; slide to wake when you get up. No forms, no timers, no guessing.
 - **A reminder if you want one.** Choose a time in Settings and Sleepy3 sends a local notification so you do not forget to tap Sleep. It never fires while a night is already in progress.
 - **Your last nights at a glance.** Home shows today, yesterday and the day before with a three-day average and bars against an eight-hour goal.
 - **Nothing leaves your phone.** There is no account, no server of ours and no analytics. Health Connect is optional, and the reminder is scheduled on the device.
-- **Designed for 3 a.m.** Big buttons, one-hand use, a clear awake/sleeping state and light and dark themes that follow your phone.
+- **Designed for 3 a.m.** A big Sleep button, a slide to wake, one-hand use, a clear awake/sleeping state and light and dark themes that follow your phone.
 
 ## Download and install
 
@@ -32,8 +32,8 @@ Sleepy3 runs on **Android 9 or newer**. Version **0.2.1** is the latest stable r
 
 ## How to use it
 
-1. Tap **Sleep** when you go to bed. The button becomes **Wake**, the header switches to a sleeping state and the clock keeps running.
-2. Tap **Wake** when you get up. Sleepy3 saves the night, the button returns to **Sleep** and shows how long you slept.
+1. Tap **Sleep** when you go to bed. The control shows the live sleep duration, a small slide to wake hint and a breathing moon; the header switches to a sleeping state and the clock keeps running.
+2. Slide to wake when you get up. Sleepy3 shows **Saving session** while it stores the night, then **Session saved**; the button returns to **Sleep** and shows how long you slept.
 3. Open **Stats** to review or fix your history, use the plus button to add a night you forgot to track, and **Settings** for the theme, the 12/24-hour clock, the language, the nightly reminder and Health Connect.
 
 Use the floating glass dock at the bottom to move between **Home**, **Stats** and **Settings**; the selected destination shows its label, and the content stays visible behind the dock.
@@ -51,7 +51,7 @@ The header always tells you what is happening:
 | Sleeping | `Sleeping since 10:30 PM` |
 | Just woke up | `Last session: 7h 45m` |
 
-Day is 07:00–18:59 and night is 19:00–06:59, in local time. The clock, the session times and the time pickers use the `12-hour` or `24-hour` format chosen in Settings; until you choose one, Sleepy3 uses your phone's format and stores it. Home shows only the action that matches your state: **Sleep** while you are awake and **Wake** while a night is open. After the action changes, Sleepy3 ignores taps for a moment so a double tap cannot close the session it just started.
+Day is 07:00–18:59 and night is 19:00–06:59, in local time. The clock, the session times and the time pickers use the `12-hour` or `24-hour` format chosen in Settings; until you choose one, Sleepy3 uses your phone's format and stores it. Home shows only the action that matches your state: **Sleep** while you are awake and the **slide to wake** while a night is open. The Sleep button takes the M3 pressed shape while you hold it; when the night starts, a soft light sweep crosses the control once and the moon settles into the sleeping row. While a night is open, the control shows the live duration (`3h 42m`, or `Just now` during the first minute) and a small slide hint; the moon and the arrow animate once when you enter the sleeping state. The slide must reach the end: the 104 dp button travels to the right and leaves a 50% trail of its own color, then it shows **Saving session**, then **Session saved**, before the Sleep button returns. After the action changes, Sleepy3 ignores drags and taps for a moment so a second gesture cannot close the session it just started.
 
 Health Connect only accepts sleep sessions between 10 minutes and 24 hours. If a night falls outside that range, Sleepy3 asks first: you can keep sleeping, discard the session or move its start time.
 

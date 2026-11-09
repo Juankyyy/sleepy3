@@ -265,6 +265,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String get wakeAction => 'Wake';
 
   @override
+  String get slideToWake => 'Slide to wake';
+
+  @override
+  String get slideToWakeHint =>
+      'Slide the circle to the right, or double tap to confirm.';
+
+  @override
+  String get wakeSlideJustNow => 'Just now';
+
+  @override
+  String get wakeSlideJustNowSemantics =>
+      'You just fell asleep. Slide to wake.';
+
+  @override
+  String wakeSlideSemantics(String duration) {
+    return 'Sleeping for $duration. Slide to wake.';
+  }
+
+  @override
+  String get savingSession => 'Saving session';
+
+  @override
+  String get sessionSaved => 'Session saved';
+
+  @override
+  String get sessionDiscarded => 'Session discarded';
+
+  @override
+  String get sessionSaveFailed => 'Couldn\'t save the session';
+
+  @override
   String get dayStatus => 'Day · ready to wake';
 
   @override

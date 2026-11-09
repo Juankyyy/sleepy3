@@ -104,6 +104,30 @@
   "healthPermissionReadWrite": "Google Health needs permission to read and write sleep.",
   "sleepAction": "Sleep",
   "wakeAction": "Wake",
+  "slideToWake": "Slide to wake",
+  "slideToWakeHint": "Slide the circle to the right, or double tap to confirm.",
+  "wakeSlideJustNow": "Just now",
+  "@wakeSlideJustNow": {
+    "description": "Replaces the elapsed time during the first minute of an open sleep session."
+  },
+  "wakeSlideJustNowSemantics": "You just fell asleep. Slide to wake.",
+  "@wakeSlideJustNowSemantics": {
+    "description": "Accessible label for the Wake slide during the first minute of an open sleep session."
+  },
+  "wakeSlideSemantics": "Sleeping for {duration}. Slide to wake.",
+  "@wakeSlideSemantics": {
+    "description": "Accessible label for the Wake slide while a sleep session is open.",
+    "placeholders": {
+      "duration": {
+        "type": "String",
+        "example": "3h 42m"
+      }
+    }
+  },
+  "savingSession": "Saving session",
+  "sessionSaved": "Session saved",
+  "sessionDiscarded": "Session discarded",
+  "sessionSaveFailed": "Couldn't save the session",
   "dayStatus": "Day · ready to wake",
   "nightStatus": "Night · time to rest",
   "dayStatusSpoken": "Day, ready to wake",

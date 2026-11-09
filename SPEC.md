@@ -148,8 +148,8 @@ dart run tool/apply_release_notes.dart v0.2.1
 
 Sleepy3 es una app Android de registro de sueño con fricción cero.
 
-- Una acción grande que cambia entre **Sleep** y **Wake** según el estado. Sin
-  formularios, sin cuentas, sin onboarding obligatorio.
+- Una acción grande: **Sleep** con un toque y un deslizamiento para confirmar que te has
+  despertado. Sin formularios, sin cuentas, sin onboarding obligatorio.
 - Guarda la hora exacta de inicio y fin de cada sesión.
 - Los datos son locales por defecto. No hay backend ni nube propia.
 - Health Connect es opcional: el usuario elige `Local` o `Google Health` como fuente de
@@ -183,18 +183,43 @@ funcionar bien de noche, con una sola mano y con el teléfono bloqueado o desblo
 |---|---|---|
 | Despierto, sin sesión previa, de día | Sleep | `No active session` |
 | Despierto, sin sesión previa, de noche | Sleep | `Tap Sleep when you turn off the lights` |
-| Durmiendo | Wake | `Sleeping since HH:MM` |
+| Durmiendo | Duración en vivo + Slide to wake | `Sleeping since HH:MM` |
 | Despierto, con sesión previa | Sleep | `Last session: 7h 45m` |
 
-Home muestra una sola acción, siempre habilitada: la que corresponde al estado. El
-controlador conserva sus propias guardas (`sleep()` no hace nada con una sesión abierta y
-`wake()` no hace nada sin ella) para los caminos que no pasan por Home, como el futuro
-widget.
+Home muestra una sola acción, siempre habilitada: el botón **Sleep** o el deslizamiento
+**Wake**. El controlador conserva sus propias guardas (`sleep()` no hace nada con una
+sesión abierta y `wake()` no hace nada sin ella) para los caminos que no pasan por Home,
+como el futuro widget.
 
 Reglas:
 
 - Un toque en **Sleep** abre una sesión con la hora actual y la persiste.
-- Un toque en **Wake** cierra la sesión abierta, calcula la duración y la persiste.
+- Un deslizamiento en **Wake** que llegue al 80 % del recorrido y se suelte cierra la
+  sesión abierta, calcula la duración y la persiste. El botón blanco de 104 dp viaja con
+  el dedo y deja detrás un rastro `onPrimary` al 50 %. Si se suelta a partir del 80 %, el
+  botón termina de viajar solo hasta el extremo derecho, donde queda a 16 dp del borde
+  con la flecha visible en `primary`; la pista `primary` queda alrededor. El 80 % es una
+  decisión de producto: el último 20 % es margen para el pulgar. Al soltar, **Saving
+  session** permanece al menos 1,2 s mientras se escribe la copia local y, si corresponde,
+  Health Connect; el texto va a la izquierda y el indicador de M3 a la derecha, con una
+  figura visible de 84 dp en una caja de layout de 84 dp (su caja interna de 106 dp queda
+  centrada por la proporción 38:48 y los 11 dp transparentes de cada lado no cuentan), de
+  modo que el hueco texto-figura es 16 dp, igual que en Guardada. Después la pista queda
+  en `primary` con el sello Amanecer (`sunny` + check) y **Session saved** durante 1,2 s,
+  y vuelve el botón **Sleep**. Soltar antes del 80 % no guarda nada y devuelve el botón al
+  inicio. Los diálogos de sueño corto/largo se resuelven antes de mostrar **Saving
+  session**; si el usuario elige seguir durmiendo, el botón vuelve al inicio y el control
+  queda accionable. La confirmación se mantiene aunque el estado ya sea «despierto». Un
+  descarte muestra **Session discarded**; un fallo inesperado, **Couldn't save the
+  session**.
+- Mientras la sesión está abierta, el control muestra la duración compacta en la cara del
+  reloj (`3 h 42 min` / `3h 42m`) y, debajo, `Desliza para despertar`. Durante el primer
+  minuto muestra `Ahora` / `Just now`. La duración cambia al cambiar el minuto; no hay un
+  temporizador propio, Home ya reconstruye el control con el reloj en vivo. Una luna de
+  20 dp respira y la flecha se desplaza 5 dp dos veces en una entrada de 5,6 s que se
+  detiene al arrastrar y se repite al volver a la app. Con movimiento reducido la entrada
+  no se reproduce. La etiqueta accesible combina la duración y la acción; el cambio de
+  minuto no se anuncia como región viva, pero el estado de guardado sí.
 - Una sesión de menos de 10 minutos nunca se registra, en ninguna de las dos fuentes: es
   el mínimo que Health Connect acepta y los registros tan cortos son irreales. Home lo
   pregunta con un diálogo `Sleep too short` (`Keep sleeping` / `Discard session`); si el
@@ -627,16 +652,29 @@ Reglas:
 
 - Objetivo táctil mínimo de 48 × 48 dp.
 - Etiquetas visibles y descripciones accesibles.
-- Foco visible en botones.
-- Respetar el tamaño de texto del sistema; el botón único ocupa el ancho disponible y su
-  etiqueta no se trunca, incluso con el 200 % de texto.
-- El botón siempre está habilitado: Home solo muestra la acción que corresponde al estado.
-- El cambio entre Sleep y Wake hace un rise-through de 350 ms: el icono y la etiqueta
-  suben 28 dp y se desvanecen, y el contenido nuevo entra desde abajo con la curva de
-  spring espacial expresivo de M3; la opacidad no rebota. Con movimiento reducido el
-  cambio es inmediato.
-- Tras cambiar de acción, una guarda de 400 ms ignora toques (decisión de producto) para
-  que un doble toque no cierre la sesión que se acaba de abrir.
+- Foco visible en botones. El anillo del deslizamiento Wake es solo para teclado
+  (`FocusHighlightMode.traditional`): arrastrar con el dedo no enfoca el control ni deja
+  el borde puesto.
+- Respetar el tamaño de texto del sistema; la etiqueta del botón Sleep y las del
+  deslizamiento se ajustan sin truncarse, incluso con el 200 % de texto.
+- El control dormido mantiene visibles la duración y `Desliza para despertar` sin
+  truncarse al 200 %. La entrada de la luna y la flecha es de una sola pasada y respeta
+  el movimiento reducido; el cambio de minuto no se anuncia como región viva, pero el
+  estado de guardado sí.
+- Home solo muestra la acción que corresponde al estado y siempre está habilitada.
+- El deslizamiento Wake expone una acción de botón para lectores de pantalla: doble
+  toque completa el gesto sin arrastrar. También responde a Enter/Espacio y a las
+  flechas. El control mantiene el objetivo táctil de 104 dp y el estado *dragged* del
+  16 %. El botón blanco viaja hasta el extremo derecho y deja un rastro `onPrimary` al
+  50 %; la flecha permanece en `primary` al 100 %.
+- El cambio entre Sleep y Wake hace un morph de forma de 350 ms entre el cuadrado de
+  28 dp y la píldora de 68 dp. Con movimiento reducido el cambio es inmediato.
+- El cierre usa el sello `sunny` de M3 (Amanecer), que entra girando 360° hacia la
+  derecha mientras sube el fade y se detiene; el check entra después, cuando el sol ya
+  está quieto, y el texto desde la izquierda. Con movimiento reducido aparece
+  directamente.
+- Tras cambiar de acción, una guarda de 400 ms ignora arrastres y toques (decisión de
+  producto) para que un segundo gesto no cierre la sesión que se acaba de abrir.
 - La recarga de Stats es solo por gesto (decisión de producto). Para lectores de pantalla
   hay una acción `Refresh sleep history`; M3 pide además una acción visible sin gesto (por
   ejemplo, un icono `Refresh` en la cabecera), pendiente. El indicador expone
@@ -727,17 +765,68 @@ Reglas:
   - La pantalla solo hace scroll cuando el contenido no cabe por encima de la barra
     flotante. El padding inferior de `MediaQuery` (alto de la barra más inset del sistema)
     no añade recorrido por sí mismo.
-  - Un `M3EButton.icon` XL de 136 dp de alto, forma square (radio 28 dp), estilo
-    `filled`, icono leading de 40 dp y etiqueta `labelLarge`. Muestra Sleep (luna) o
-    Wake (sol) según el estado, nunca ambos, y siempre está habilitado. Usa
-    `primary`/`onPrimary`. El padding horizontal de 64 dp es el token XL; la etiqueta
-    `labelLarge` es una decisión de diseño (el token XL usa un rol tipográfico mayor).
-  - El contenedor no se mueve: el icono y la etiqueta suben 28 dp y se desvanecen en el
-    primer 35 % del cambio; el contenido nuevo entra desde 28 dp por debajo con la curva
-    de spring espacial expresivo de M3 y un fade corto en el 65 % restante. Total:
-    350 ms (decisión de diseño). El desplazamiento es espacial y la opacidad no rebota.
-    Con movimiento reducido el cambio es inmediato. Una guarda de 400 ms ignora toques
-    después del cambio para que un doble toque no cierre la sesión recién creada.
+  - El estado despierto usa un `M3EButton.icon` XL de 136 dp de alto, forma square
+    (radio 28 dp), estilo `filled`, icono leading de 40 dp (luna) y etiqueta
+    `titleLarge` emphasized (22/28/0) con `Sleepy3Theme.brandTitle` (Google Sans Flex
+    900, `opsz` 28) dentro de un `FittedBox`. Usa `primary`/`onPrimary`; el padding
+    horizontal de 64 dp es el token XL. M3 documenta `labelLarge` para botones y el
+    componente XL de M3E usa `titleLarge`; la fuente de marca a 22 dp es una decisión
+    de diseño.
+  - La pulsación del botón Sleep usa el radio pressed de M3: 28 → 16 dp en 200 ms y una
+    escala de 0.98, con state layer del 10 % y un háptico ligero al apoyar el dedo. Al
+    soltar, la superficie continúa desde 16 dp hasta el radio 68 dp de la píldora; la
+    sesión se crea en el instante del toque, no al terminar la animación. En la
+    transición despierto → durmiendo, un velo `onPrimary` al 14 % cruza la superficie
+    una vez (520 ms, curva effects) y la luna de la fila aterriza con medio giro
+    (420 ms, spatial fast). La escala y el velo son decisiones de producto; los radios,
+    el state layer y las curvas son M3. Con movimiento reducido no se reproduce el velo
+    ni el aterrizaje y el cambio es inmediato. El aterrizaje no se repite al restaurar
+    una sesión abierta.
+  - El estado durmiendo usa un control propio de 136 dp: una pista `primary` de 68 dp de
+    radio con un botón `onPrimary` de 104 dp y radio 52, y una flecha en `primary`. El
+    botón viaja de `left: 16` a `left: 208` (16 dp de inset + 192 de recorrido) y deja
+    detrás un rastro `onPrimary` al 50 % de 104 dp de alto y ancho `104 + offset`; en
+    reposo el rastro queda oculto bajo el botón.
+    La línea principal es la duración compacta de la sesión (`3 h 42 min` / `3h 42m`,
+    `Ahora` / `Just now` durante el primer minuto), precedida por una luna de 20 dp; debajo
+    va `Slide to wake` a 14 dp. La duración usa `Sleepy3Theme.clock` sobre
+    `headlineSmall` emphasized (24/32, Space Grotesk 700 con cifras tabulares) y la pista
+    usa `Sleepy3Theme.brandTitle` sobre `labelLarge` (14/20, Google Sans Flex 900). El
+    bloque de texto empieza 24 dp después del borde del botón en reposo (`space300` de la
+    escala de 8 dp); el ancho restante se ajusta con `FittedBox`. La luna respira y la
+    flecha se desplaza dos veces en una entrada de 5,6 s que no se repite en bucle y se
+    detiene al arrastrar; al volver a la app se reproduce una vez. Con movimiento reducido
+    no se reproduce. El 80 % del recorrido es el umbral de confirmación (decisión de
+    producto: el último 20 % es margen para el pulgar). Al soltar a partir de ahí, el botón
+    termina de viajar hasta el extremo derecho y queda a 16 dp del borde con la flecha
+    `primary`, con 192 dp de rastro al 50 % sobre la pista. Entonces el botón y el rastro
+    se ocultan, la pista `primary` muestra el indicador de guardado y el texto «Saving
+    session»; el mínimo es 1,2 s. El texto queda a la izquierda y el `M3ELoadingIndicator`
+    a la derecha, dentro de una caja de layout de 84 dp: su caja interna de 106 dp (38:48)
+    queda centrada, los 11 dp transparentes de cada lado no cuentan y el hueco
+    texto-figura es 16 dp, igual que en Guardada. Al entrar en Guardada, la fila
+    `Saving session` se desvanece primero (≈150 ms) y `Session saved` entra después
+    (≈150–300 ms) con un desplazamiento vertical corto, sin solaparse con la fila de
+    guardado. La píldora queda en `primary` con el sello Amanecer (`sunny` de la
+    biblioteca de formas de M3, `onPrimary`) y el check en `primary`. El sol aterriza con
+    la curva spatial fast de M3 (0.42, 1.67, 0.21, 0.90, 350 ms): escala de 0.5 a 1 y medio
+    giro (−180° a 0°) con un pequeño overshoot. Empieza a aparecer a ≈75 ms, antes de que
+    termine la salida del texto de guardado, para no dejar la píldora vacía. El check entra
+    a ≈273 ms con la curva effects fast (0.31, 0.94, 0.34, 1.00, 150 ms). La píldora hace
+    un beat de 1,5 % (1 → 1.015 → 1) durante 350 ms. La pausa es 1,2 s y vuelve el botón
+    Sleep. La secuencia y el beat son decisiones de producto; las curvas son los fallbacks
+    web de M3. Un descarte usa `error`/`onError`, «Session discarded» y el icono
+    `M3EIcons.cancel_outlined` de 40 dp; un fallo, «Couldn't save the session» y
+    `M3EIcons.error_outline_rounded`. En los tres resultados, la etiqueta y el icono
+    (o el sol de 84 dp en el guardado) forman un grupo centrado con 16 dp entre ambos,
+    y el icono o sol queda a la derecha del texto. `Saving session`, `Session saved`,
+    `Session discarded` y `Couldn't save the session` comparten el estilo del botón
+    Sleep: `titleLarge` emphasized con `Sleepy3Theme.brandTitle` (22/28, Google Sans
+    Flex 900).
+  - El control conserva el tamaño y la posición; el radio pasa de 68 dp a 28 dp y el
+    relleno de `primary` a `error` en el descarte y el fallo. Una guarda de 400 ms ignora
+    arrastres y toques después del cambio. El texto se ajusta con `FittedBox` al 200 % y
+    cuando una cadena larga no cabe a 22 dp.
   - Tarjeta de resumen `M3ECard` outlined (radio 12 dp, padding 16 dp):
     - título `Last 3 days · {avg} avg` en `titleMedium` emphasized;
     - tres columnas `Today` / `Yesterday` / `2 days ago` con etiquetas
@@ -856,7 +945,11 @@ Reglas:
 | Elemento | Texto |
 |---|---|
 | Acción de dormir | `Sleep` |
-| Acción de despertar | `Wake` |
+| Acción de despertar | `Slide to wake` |
+| Guardando | `Saving session` |
+| Guardada | `Session saved` |
+| Descartada | `Session discarded` |
+| Fallo al guardar | `Couldn't save the session` |
 | Sin sesión, de día | `No active session` |
 | Sin sesión, de noche | `Tap Sleep when you turn off the lights` |
 | Chip de día | `Day · ready to wake` |
@@ -1401,8 +1494,15 @@ dart run tool/generate_brand_assets.dart
 - Persistencia: alta, cierre, restauración, sesiones abiertas duplicadas, carga de todo
   el historial cerrado, descarte de la sesión abierta, cambio del inicio de la sesión
   abierta y purga de filas locales fuera de rango no sincronizadas al arrancar.
-- UI: estado inicial, botón único Sleep/Wake, cambio de acción, guarda de doble toque,
-  restauración y layout a 360 dp.
+- UI: estado inicial, botón Sleep, deslizamiento Wake, duración en vivo (incluido el
+  primer minuto), botón viajero + rastro al 50 %, umbral del 80 % con recorrido completo al
+  soltar, flecha visible al final, guardado mínimo (1,2 s) con la figura de 84 dp a la
+  derecha y hueco de 16 dp,
+  sello Amanecer `sunny` + check, handoff de guardado (salida de `Saving session`,
+  aterrizaje del sello y entrada del texto/check), beat de 1,5 %, descarte
+  (`cancel_outlined`)/fallo (`error_outline_rounded`), guarda de
+  doble gesto, pulsación 28 → 16 dp, velo de noche, aterrizaje de la luna al dormir,
+  semántica, reduce motion, restauración y layout a 360 dp/200 %.
 - Cabecera, reloj en vivo y línea de sesión: formato 12/24 h, límites día/noche, timer,
   cambio de fecha y layout con texto al 200 %.
 - Resumen de 3 días: agrupación por día de despertar, sesiones que cruzan medianoche,
@@ -1480,7 +1580,7 @@ dart run tool/generate_brand_assets.dart
 ### Hecho
 
 - Scaffold Flutter Android.
-- Pantalla principal con un botón contextual y estado Sleep/Wake.
+- Pantalla principal con el botón Sleep y el deslizamiento Wake.
 - Tema M3 Expressive fijo con la paleta de marca, Space Grotesk empaquetada y los títulos
   en Google Sans Flex instanciada.
 - Persistencia Drift y restauración de sesión abierta.

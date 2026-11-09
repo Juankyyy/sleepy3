@@ -13,6 +13,10 @@ import 'package:material_ui/material_ui.dart';
 /// Type role mapping used by the screens:
 /// - page titles (Sleepy3, Stats, Settings): [brandTitle], the instanced
 ///   Google Sans Flex face;
+/// - action control primary labels (Sleep, saving and results): [brandTitle]
+///   over emphasized `titleLarge` (22 sp);
+/// - sleeping duration: [clock] over emphasized `headlineSmall` (24 sp);
+/// - sleeping slide hint: [brandTitle] over `labelLarge` (14 sp);
 /// - live clock: [clock], Space Grotesk 700 with tabular figures;
 /// - date and supporting copy: `bodyMedium`;
 /// - session line: emphasized `bodyMedium`;
@@ -69,7 +73,8 @@ abstract final class Sleepy3Theme {
     );
   }
 
-  /// The live clock: Space Grotesk at 700 with tabular figures.
+  /// The live clock and the sleeping duration: Space Grotesk at 700 with
+  /// tabular figures.
   ///
   /// M3's emphasized `displayLarge` is Medium (500) and the scale tops out at
   /// Bold (700); 700 here is a Sleepy3 design decision. The explicit

@@ -14,7 +14,8 @@ local session history, and Health Connect as an optional data source.
 - Platform features that cannot run in Flutter (the widget, Health Connect manifest
   entries, app labels) stay in the Android layer behind small, documented bridges.
 - Current state: v0.2.1 is the latest stable release (without the home-screen widget). The
-  single contextual Sleep/Wake action on Home, the sleep state machine, Drift persistence,
+  single contextual Sleep/Wake action on Home, the live sleeping duration and its
+  entrance cue, the sleep state machine, Drift persistence,
   Stats history with tonal cards, pull-to-refresh, goal marks and their animation, the
   session panel, manual session entry from the Stats FAB, session editing/deleting and
   read-only details for other apps' records, Settings (theme, 12/24-hour time, English /
@@ -69,7 +70,8 @@ lib/
   `package:flutter/material.dart` in app code.
 - Type: Space Grotesk (`wght` 300–700 only) covers the M3 scale. The live clock uses it
   at 700 through `Sleepy3Theme.clock`; M3's emphasized `displayLarge` is 500, so the
-  weight is a design decision. The home brand and the Stats/Settings page titles use
+  weight is a design decision. The home brand, the Stats/Settings page titles and the
+  action control labels (Sleep, slide, saving and results) at `titleLarge` 22 sp use
   `GoogleSansFlexTitles`, an instanced Google Sans Flex with `wght` 900, `wdth` 112.5
   and `ROND` 35 baked in and only `opsz` live (28–32). Apply it through
   `Sleepy3Theme.brandTitle`; those axes are also a design decision outside M3

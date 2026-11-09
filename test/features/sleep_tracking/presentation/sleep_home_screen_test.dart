@@ -65,6 +65,16 @@ void main() {
     return sleepStore;
   }
 
+  /// Completes the Wake slide through its accessible action. The drag itself
+  /// is covered by the TrackActionButton tests.
+  Future<void> wake(WidgetTester tester) async {
+    final slide = tester.widget<Semantics>(
+      find.byKey(const Key('track-action-semantics')),
+    );
+    slide.properties.onTap?.call();
+    await tester.pump();
+  }
+
   testWidgets('the single action drives the sleep state machine', (
     tester,
   ) async {
@@ -86,22 +96,24 @@ void main() {
     expect(buttons, hasLength(1));
     expect(buttons.single.enabled, isTrue);
     expect(find.text('Sleep'), findsOneWidget);
-    expect(find.text('Wake'), findsNothing);
+    expect(find.text('Slide to wake'), findsNothing);
 
     await tester.tap(find.text('Sleep'));
     await tester.pumpAndSettle();
 
     expect(find.text('Sleeping since 10:30 PM'), findsOneWidget);
     expect(store.starts, hasLength(1));
-    buttons = tester.widgetList<M3EButton>(find.byType(M3EButton)).toList();
-    expect(buttons, hasLength(1));
-    expect(buttons.single.enabled, isTrue);
+    expect(find.byType(M3EButton), findsNothing);
     expect(find.text('Sleep'), findsNothing);
-    expect(find.text('Wake'), findsOneWidget);
+    expect(find.text('Just now'), findsOneWidget);
+    expect(find.text('Slide to wake'), findsOneWidget);
 
     now = now.add(const Duration(hours: 7, minutes: 45));
     await tester.pump(const Duration(seconds: 1));
-    await tester.tap(find.text('Wake'));
+    expect(find.text('7h 45m'), findsOneWidget);
+    await wake(tester);
+    await tester.pumpAndSettle();
+    await tester.pump(TrackActionButton.savedHold);
     await tester.pumpAndSettle();
 
     expect(find.text('Last session: 7h 45m'), findsOneWidget);
@@ -115,7 +127,7 @@ void main() {
     expect(buttons, hasLength(1));
     expect(buttons.single.enabled, isTrue);
     expect(find.text('Sleep'), findsOneWidget);
-    expect(find.text('Wake'), findsNothing);
+    expect(find.text('Slide to wake'), findsNothing);
   });
 
   testWidgets('a second tap right after Sleep is ignored', (tester) async {
@@ -124,11 +136,11 @@ void main() {
 
     await tester.tap(find.text('Sleep'));
     await tester.pump();
-    expect(find.text('Wake'), findsOneWidget);
+    expect(find.text('Slide to wake'), findsOneWidget);
 
-    // A second tap lands inside the post-change guard, so it must not close
+    // A second attempt lands inside the post-change guard, so it must not close
     // the session that was just opened.
-    await tester.tap(find.byType(M3EButton));
+    await wake(tester);
     await tester.pump();
     expect(find.text('Sleep too short'), findsNothing);
     expect(find.text('Sleeping since 10:30 PM'), findsOneWidget);
@@ -137,7 +149,7 @@ void main() {
     // Once the guard expires, Wake follows its normal path.
     now = now.add(const Duration(minutes: 1));
     await tester.pump(TrackActionButton.tapGuard);
-    await tester.tap(find.byType(M3EButton));
+    await wake(tester);
     await tester.pumpAndSettle();
     expect(find.text('Sleep too short'), findsOneWidget);
   });
@@ -153,7 +165,7 @@ void main() {
 
     now = now.add(const Duration(minutes: 5));
     await tester.pump(const Duration(seconds: 1));
-    await tester.tap(find.text('Wake'));
+    await wake(tester);
     await tester.pumpAndSettle();
 
     expect(find.text('Sleep too short'), findsOneWidget);
@@ -164,11 +176,15 @@ void main() {
 
     expect(find.text('Sleep too short'), findsNothing);
     expect(find.text('Sleeping since 10:30 PM'), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const Key('track-action-trail'))).width,
+      104,
+    );
 
     // Reaching the minimum records without asking again.
     now = now.add(const Duration(minutes: 5));
     await tester.pump(const Duration(seconds: 1));
-    await tester.tap(find.text('Wake'));
+    await wake(tester);
     await tester.pumpAndSettle();
 
     expect(find.text('Sleep too short'), findsNothing);
@@ -188,7 +204,7 @@ void main() {
 
     now = now.add(const Duration(minutes: 3));
     await tester.pump(const Duration(seconds: 1));
-    await tester.tap(find.text('Wake'));
+    await wake(tester);
     await tester.pumpAndSettle();
 
     expect(find.text('Sleep too short'), findsOneWidget);
@@ -213,7 +229,7 @@ void main() {
 
     now = now.add(const Duration(hours: 25));
     await tester.pump(const Duration(seconds: 1));
-    await tester.tap(find.text('Wake'));
+    await wake(tester);
     await tester.pumpAndSettle();
 
     expect(find.text('Sleep too long'), findsOneWidget);
@@ -246,7 +262,7 @@ void main() {
 
     now = now.add(const Duration(hours: 25));
     await tester.pump(const Duration(seconds: 1));
-    await tester.tap(find.text('Wake'));
+    await wake(tester);
     await tester.pumpAndSettle();
 
     // Keep the original date and time: the session is still 25 hours long.
@@ -280,7 +296,7 @@ void main() {
 
     now = now.add(const Duration(hours: 30));
     await tester.pump(const Duration(seconds: 1));
-    await tester.tap(find.text('Wake'));
+    await wake(tester);
     await tester.pumpAndSettle();
 
     expect(find.text('Sleep too long'), findsOneWidget);
@@ -304,12 +320,8 @@ void main() {
 
     expect(find.text('Night · time to rest'), findsOneWidget);
     expect(find.text('Sleeping since 11:10 PM'), findsOneWidget);
-    final buttons = tester
-        .widgetList<M3EButton>(find.byType(M3EButton))
-        .toList();
-    expect(buttons, hasLength(1));
-    expect(buttons.single.enabled, isTrue);
-    expect(find.text('Wake'), findsOneWidget);
+    expect(find.byType(M3EButton), findsNothing);
+    expect(find.text('Slide to wake'), findsOneWidget);
     expect(find.text('Sleep'), findsNothing);
   });
 

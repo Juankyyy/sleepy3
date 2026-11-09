@@ -268,6 +268,37 @@ class AppLocalizationsEs extends AppLocalizations {
   String get wakeAction => 'Despertar';
 
   @override
+  String get slideToWake => 'Desliza para despertar';
+
+  @override
+  String get slideToWakeHint =>
+      'Desliza el círculo hacia la derecha o haz doble toque para confirmar.';
+
+  @override
+  String get wakeSlideJustNow => 'Ahora';
+
+  @override
+  String get wakeSlideJustNowSemantics =>
+      'Acabas de dormirte. Desliza para despertar.';
+
+  @override
+  String wakeSlideSemantics(String duration) {
+    return 'Llevas $duration durmiendo. Desliza para despertar.';
+  }
+
+  @override
+  String get savingSession => 'Guardando sesión';
+
+  @override
+  String get sessionSaved => 'Sesión guardada';
+
+  @override
+  String get sessionDiscarded => 'Sesión descartada';
+
+  @override
+  String get sessionSaveFailed => 'No se pudo guardar la sesión';
+
+  @override
   String get dayStatus => 'Día · listo para despertar';
 
   @override
