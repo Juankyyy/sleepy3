@@ -26,7 +26,7 @@ abstract class ChartPainter extends CustomPainter {
   final ChartAxis axis;
 
   Rect plotRect(Size size) {
-    final left = ChartDimensions.axisGutter;
+    final left = yAxisGutter;
     final right = math.max(
       left + 1,
       size.width - ChartDimensions.plotRightInset,
@@ -42,6 +42,23 @@ abstract class ChartPainter extends CustomPainter {
       size.height - bottomInset,
     );
     return Rect.fromLTRB(left, ChartDimensions.plotTopInset, right, bottom);
+  }
+
+  /// Room for the widest Y-axis label plus its gap, never below
+  /// [ChartDimensions.axisGutter].
+  ///
+  /// Measuring the actual labels keeps the plot wide at normal text sizes and
+  /// lets the gutter grow with the system text scale instead of clipping.
+  double get yAxisGutter {
+    var widest = 0.0;
+    for (final tick in axis.ticks) {
+      final width = textPainter(tick.label, palette.axisLabel).width;
+      if (width > widest) widest = width;
+    }
+    return math.max(
+      ChartDimensions.axisGutter,
+      widest + ChartDimensions.axisLabelGap,
+    );
   }
 
   double yFor(double value, Rect plot) =>
@@ -72,7 +89,10 @@ abstract class ChartPainter extends CustomPainter {
         ChartDimensions.plotTopInset,
         y - label.height / 2,
       );
-      label.paint(canvas, Offset(plot.left - 8 - label.width, labelY));
+      label.paint(
+        canvas,
+        Offset(plot.left - ChartDimensions.axisLabelGap - label.width, labelY),
+      );
     }
   }
 

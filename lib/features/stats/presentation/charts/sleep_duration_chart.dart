@@ -22,12 +22,12 @@ import 'chart_tooltip.dart';
 
 /// The Sleep duration chart on Stats.
 ///
-/// From M3: outlined card, 12dp corners, 16dp padding, `titleMedium`
+/// From M3: outlined card, 12dp corners, 16dp header padding, `titleMedium`
 /// emphasized, `bodySmall` support, `labelSmall` axes and `onSurfaceVariant`
 /// for the secondary text.
 /// My design decisions (not in M3): the 180dp canvas, 4dp bar radius, 4h grid
-/// step, 16ms entry stagger and 2% selected-bar scale. M3 publishes no chart
-/// component and no stagger value.
+/// step, 16ms entry stagger, 2% selected-bar scale and the canvas sitting 4dp
+/// from the card edge. M3 publishes no chart component and no stagger value.
 class SleepDurationChart extends StatelessWidget {
   const SleepDurationChart({
     super.key,
@@ -329,6 +329,7 @@ class _SleepDurationChartBodyState extends State<_SleepDurationChartBody>
               selectedIndex: _selectedIndex,
               selectionProgress: _selectionController.value,
             );
+            final plot = painter.plotRect(size);
 
             return Stack(
               clipBehavior: Clip.none,
@@ -336,9 +337,9 @@ class _SleepDurationChartBodyState extends State<_SleepDurationChartBody>
                 Positioned.fill(
                   child: ChartScrubArea(
                     slotCount: _toBuckets.length,
-                    selectionInsets: const EdgeInsets.only(
-                      left: ChartDimensions.axisGutter,
-                      right: ChartDimensions.plotRightInset,
+                    selectionInsets: EdgeInsets.only(
+                      left: plot.left,
+                      right: size.width - plot.right,
                     ),
                     onSelectionChanged: _onSelectionChanged,
                     child: CustomPaint(painter: painter),

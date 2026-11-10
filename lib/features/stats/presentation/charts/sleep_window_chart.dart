@@ -19,12 +19,13 @@ import 'chart_tooltip.dart';
 
 /// The Sleep window chart on Stats.
 ///
-/// From M3: outlined card, 12dp corners, 16dp padding, `titleMedium`
+/// From M3: outlined card, 12dp corners, 16dp header padding, `titleMedium`
 /// emphasized, `bodySmall` support, `labelSmall` axes and `onSurfaceVariant`
 /// for the secondary text.
 /// My design decisions (not in M3): the 24dp minimum row, the 8dp capsule, the
-/// 6dp range bands and the tap-only selection. The row count follows the range
-/// buckets, so the card grows instead of squeezing thirty nights into 180dp.
+/// 6dp range bands, the tap-only selection and the canvas sitting 4dp from the
+/// card edge. The row count follows the range buckets, so the card grows
+/// instead of squeezing thirty nights into 180dp.
 class SleepWindowChart extends StatelessWidget {
   const SleepWindowChart({
     super.key,

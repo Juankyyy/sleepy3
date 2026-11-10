@@ -7,6 +7,7 @@ import 'package:sleepy3/features/sleep_tracking/domain/sleep_insights.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/stats/presentation/charts/chart_empty_state.dart';
 import 'package:sleepy3/features/stats/presentation/charts/chart_scrub_area.dart';
+import 'package:sleepy3/features/stats/presentation/charts/chart_theme.dart';
 import 'package:sleepy3/features/stats/presentation/charts/chart_tooltip.dart';
 import 'package:sleepy3/features/stats/presentation/charts/weekday_chart.dart';
 import 'package:sleepy3/l10n/l10n.dart';
@@ -117,10 +118,17 @@ void main() {
     await pumpChart(tester, week);
 
     final area = tester.getRect(find.byType(ChartScrubArea));
-    final slot = (area.width - 56 - 8) / 7;
+    final slot =
+        (area.width -
+            ChartDimensions.axisGutter -
+            ChartDimensions.plotRightInset) /
+        7;
     // Tuesday is index 1.
     final gesture = await tester.startGesture(
-      Offset(area.left + 56 + 1.5 * slot, area.top + 80),
+      Offset(
+        area.left + ChartDimensions.axisGutter + 1.5 * slot,
+        area.top + 80,
+      ),
     );
     await tester.pump(const Duration(milliseconds: 110));
 
@@ -142,10 +150,17 @@ void main() {
     await pumpChart(tester, week);
 
     final area = tester.getRect(find.byType(ChartScrubArea));
-    final slot = (area.width - 56 - 8) / 7;
+    final slot =
+        (area.width -
+            ChartDimensions.axisGutter -
+            ChartDimensions.plotRightInset) /
+        7;
     // Monday is index 0.
     final gesture = await tester.startGesture(
-      Offset(area.left + 56 + 0.5 * slot, area.top + 80),
+      Offset(
+        area.left + ChartDimensions.axisGutter + 0.5 * slot,
+        area.top + 80,
+      ),
     );
     await tester.pump(const Duration(milliseconds: 110));
 

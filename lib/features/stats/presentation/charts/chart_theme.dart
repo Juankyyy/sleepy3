@@ -10,20 +10,24 @@ abstract final class ChartDimensions {
   /// around it and the axis label density drops instead.
   static const double canvasHeight = 180;
 
-  /// Room for the Y-axis labels, 8dp from the plot.
-  static const double axisGutter = 56;
+  /// Minimum room for the Y-axis labels; the painter grows it to fit the
+  /// widest tick label plus [axisLabelGap].
+  static const double axisGutter = 36;
+
+  /// Gap between a Y-axis label and the plot.
+  static const double axisLabelGap = 8;
 
   static const double plotTopInset = 8;
   static const double plotBottomInset = 24;
-  static const double plotRightInset = 8;
+  static const double plotRightInset = 4;
 
   /// The top corners of a bar use this radius; the baseline stays square.
   static const double barRadius = 4;
   static const double barMinWidth = 4;
-  static const double barMaxWidth = 28;
+  static const double barMaxWidth = 56;
 
   /// Fraction of a slot the bar occupies before the min/max clamp.
-  static const double barWidthFactor = 0.62;
+  static const double barWidthFactor = 0.80;
 
   /// From M3: the 1.5dp goal line stays readable above the 1dp grid.
   static const double dataLineWidth = 1.5;

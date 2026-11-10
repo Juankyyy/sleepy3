@@ -410,11 +410,25 @@ void main() {
     final plot = painter.plotRect(const Size(300, 180));
     expect(plot.left, ChartDimensions.axisGutter);
     expect(plot.top, ChartDimensions.plotTopInset);
-    expect(plot.right, 292);
+    expect(plot.right, 296);
     expect(plot.bottom, 156);
     expect(painter.yFor(0, plot), plot.bottom);
     expect(painter.yFor(10, plot), plot.top);
     expect(painter.yFor(5, plot), closeTo(82, 0.01));
+  });
+
+  test('grows the Y-axis gutter for a wider label', () {
+    final painter = _TestPainter(
+      palette: _palette(),
+      axis: const ChartAxis(
+        min: 0,
+        max: 10,
+        ticks: [ChartTick(value: 10, label: '1234567890 h')],
+      ),
+    );
+
+    final plot = painter.plotRect(const Size(300, 180));
+    expect(plot.left, greaterThan(ChartDimensions.axisGutter));
   });
 
   testWidgets('base painter draws bars, rules and missing-data marks', (

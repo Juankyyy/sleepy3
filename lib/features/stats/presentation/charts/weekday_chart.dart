@@ -18,10 +18,11 @@ import 'chart_tooltip.dart';
 
 /// The average sleep for each weekday.
 ///
-/// From M3: outlined card, 12dp corners, 16dp padding, `titleMedium`
+/// From M3: outlined card, 12dp corners, 16dp header padding, `titleMedium`
 /// emphasized, `bodySmall` support and `labelSmall` axes.
-/// My design decisions (not in M3): the 180dp canvas, the 4dp bar radius and
-/// the small `Best` label above the longest day. M3 has no chart component.
+/// My design decisions (not in M3): the 180dp canvas, the 4dp bar radius, the
+/// small `Best` label above the longest day and the canvas sitting 4dp from
+/// the card edge. M3 has no chart component.
 class WeekdayChart extends StatelessWidget {
   const WeekdayChart({
     super.key,
@@ -267,9 +268,9 @@ class _WeekdayChartBodyState extends State<_WeekdayChartBody>
                 Positioned.fill(
                   child: ChartScrubArea(
                     slotCount: 7,
-                    selectionInsets: const EdgeInsets.only(
-                      left: ChartDimensions.axisGutter,
-                      right: ChartDimensions.plotRightInset,
+                    selectionInsets: EdgeInsets.only(
+                      left: plot.left,
+                      right: size.width - plot.right,
                     ),
                     onSelectionChanged: _onSelectionChanged,
                     child: CustomPaint(painter: painter),

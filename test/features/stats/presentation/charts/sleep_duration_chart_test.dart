@@ -8,6 +8,7 @@ import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/stats/presentation/charts/chart_empty_state.dart';
 import 'package:sleepy3/features/stats/presentation/charts/chart_scrub_area.dart';
 import 'package:sleepy3/features/stats/presentation/charts/chart_tooltip.dart';
+import 'package:sleepy3/features/stats/presentation/charts/chart_theme.dart';
 import 'package:sleepy3/features/stats/presentation/charts/sleep_duration_chart.dart';
 import 'package:sleepy3/l10n/l10n.dart';
 
@@ -150,9 +151,15 @@ void main() {
     await pumpChart(tester, week);
 
     final area = tester.getRect(find.byType(ChartScrubArea));
-    final plotWidth = area.width - 56 - 8;
+    final plotWidth =
+        area.width -
+        ChartDimensions.axisGutter -
+        ChartDimensions.plotRightInset;
     final slot = plotWidth / 7;
-    final lastDay = Offset(area.left + 56 + 6.5 * slot, area.top + 80);
+    final lastDay = Offset(
+      area.left + ChartDimensions.axisGutter + 6.5 * slot,
+      area.top + 80,
+    );
 
     final gesture = await tester.startGesture(lastDay);
     await tester.pump(const Duration(milliseconds: 110));
@@ -182,9 +189,16 @@ void main() {
     await pumpChart(tester, insights);
 
     final area = tester.getRect(find.byType(ChartScrubArea));
-    final slot = (area.width - 56 - 8) / 7;
+    final slot =
+        (area.width -
+            ChartDimensions.axisGutter -
+            ChartDimensions.plotRightInset) /
+        7;
     final gesture = await tester.startGesture(
-      Offset(area.left + 56 + 6.5 * slot, area.top + 80),
+      Offset(
+        area.left + ChartDimensions.axisGutter + 6.5 * slot,
+        area.top + 80,
+      ),
     );
     await tester.pump(const Duration(milliseconds: 110));
 
@@ -199,10 +213,17 @@ void main() {
     await pumpChart(tester, week);
 
     final area = tester.getRect(find.byType(ChartScrubArea));
-    final slot = (area.width - 56 - 8) / 7;
+    final slot =
+        (area.width -
+            ChartDimensions.axisGutter -
+            ChartDimensions.plotRightInset) /
+        7;
     // Index 3 is October 18, the oldest recorded night is October 19.
     final gesture = await tester.startGesture(
-      Offset(area.left + 56 + 3.5 * slot, area.top + 80),
+      Offset(
+        area.left + ChartDimensions.axisGutter + 3.5 * slot,
+        area.top + 80,
+      ),
     );
     await tester.pump(const Duration(milliseconds: 110));
 
@@ -223,9 +244,16 @@ void main() {
     expect(index, greaterThanOrEqualTo(0));
 
     final area = tester.getRect(find.byType(ChartScrubArea));
-    final slot = (area.width - 56 - 8) / insights.chartBuckets.length;
+    final slot =
+        (area.width -
+            ChartDimensions.axisGutter -
+            ChartDimensions.plotRightInset) /
+        insights.chartBuckets.length;
     final gesture = await tester.startGesture(
-      Offset(area.left + 56 + (index + 0.5) * slot, area.top + 80),
+      Offset(
+        area.left + ChartDimensions.axisGutter + (index + 0.5) * slot,
+        area.top + 80,
+      ),
     );
     await tester.pump(const Duration(milliseconds: 110));
 
