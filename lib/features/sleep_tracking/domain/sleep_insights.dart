@@ -41,9 +41,6 @@ class SleepInsightsDay {
   /// Number of closed sessions that ended on this day.
   int get sessionsCount => history?.sessionsCount ?? 0;
 
-  /// Whether the night is split into more than one session.
-  bool get split => history?.split ?? false;
-
   /// Sum of the positive sessions, clamped at zero.
   Duration get total => history?.total ?? Duration.zero;
 
@@ -118,7 +115,6 @@ class SleepChartBucket {
     required this.latestBedtime,
     required this.earliestWake,
     required this.latestWake,
-    required this.splitNights,
   });
 
   /// Local midnight of the first day in the bucket.
@@ -160,9 +156,6 @@ class SleepChartBucket {
   /// Latest wake time around [averageWake].
   final Duration? latestWake;
 
-  /// Nights in the bucket split across more than one session.
-  final int splitNights;
-
   bool get hasData => recordedDays > 0;
 }
 
@@ -197,7 +190,6 @@ class SleepInsights {
     required this.bedtimeVariability,
     required this.wakeVariability,
     required this.averageSessionsPerNight,
-    required this.splitNights,
     required this.weekdayStats,
     required this.durationBuckets,
     required this.comparison,
@@ -281,9 +273,6 @@ class SleepInsights {
   /// Closed sessions divided by recorded days.
   final double? averageSessionsPerNight;
 
-  /// Days with more than one closed session.
-  final int splitNights;
-
   /// Seven entries, Monday first. A weekday with no data is null.
   final List<SleepWeekdayStat?> weekdayStats;
 
@@ -349,11 +338,9 @@ SleepInsights buildSleepInsights({
   final bedtimes = <DateTime>[];
   final wakes = <DateTime>[];
   var sessionCount = 0;
-  var splitNights = 0;
   for (final day in days) {
     if (!day.hasData) continue;
     sessionCount += day.sessionsCount;
-    if (day.split) splitNights++;
 
     final bedtime = day.bedtime;
     if (bedtime != null) bedtimes.add(bedtime);
@@ -394,7 +381,6 @@ SleepInsights buildSleepInsights({
     averageSessionsPerNight: recordedDays == 0
         ? null
         : sessionCount / recordedDays,
-    splitNights: splitNights,
     weekdayStats: _weekdayStats(days),
     durationBuckets: _durationBuckets(days),
     comparison: _comparison(
@@ -660,13 +646,11 @@ SleepChartBucket _buildBucket({
 
   var totalMicros = 0;
   var sessionsCount = 0;
-  var splitNights = 0;
   final bedtimes = <DateTime>[];
   final wakes = <DateTime>[];
   for (final day in days) {
     totalMicros += day.total.inMicroseconds;
     sessionsCount += day.sessionsCount;
-    if (day.split) splitNights++;
 
     final bedtime = day.bedtime;
     if (bedtime != null) bedtimes.add(bedtime);
@@ -691,6 +675,5 @@ SleepChartBucket _buildBucket({
     latestBedtime: bedtimeSummary.latest,
     earliestWake: wakeSummary.earliest,
     latestWake: wakeSummary.latest,
-    splitNights: splitNights,
   );
 }

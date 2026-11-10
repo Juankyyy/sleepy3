@@ -49,9 +49,6 @@ class SleepHistoryDay {
   /// Number of closed sessions that ended on this day.
   int get sessionsCount => sessions.length;
 
-  /// Whether the night is split into more than one session.
-  bool get split => sessions.length > 1;
-
   /// The earliest start among sessions with a positive duration, in local
   /// time.
   ///

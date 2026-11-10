@@ -14,7 +14,7 @@ import '../charts/chart_format.dart';
 /// each row and the compact five-part distribution bar.
 ///
 /// [compact] is the horizontal variant used inside the Stats summary. It lays
-/// the six rows out in two or three columns so the card fits above the advanced
+/// the five rows out in two or three columns so the card fits above the advanced
 /// button. The advanced sheet keeps the full vertical card.
 class StatsInsightsCard extends StatelessWidget {
   const StatsInsightsCard({
@@ -138,10 +138,6 @@ class StatsInsightsCard extends StatelessWidget {
             : l10n.metricVariability(l10n.formatGoalDelta(variability)),
         support: variability == null ? l10n.metricNeedsTwoNights : null,
       ),
-      _InsightRowData(
-        label: l10n.insightSplitNights,
-        value: l10n.metricNights(insights.splitNights),
-      ),
     ];
   }
 }
@@ -162,10 +158,12 @@ class _InsightRowData {
   String get spoken => [label, spokenValue ?? value, ?support].join(', ');
 }
 
-/// The horizontal summary layout: a compact grid with the same six readings.
+/// The horizontal summary layout: a compact grid with the same five readings.
 ///
 /// Two columns on a phone, three from 600dp. At 150% text or more it falls back
-/// to one column so every label keeps its full width.
+/// to one column so every label keeps its full width. A final incomplete row
+/// keeps the column width and leaves the unused slots empty, without drawing a
+/// bordered cell around them.
 class _CompactInsightsGrid extends StatelessWidget {
   const _CompactInsightsGrid({required this.rows});
 
@@ -183,29 +181,60 @@ class _CompactInsightsGrid extends StatelessWidget {
             : constraints.maxWidth >= 600
             ? 3
             : 2;
-        final rowCount = (rows.length / columns).ceil();
+        final fullRowCount = rows.length ~/ columns;
+        final remainder = rows.length % columns;
 
-        return Table(
-          defaultVerticalAlignment: TableCellVerticalAlignment.top,
-          columnWidths: {
-            for (var index = 0; index < columns; index++)
-              index: const FlexColumnWidth(),
-          },
-          border: TableBorder(
-            horizontalInside: BorderSide(color: scheme.outlineVariant),
-            verticalInside: BorderSide(color: scheme.outlineVariant),
-          ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (var row = 0; row < rowCount; row++)
-              TableRow(
+            if (fullRowCount > 0)
+              Table(
+                defaultVerticalAlignment: TableCellVerticalAlignment.top,
+                columnWidths: {
+                  for (var index = 0; index < columns; index++)
+                    index: const FlexColumnWidth(),
+                },
+                border: TableBorder(
+                  horizontalInside: BorderSide(color: scheme.outlineVariant),
+                  verticalInside: BorderSide(color: scheme.outlineVariant),
+                ),
                 children: [
-                  for (var column = 0; column < columns; column++)
-                    if (row * columns + column < rows.length)
-                      _CompactInsightCell(row: rows[row * columns + column])
-                    else
-                      const SizedBox.shrink(),
+                  for (var row = 0; row < fullRowCount; row++)
+                    TableRow(
+                      children: [
+                        for (var column = 0; column < columns; column++)
+                          _CompactInsightCell(
+                            row: rows[row * columns + column],
+                          ),
+                      ],
+                    ),
                 ],
               ),
+            if (remainder > 0) ...[
+              if (fullRowCount > 0) _Divider(color: scheme.outlineVariant),
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var column = 0; column < columns; column++) ...[
+                      if (column < remainder) ...[
+                        if (column > 0)
+                          SizedBox(
+                            width: 1,
+                            child: ColoredBox(color: scheme.outlineVariant),
+                          ),
+                        Expanded(
+                          child: _CompactInsightCell(
+                            row: rows[fullRowCount * columns + column],
+                          ),
+                        ),
+                      ] else
+                        const Spacer(),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ],
         );
       },

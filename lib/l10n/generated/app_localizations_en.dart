@@ -802,9 +802,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get insightBedtimeVariability => 'Bedtime varies by';
 
   @override
-  String get insightSplitNights => 'Nights with more than one session';
-
-  @override
   String get insightDistribution => 'Distribution';
 
   @override

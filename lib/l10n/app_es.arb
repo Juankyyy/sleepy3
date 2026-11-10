@@ -542,7 +542,6 @@
   "insightAverageBedtime": "Hora media de acostarse",
   "insightAverageWake": "Hora media de despertar",
   "insightBedtimeVariability": "Variación al acostarse",
-  "insightSplitNights": "Noches divididas",
   "insightDistribution": "Distribución",
   "insightDistributionSpoken": "Distribución de la duración del sueño. {underSix} noches de menos de 6 horas, {sixToSeven} de 6 a 7 horas, {sevenToEight} de 7 a 8 horas, {eightToNine} de 8 a 9 horas y {ninePlus} de 9 horas o más.",
   "@insightDistributionSpoken": {

@@ -557,7 +557,6 @@
   "insightAverageBedtime": "Average bedtime",
   "insightAverageWake": "Average wake",
   "insightBedtimeVariability": "Bedtime varies by",
-  "insightSplitNights": "Nights with more than one session",
   "insightDistribution": "Distribution",
   "insightDistributionSpoken": "Sleep duration distribution. {underSix} nights under 6 hours, {sixToSeven} from 6 to 7 hours, {sevenToEight} from 7 to 8 hours, {eightToNine} from 8 to 9 hours and {ninePlus} of 9 hours or more.",
   "@insightDistributionSpoken": {

@@ -363,7 +363,7 @@ Reglas:
 - `Sleep duration`, `Sleep window` y `By weekday` pueden ser el bloque del resumen; usan
   el mismo gráfico y el mismo aviso de historial limitado que la hoja avanzada.
 - `Key data` usa una variante horizontal en el resumen: dos columnas en móvil, tres desde
-  600 dp y una cuando el texto está al 150 % o más. Conserva las seis filas y la
+  600 dp y una cuando el texto está al 150 % o más. Conserva las cinco filas y la
   distribución. La hoja avanzada mantiene la tarjeta vertical completa.
 - `Show all` aparece debajo del bloque elegido cuando el rango no tiene noches pero hay
   historial anterior, así que sigue disponible con cualquier bloque. `View advanced
@@ -1193,7 +1193,7 @@ Reglas:
 | Apoyos de gráficos | `Week · 5 nights recorded · Goal 8h`, `Bedtime to wake · Week`, `Average by wake day · Week` |
 | Leyendas de gráficos | `Sleep`, `Goal 8h`, `Average`, `Bedtime to wake`, `Range` |
 | Tooltips de gráficos | `Tue, Oct 20 · 7h 20m`, `Oct 14 – Oct 20 · 7h 5m avg` |
-| Insights | `Insights`, `Best night`, `Shortest night`, `Average bedtime`, `Average wake`, `Bedtime varies by`, `Nights with more than one session`, `Distribution` |
+| Insights | `Insights`, `Best night`, `Shortest night`, `Average bedtime`, `Average wake`, `Bedtime varies by`, `Distribution` |
 | Distribución | `Under 6h`, `6–7h`, `7–8h`, `8–9h`, `9h+` |
 | Días de la semana | `Mon`…`Sun`, `Best` |
 | Sin noches en el rango | `No nights in this range` |

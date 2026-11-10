@@ -1286,12 +1286,6 @@ abstract class AppLocalizations {
   /// **'Bedtime varies by'**
   String get insightBedtimeVariability;
 
-  /// No description provided for @insightSplitNights.
-  ///
-  /// In en, this message translates to:
-  /// **'Nights with more than one session'**
-  String get insightSplitNights;
-
   /// No description provided for @insightDistribution.
   ///
   /// In en, this message translates to:

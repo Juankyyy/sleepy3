@@ -61,7 +61,6 @@ void main() {
     expect(insights.bedtimeVariability, isNull);
     expect(insights.wakeVariability, isNull);
     expect(insights.averageSessionsPerNight, isNull);
-    expect(insights.splitNights, 0);
     expect(insights.weekdayStats, hasLength(7));
     expect(insights.weekdayStats.every((stat) => stat == null), isTrue);
     expect(
@@ -97,7 +96,6 @@ void main() {
     expect(insights.bedtimeVariability, isNull);
     expect(insights.wakeVariability, isNull);
     expect(insights.averageSessionsPerNight, 1);
-    expect(insights.splitNights, 0);
 
     final weekday = insights.weekdayStats[daysAgo(0).weekday - 1];
     expect(weekday, isNotNull);
@@ -212,7 +210,7 @@ void main() {
     expect(insights.longestGoalStreak, 1);
   });
 
-  test('sums split nights but uses the first bedtime and last wake', () {
+  test('sums multiple sessions but uses the first bedtime and last wake', () {
     final first = closed(DateTime(2026, 10, 21, 1), DateTime(2026, 10, 21, 3));
     final second = closed(
       DateTime(2026, 10, 21, 4),
@@ -223,7 +221,6 @@ void main() {
 
     final day = insights.days.first;
     expect(day.sessionsCount, 2);
-    expect(day.split, isTrue);
     expect(day.total, const Duration(hours: 8));
     expect(day.bedtime, DateTime(2026, 10, 21, 1));
     expect(day.wake, DateTime(2026, 10, 21, 10));
@@ -237,9 +234,7 @@ void main() {
     expect(insights.averageBedtime, Duration.zero);
     expect(insights.averageWake, const Duration(hours: 8, minutes: 30));
     expect(insights.averageSessionsPerNight, 1.5);
-    expect(insights.splitNights, 1);
     expect(insights.chartBuckets.last.sessionsCount, 2);
-    expect(insights.chartBuckets.last.splitNights, 1);
   });
 
   test('uses a circular mean around midnight, never a naive average', () {
@@ -426,7 +421,6 @@ void main() {
       threeMonths.chartBuckets.last.averageDuration,
       const Duration(hours: 8),
     );
-    expect(threeMonths.chartBuckets.last.splitNights, 0);
     expect(
       threeMonths.chartBuckets.fold<int>(
         0,

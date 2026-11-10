@@ -806,9 +806,6 @@ class AppLocalizationsEs extends AppLocalizations {
   String get insightBedtimeVariability => 'Variación al acostarse';
 
   @override
-  String get insightSplitNights => 'Noches divididas';
-
-  @override
   String get insightDistribution => 'Distribución';
 
   @override

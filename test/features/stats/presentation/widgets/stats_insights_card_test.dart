@@ -97,8 +97,6 @@ void main() {
     expect(find.text('Bedtime varies by'), findsOneWidget);
     expect(find.text('—'), findsOneWidget);
     expect(find.text('Needs 2 nights'), findsOneWidget);
-    expect(find.text('Nights with more than one session'), findsOneWidget);
-    expect(find.text('0 nights'), findsOneWidget);
     expect(find.text('Distribution'), findsOneWidget);
     expect(find.text('8–9h · 1 night'), findsOneWidget);
     expect(find.text('Under 6h · 0 nights'), findsOneWidget);
@@ -125,9 +123,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.bySemanticsLabel(
-        RegExp('Nights with more than one session, 0 nights'),
-      ),
+      find.bySemanticsLabel(RegExp('Bedtime varies by, —, Needs 2 nights')),
       findsOneWidget,
     );
     expect(
@@ -160,7 +156,7 @@ void main() {
     await pumpCard(tester, insights, textScale: 2);
 
     expect(find.text('Insights'), findsOneWidget);
-    expect(find.text('Nights with more than one session'), findsOneWidget);
+    expect(find.text('Bedtime varies by'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
