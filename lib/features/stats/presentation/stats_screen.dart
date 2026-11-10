@@ -183,7 +183,16 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                _StatsHeader(openSession: state.openSession),
+                                _StatsHeader(
+                                  openSession: state.openSession,
+                                  onAdvanced: insights.hasData
+                                      ? () {
+                                          unawaited(
+                                            showAdvancedStatsSheet(context),
+                                          );
+                                        }
+                                      : null,
+                                ),
                                 if (isEmpty)
                                   HealthHistoryBanner(
                                     visible:
@@ -226,20 +235,6 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                                                   statsRangeProvider.notifier,
                                                 )
                                                 .select(SleepHistoryRange.all),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ],
-                                  if (insights.hasData) ...[
-                                    const SizedBox(height: 8),
-                                    Align(
-                                      alignment:
-                                          AlignmentDirectional.centerStart,
-                                      child: _AdvancedStatsButton(
-                                        onPressed: () {
-                                          unawaited(
-                                            showAdvancedStatsSheet(context),
                                           );
                                         },
                                       ),
@@ -566,63 +561,16 @@ class _ShowAllButton extends StatelessWidget {
   }
 }
 
-/// The tonal entry point to the advanced dashboard.
-///
-/// A filled action card instead of a pill button: the label can wrap at 200 %
-/// text without clipping, and the whole row is still one button target.
-class _AdvancedStatsButton extends StatelessWidget {
-  const _AdvancedStatsButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = M3ETheme.of(context);
-    final scheme = theme.colorScheme;
-    final l10n = context.l10n;
-
-    return M3ECard(
-      key: const Key('advanced-stats-button'),
-      variant: M3ECardVariant.filled,
-      color: scheme.secondaryContainer,
-      borderRadius: BorderRadius.circular(12),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      onPressed: onPressed,
-      child: Row(
-        children: [
-          Icon(
-            M3EIcons.insights_outlined,
-            size: 20,
-            color: scheme.onSecondaryContainer,
-          ),
-          // 12dp separates the leading icon from the label.
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              l10n.advancedStatsAction,
-              style: theme.typography.baseline.labelLarge.copyWith(
-                color: scheme.onSecondaryContainer,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Icon(
-            M3EIcons.chevron_right,
-            size: 20,
-            color: scheme.onSecondaryContainer.withValues(alpha: 0.7),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Screen title and, while a session is open, a short explanation of why that
-/// night is not in the closed-session summary yet.
+/// Screen title, the advanced-stats action and, while a session is open, a
+/// short explanation of why that night is not in the closed-session summary
+/// yet.
 class _StatsHeader extends StatelessWidget {
-  const _StatsHeader({required this.openSession});
+  const _StatsHeader({required this.openSession, this.onAdvanced});
 
   final SleepSession? openSession;
+
+  /// Opens the advanced dashboard; when null the header action is hidden.
+  final VoidCallback? onAdvanced;
 
   @override
   Widget build(BuildContext context) {
@@ -639,25 +587,49 @@ class _StatsHeader extends StatelessWidget {
               localeName: l10n.localeName,
             ),
           );
+    final action = onAdvanced;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Semantics(
-          header: true,
-          child: Text(
-            l10n.statsTitle,
-            style: Sleepy3Theme.brandTitle(
-              theme.typography.emphasized.headlineMedium,
-            ).copyWith(color: scheme.onSurface),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          supporting,
-          style: theme.typography.baseline.bodyMedium.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      l10n.statsTitle,
+                      style: Sleepy3Theme.brandTitle(
+                        theme.typography.emphasized.headlineMedium,
+                      ).copyWith(color: scheme.onSurface),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    supporting,
+                    style: theme.typography.baseline.bodyMedium.copyWith(
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (action != null) ...[
+              // 12dp separates the title block from the header action.
+              const SizedBox(width: 12),
+              M3EIconButton(
+                key: const Key('advanced-stats-button'),
+                variant: M3EIconButtonVariant.tonal,
+                tooltip: l10n.advancedStatsAction,
+                onPressed: action,
+                icon: const Icon(M3EIcons.insights_outlined),
+              ),
+            ],
+          ],
         ),
         // 24dp separates the header from the pending banner, matching the gap
         // used before the range selector.

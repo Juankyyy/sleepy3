@@ -161,6 +161,7 @@ void main() {
     );
     expect(find.text('Average sleep'), findsNothing);
     expect(find.byType(M3EChip), findsNothing);
+    expect(find.byKey(const Key('advanced-stats-button')), findsNothing);
   });
 
   testWidgets('shows the sleep duration chart as the selected summary block', (
@@ -178,7 +179,12 @@ void main() {
     expect(find.text('Sleep duration'), findsOneWidget);
     expect(find.text('Week · 3 nights recorded · Goal 8h'), findsOneWidget);
     expect(find.byType(SleepDurationChart), findsOneWidget);
-    expect(find.text('View advanced stats'), findsOneWidget);
+    expect(find.byKey(const Key('advanced-stats-button')), findsOneWidget);
+    final advanced = tester.widget<M3EIconButton>(
+      find.byKey(const Key('advanced-stats-button')),
+    );
+    expect(advanced.variant, M3EIconButtonVariant.tonal);
+    expect(advanced.tooltip, 'View advanced stats');
   });
 
   testWidgets('shows the sleep window chart when selected', (tester) async {
@@ -193,7 +199,7 @@ void main() {
     expect(find.text('Sleep window'), findsOneWidget);
     expect(find.text('Average sleep'), findsNothing);
     expect(find.text('Goal hit rate'), findsNothing);
-    expect(find.text('View advanced stats'), findsOneWidget);
+    expect(find.byKey(const Key('advanced-stats-button')), findsOneWidget);
   });
 
   testWidgets('shows the weekday chart when selected', (tester) async {
@@ -208,7 +214,7 @@ void main() {
     expect(find.text('By weekday'), findsOneWidget);
     expect(find.text('Average sleep'), findsNothing);
     expect(find.text('Goal hit rate'), findsNothing);
-    expect(find.text('View advanced stats'), findsOneWidget);
+    expect(find.byKey(const Key('advanced-stats-button')), findsOneWidget);
   });
 
   testWidgets('shows the compact key data block when selected', (tester) async {
@@ -291,7 +297,7 @@ void main() {
     expect(find.text('1 night'), findsOneWidget);
     expect(find.text('current 1'), findsOneWidget);
     expect(find.text('Sleep duration'), findsNothing);
-    expect(find.text('View advanced stats'), findsOneWidget);
+    expect(find.byKey(const Key('advanced-stats-button')), findsOneWidget);
     expect(find.textContaining('vs previous'), findsNothing);
 
     final metricsCard = tester.widget<M3ECard>(
@@ -1679,7 +1685,10 @@ void main() {
     expect(find.text('−1 h 57 min'), findsOneWidget);
     expect(find.text('deuda · frente al objetivo de 8 h'), findsOneWidget);
     expect(find.text('Mejor racha'), findsOneWidget);
-    expect(find.text('Ver estadísticas avanzadas'), findsOneWidget);
+    final advanced = tester.widget<M3EIconButton>(
+      find.byKey(const Key('advanced-stats-button')),
+    );
+    expect(advanced.tooltip, 'Ver estadísticas avanzadas');
 
     await openAdvanced(tester);
 

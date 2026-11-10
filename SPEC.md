@@ -321,8 +321,8 @@ Reglas:
 
 ### 3.3 Stats e historial
 
-- `Stats` es un resumen de una sola columna: cabecera, cinco filtros de rango, un único
-  bloque de resumen configurable, la acción `View advanced stats` y el historial. El
+- `Stats` es un resumen de una sola columna: cabecera con la acción `View advanced stats`,
+  cinco filtros de rango, un único bloque de resumen configurable y el historial. El
   bloque se elige en `Settings > Stats > Stats summary` entre `Average sleep`, `Key
   metrics`, `Sleep duration`, `Sleep window`, `By weekday` y `Key data`. Solo se muestra
   uno; el valor inicial es `Sleep duration`. Las cuatro métricas completas, los tres
@@ -367,8 +367,9 @@ Reglas:
   distribución. La hoja avanzada mantiene la tarjeta vertical completa.
 - `Show all` aparece debajo del bloque elegido cuando el rango no tiene noches pero hay
   historial anterior, así que sigue disponible con cualquier bloque. `View advanced
-  stats` queda debajo cuando hay datos. Sin noches, el bloque muestra su propio estado
-  vacío y el botón avanzado se oculta, igual que antes.
+  stats` vive en la cabecera como icon button tonal (`insights`) y solo aparece cuando
+  hay datos; el tooltip y la semántica usan la misma etiqueta. Sin noches, el bloque
+  muestra su propio estado vacío y la acción se oculta, igual que antes.
 - Gráfico `Sleep duration` (en la hoja o como bloque del resumen): barras por bucket (día
   en `Week`/`Month`, semana en `3 months`, mes en `Year`, semanal o mensual en `All`
   según 180 días), línea de objetivo de 8 h, línea de media y huecos para noches sin
