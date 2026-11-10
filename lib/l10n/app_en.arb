@@ -640,7 +640,7 @@
       }
     }
   },
-  "nightContextTitle": "Night context",
+  "nightContextTitle": "Night summary",
   "nightContextNotEnough": "Not enough nights yet.",
   "nightContextDurationDelta": "{delta} vs your {nights, plural, =1{1-night} other{{nights}-night}} average",
   "@nightContextDurationDelta": {

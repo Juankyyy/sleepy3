@@ -625,7 +625,7 @@
       }
     }
   },
-  "nightContextTitle": "Contexto de la noche",
+  "nightContextTitle": "Resumen de la noche",
   "nightContextNotEnough": "Aún no hay suficientes noches.",
   "nightContextDurationDelta": "{delta} frente a tu media de {nights, plural, =1{1 noche} other{{nights} noches}}",
   "@nightContextDurationDelta": {

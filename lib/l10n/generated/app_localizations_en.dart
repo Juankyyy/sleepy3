@@ -934,7 +934,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get nightContextTitle => 'Night context';
+  String get nightContextTitle => 'Night summary';
 
   @override
   String get nightContextNotEnough => 'Not enough nights yet.';

@@ -184,7 +184,7 @@ void main() {
     expect(find.text('Me desperté'), findsOneWidget);
     expect(find.text('Guardar'), findsOneWidget);
     expect(find.text('Eliminar sesión'), findsOneWidget);
-    expect(find.text('Contexto de la noche'), findsOneWidget);
+    expect(find.text('Resumen de la noche'), findsOneWidget);
   });
 
   testWidgets(
@@ -312,7 +312,7 @@ void main() {
 
     await openLocalEditor(tester);
 
-    expect(find.text('Night context'), findsOneWidget);
+    expect(find.text('Night summary'), findsOneWidget);
     expect(find.text('+13m vs your 7-night average'), findsOneWidget);
     expect(find.text('Bedtime 28m earlier'), findsOneWidget);
     expect(find.text('Wake 15m earlier'), findsOneWidget);
@@ -320,12 +320,32 @@ void main() {
     expect(find.text('Not enough nights yet.'), findsNothing);
   });
 
+  testWidgets('emphasizes the figure in each night context reading', (
+    tester,
+  ) async {
+    await pumpStats(tester, sessions: [localSession(), ...previousNights()]);
+
+    await openLocalEditor(tester);
+
+    const readings = {
+      '+13m vs your 7-night average': '+13m',
+      'Bedtime 28m earlier': '28m',
+      'Wake 15m earlier': '15m',
+    };
+    for (final reading in readings.entries) {
+      final text = tester.widget<Text>(find.text(reading.key));
+      final spans = (text.textSpan! as TextSpan).children!.cast<TextSpan>();
+      final figure = spans.firstWhere((span) => span.text == reading.value);
+      expect(figure.style?.fontWeight, FontWeight.w700, reason: reading.key);
+    }
+  });
+
   testWidgets('explains when there are not enough nights yet', (tester) async {
     await pumpStats(tester, sessions: [localSession()]);
 
     await openLocalEditor(tester);
 
-    expect(find.text('Night context'), findsOneWidget);
+    expect(find.text('Night summary'), findsOneWidget);
     expect(find.text('Not enough nights yet.'), findsOneWidget);
     expect(find.text('Longest session in this range'), findsOneWidget);
     expect(find.textContaining('7-night average'), findsNothing);
@@ -366,7 +386,7 @@ void main() {
     await tester.pumpAndSettle();
     await openRow(tester, '22:32 – 06:45');
 
-    expect(find.text('Contexto de la noche'), findsOneWidget);
+    expect(find.text('Resumen de la noche'), findsOneWidget);
     expect(find.text('2.ª sesión más larga de este rango'), findsOneWidget);
   });
 
@@ -395,7 +415,7 @@ void main() {
 
     await openLocalEditor(tester);
 
-    expect(find.text('Night context'), findsOneWidget);
+    expect(find.text('Night summary'), findsOneWidget);
     expect(find.text('+13m vs your 7-night average'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -418,7 +438,7 @@ void main() {
     await openRow(tester, '10:32 PM – 6:45 AM');
 
     expect(find.text('Read-only session'), findsOneWidget);
-    expect(find.text('Night context'), findsOneWidget);
+    expect(find.text('Night summary'), findsOneWidget);
     expect(find.text('Not enough nights yet.'), findsOneWidget);
     expect(find.text('Save'), findsNothing);
     expect(find.text('Delete session'), findsNothing);

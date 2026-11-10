@@ -496,14 +496,16 @@ Reglas:
   abre `M3EDatePicker` o `M3ETimePicker`. La fecha omite el año cuando es el actual.
   Duración y objetivo se recalculan con el borrador; un aviso explica cuando la sesión
   también está en Google Health.
-- Bajo `Woke up`, la card `Night context` compara la sesión con la media de las últimas
-  7 noches registradas hasta su día de despertar (`+12 min vs your 7-night average`,
-  `Bedtime 22 min later`, `Wake 5 min earlier`) y, dentro del rango seleccionado en Stats,
-  la sitúa como `Longest session in this range` o `2nd longest session in this range`. Con
-  menos de 2 noches oculta la comparación y muestra `Not enough nights yet.`; si la noche
-  tiene varias sesiones, el apoyo lo dice y las comparaciones siguen siendo de la sesión,
-  no del total del día. La card aparece también en solo lectura y no cambia el candado
-  ni el texto de la card `Read-only session`.
+- Bajo `Woke up`, la card `Night context` —título visible `Night summary`— compara la
+  sesión con la media de las últimas 7 noches registradas hasta su día de despertar
+  (`+12 min vs your 7-night average`, `Bedtime 22 min later`, `Wake 5 min earlier`) y,
+  dentro del rango seleccionado en Stats, la sitúa como `Longest session in this range` o
+  `2nd longest session in this range`. Las cifras de la comparación destacan en
+  `titleSmall` emphasized y el puesto se muestra como chip tonal. Con menos de 2 noches
+  oculta la comparación y muestra `Not enough nights yet.`; si la noche tiene varias
+  sesiones, el apoyo lo dice y las comparaciones siguen siendo de la sesión, no del total
+  del día. La card aparece también en solo lectura y no cambia el candado ni el texto de
+  la card `Read-only session`.
 - La vista de solo lectura reutiliza el contenido del editor: pantalla completa en
   compacto con solo la X de cierre y diálogo básico en mediano y expandido con una única
   acción `Close`. No muestra `Save` ni `Delete`.
@@ -1082,13 +1084,18 @@ Reglas:
     Errores inline en `bodySmall` con rol `error`, y una acción `Delete session`
     separada y de bajo énfasis. Respeta el formato de 24 h del sistema.
     Bajo `Woke up`, la card `Night context` es una `M3ECard` outlined con radio 12 dp,
-    padding 16 dp y título `titleMedium` emphasized precedido por `insights_outlined` de
-    20 dp. Cada lectura usa un icono de 20 dp (`arrow_upward`/`arrow_downward` para la
-    duración, `bedtime` para acostarse, `wb_sunny` para despertar, `emoji_events` para el
-    ranking y `groups` para la noche dividida) y texto `bodyMedium`; la nota de noche
-    dividida usa `bodySmall` en `onSurfaceVariant`. Nunca usa el color como único
-    indicador: el texto dice `later`, `earlier` u `on your average`. La misma card se
-    muestra en solo lectura, debajo de los campos bloqueados.
+    padding 16 dp y título `titleMedium` emphasized (`Night summary`) precedido por
+    `nights_stay_outlined` de 20 dp. Cada lectura usa un icono de 20 dp
+    (`arrow_upward`/`arrow_downward` para la duración, `bedtime` para acostarse,
+    `wb_sunny` para despertar y `groups` para la noche dividida) y texto `bodyMedium`; la
+    cifra de la comparación va en `titleSmall` emphasized dentro de la misma línea, y los
+    casos sin diferencia (`Same as your…`, `Bedtime on your average`, `Wake on your
+    average`) se quedan en `bodyMedium`. El puesto en el rango es un chip tonal
+    (`surfaceContainerHighest`/`onSurface`, radio completo, `labelMedium` y trofeo de
+    14 dp) en lugar de una lectura más. La nota de noche dividida usa `bodySmall` en
+    `onSurfaceVariant`, debajo del chip. Nunca usa el color como único indicador: el texto
+    dice `later`, `earlier` u `on your average`. La misma card se muestra en solo lectura,
+    debajo de los campos bloqueados.
   - La vista de solo lectura usa el mismo hero. La card `Read-only session` es una
     `M3ECard` filled en `surfaceContainerHighest`, con radio 12 dp y padding 16 dp. El
     candado `lock_outlined` de 20 dp va en `onSurfaceVariant` dentro de un círculo
@@ -1191,7 +1198,7 @@ Reglas:
 | Días de la semana | `Mon`…`Sun`, `Best` |
 | Sin noches en el rango | `No nights in this range` |
 | Historial limitado en gráficos | `Last 30 days available` |
-| Night context | `Night context`, `Not enough nights yet.`, `+12 min vs your 7-night average`, `Bedtime 22 min later`, `Wake 5 min earlier`, `Longest session in this range`, `2nd longest session in this range` |
+| Night summary | `Night summary`, `Not enough nights yet.`, `+12 min vs your 7-night average`, `Bedtime 22 min later`, `Wake 5 min earlier`, `Longest session in this range`, `2nd longest session in this range` |
 | Mostrar todo el historial | `Show all` |
 | Límite de historial en Stats | `Only the last 30 days are available` / `Allow full history in Google Health to see older sessions.` / `Allow full history` |
 | Historial denegado desde el banner | `Google Health needs permission to read older sleep sessions.` |

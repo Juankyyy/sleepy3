@@ -284,11 +284,13 @@ class SessionHealthNotice extends StatelessWidget {
 /// Factual context for one session, without implying that it is editable.
 ///
 /// From M3: outlined card, 12dp corners, 16dp padding, `titleMedium`
-/// emphasized for the title, `bodyMedium` for the readings and `bodySmall` for
-/// the split-night note.
-/// My design decisions (not in M3): the 20dp leading icons and the 8dp gaps
-/// between readings. The card never uses color alone: every reading spells out
-/// `later`, `earlier` or `on your average`.
+/// emphasized for the title, `bodyMedium` for the readings, emphasized
+/// `titleSmall` for the figures that carry the comparison, and `labelMedium`
+/// inside the rank chip.
+/// My design decisions (not in M3): the 20dp leading icons, the 14dp chip
+/// icon, the full-corner chip and the 8dp gaps between readings. The card
+/// never uses color alone: every reading spells out `later`, `earlier` or `on
+/// your average`.
 class SessionNightContextCard extends StatelessWidget {
   const SessionNightContextCard({super.key, required this.nightContext});
 
@@ -311,7 +313,7 @@ class SessionNightContextCard extends StatelessWidget {
             child: Row(
               children: [
                 Icon(
-                  M3EIcons.insights_outlined,
+                  M3EIcons.nights_stay_outlined,
                   size: 20,
                   color: scheme.onSurfaceVariant,
                 ),
@@ -328,26 +330,9 @@ class SessionNightContextCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          if (nightContext.hasComparison) ...[
-            _NightContextLine(
-              icon: _durationIcon(nightContext.durationDelta!),
-              text: _durationText(l10n),
-            ),
-            if (nightContext.bedtimeDelta case final delta?) ...[
-              const SizedBox(height: 8),
-              _NightContextLine(
-                icon: M3EIcons.bedtime_outlined,
-                text: _bedtimeText(l10n, delta),
-              ),
-            ],
-            if (nightContext.wakeDelta case final delta?) ...[
-              const SizedBox(height: 8),
-              _NightContextLine(
-                icon: M3EIcons.wb_sunny_outlined,
-                text: _wakeText(l10n, delta),
-              ),
-            ],
-          ] else
+          if (nightContext.hasComparison)
+            ..._comparisonLines(l10n)
+          else
             Text(
               l10n.nightContextNotEnough,
               style: theme.typography.baseline.bodyMedium.copyWith(
@@ -355,9 +340,8 @@ class SessionNightContextCard extends StatelessWidget {
               ),
             ),
           if (rank != null) ...[
-            const SizedBox(height: 8),
-            _NightContextLine(
-              icon: M3EIcons.emoji_events_outlined,
+            const SizedBox(height: 12),
+            _NightContextRankBadge(
               text: rank == 1
                   ? l10n.nightContextLongest
                   : l10n.nightContextRanked(l10n.formatOrdinal(rank)),
@@ -367,7 +351,9 @@ class SessionNightContextCard extends StatelessWidget {
             const SizedBox(height: 8),
             _NightContextLine(
               icon: M3EIcons.groups_outlined,
-              text: l10n.nightContextSplitNight(nightContext.nightSessionCount),
+              reading: _NightContextReading(
+                l10n.nightContextSplitNight(nightContext.nightSessionCount),
+              ),
               supporting: true,
             ),
           ],
@@ -376,31 +362,76 @@ class SessionNightContextCard extends StatelessWidget {
     );
   }
 
-  String _durationText(AppLocalizations l10n) {
+  /// The three comparisons, in reading order.
+  List<Widget> _comparisonLines(AppLocalizations l10n) {
+    return [
+      _NightContextLine(
+        icon: _durationIcon(nightContext.durationDelta!),
+        reading: _durationReading(l10n),
+      ),
+      if (nightContext.bedtimeDelta case final delta?) ...[
+        const SizedBox(height: 8),
+        _NightContextLine(
+          icon: M3EIcons.bedtime_outlined,
+          reading: _bedtimeReading(l10n, delta),
+        ),
+      ],
+      if (nightContext.wakeDelta case final delta?) ...[
+        const SizedBox(height: 8),
+        _NightContextLine(
+          icon: M3EIcons.wb_sunny_outlined,
+          reading: _wakeReading(l10n, delta),
+        ),
+      ],
+    ];
+  }
+
+  _NightContextReading _durationReading(AppLocalizations l10n) {
     final delta = nightContext.durationDelta!;
     if (delta == Duration.zero) {
-      return l10n.nightContextDurationEven(nightContext.baselineNights);
+      return _NightContextReading(
+        l10n.nightContextDurationEven(nightContext.baselineNights),
+      );
     }
-    return l10n.nightContextDurationDelta(
-      l10n.formatSignedCompactDuration(delta),
-      nightContext.baselineNights,
+    final formatted = l10n.formatSignedCompactDuration(delta);
+    return _NightContextReading(
+      l10n.nightContextDurationDelta(formatted, nightContext.baselineNights),
+      highlight: formatted,
     );
   }
 
-  String _bedtimeText(AppLocalizations l10n, Duration delta) {
+  _NightContextReading _bedtimeReading(AppLocalizations l10n, Duration delta) {
     final formatted = l10n.formatGoalDelta(delta.abs());
-    if (delta > Duration.zero) return l10n.nightContextBedtimeLater(formatted);
-    if (delta < Duration.zero) {
-      return l10n.nightContextBedtimeEarlier(formatted);
+    if (delta > Duration.zero) {
+      return _NightContextReading(
+        l10n.nightContextBedtimeLater(formatted),
+        highlight: formatted,
+      );
     }
-    return l10n.nightContextBedtimeEven;
+    if (delta < Duration.zero) {
+      return _NightContextReading(
+        l10n.nightContextBedtimeEarlier(formatted),
+        highlight: formatted,
+      );
+    }
+    return _NightContextReading(l10n.nightContextBedtimeEven);
   }
 
-  String _wakeText(AppLocalizations l10n, Duration delta) {
+  _NightContextReading _wakeReading(AppLocalizations l10n, Duration delta) {
     final formatted = l10n.formatGoalDelta(delta.abs());
-    if (delta > Duration.zero) return l10n.nightContextWakeLater(formatted);
-    if (delta < Duration.zero) return l10n.nightContextWakeEarlier(formatted);
-    return l10n.nightContextWakeEven;
+    if (delta > Duration.zero) {
+      return _NightContextReading(
+        l10n.nightContextWakeLater(formatted),
+        highlight: formatted,
+      );
+    }
+    if (delta < Duration.zero) {
+      return _NightContextReading(
+        l10n.nightContextWakeEarlier(formatted),
+        highlight: formatted,
+      );
+    }
+    return _NightContextReading(l10n.nightContextWakeEven);
   }
 
   IconData _durationIcon(Duration delta) {
@@ -410,15 +441,25 @@ class SessionNightContextCard extends StatelessWidget {
   }
 }
 
+/// One sentence of the Night context and the figure it highlights.
+class _NightContextReading {
+  const _NightContextReading(this.text, {this.highlight});
+
+  final String text;
+
+  /// The formatted figure inside [text], shown in emphasized `titleSmall`.
+  final String? highlight;
+}
+
 class _NightContextLine extends StatelessWidget {
   const _NightContextLine({
     required this.icon,
-    required this.text,
+    required this.reading,
     this.supporting = false,
   });
 
   final IconData icon;
-  final String text;
+  final _NightContextReading reading;
 
   /// Supporting notes use `bodySmall` and `onSurfaceVariant`.
   final bool supporting;
@@ -434,10 +475,19 @@ class _NightContextLine extends StatelessWidget {
             .copyWith(
               color: supporting ? scheme.onSurfaceVariant : scheme.onSurface,
             );
+    final highlightStyle = theme.typography.emphasized.titleSmall.copyWith(
+      color: style.color,
+    );
+    final span = _highlightedSpan(
+      reading.text,
+      reading.highlight,
+      style,
+      highlightStyle,
+    );
 
     return Semantics(
       container: true,
-      label: text,
+      label: reading.text,
       child: ExcludeSemantics(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -447,8 +497,91 @@ class _NightContextLine extends StatelessWidget {
               child: Icon(icon, size: 20, color: scheme.onSurfaceVariant),
             ),
             const SizedBox(width: 8),
-            Expanded(child: Text(text, style: style)),
+            Expanded(child: Text.rich(span)),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Splits [text] around [highlight] so the figure can use a heavier role.
+///
+/// The localization owns the sentence order, so the split looks for the
+/// formatted figure instead of hardcoding a prefix or suffix.
+TextSpan _highlightedSpan(
+  String text,
+  String? highlight,
+  TextStyle style,
+  TextStyle highlightStyle,
+) {
+  if (highlight == null || highlight.isEmpty) {
+    return TextSpan(text: text, style: style);
+  }
+
+  final index = text.indexOf(highlight);
+  if (index < 0) return TextSpan(text: text, style: style);
+
+  final before = text.substring(0, index);
+  final after = text.substring(index + highlight.length);
+  return TextSpan(
+    style: style,
+    children: [
+      if (before.isNotEmpty) TextSpan(text: before),
+      TextSpan(text: highlight, style: highlightStyle),
+      if (after.isNotEmpty) TextSpan(text: after),
+    ],
+  );
+}
+
+/// The session's rank in a tonal chip, separate from the comparisons.
+///
+/// From M3: `labelMedium`, the `surfaceContainerHighest` / `onSurface` pair
+/// and a full corner.
+/// My design decisions (not in M3): 10dp horizontal and 6dp vertical padding,
+/// and the 14dp trophy.
+class _NightContextRankBadge extends StatelessWidget {
+  const _NightContextRankBadge({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = M3ETheme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: Semantics(
+        container: true,
+        label: text,
+        child: ExcludeSemantics(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  M3EIcons.emoji_events_outlined,
+                  size: 14,
+                  color: scheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    text,
+                    style: theme.typography.baseline.labelMedium.copyWith(
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

@@ -939,7 +939,7 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get nightContextTitle => 'Contexto de la noche';
+  String get nightContextTitle => 'Resumen de la noche';
 
   @override
   String get nightContextNotEnough => 'Aún no hay suficientes noches.';

@@ -1517,7 +1517,7 @@ abstract class AppLocalizations {
   /// No description provided for @nightContextTitle.
   ///
   /// In en, this message translates to:
-  /// **'Night context'**
+  /// **'Night summary'**
   String get nightContextTitle;
 
   /// No description provided for @nightContextNotEnough.
