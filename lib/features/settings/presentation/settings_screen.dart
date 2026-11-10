@@ -16,8 +16,10 @@ import 'widgets/appearance_settings.dart';
 import 'widgets/google_health_status_list.dart';
 import 'widgets/settings_section.dart';
 import 'widgets/sleep_data_source_setting.dart';
+import 'widgets/stats_summary_settings.dart';
 
-/// The Settings destination: appearance, sleep data, Google Health and app info.
+/// The Settings destination: appearance, stats summary, reminders, sleep data,
+/// Google Health and app info.
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -61,6 +63,11 @@ class SettingsScreen extends ConsumerWidget {
             timeFormat: timeFormat,
             language: language,
           ),
+        ),
+        const SizedBox(height: 24),
+        SettingsSection(
+          title: l10n.statsTitle,
+          child: const StatsSummarySettings(),
         ),
         const SizedBox(height: 24),
         SettingsSection(

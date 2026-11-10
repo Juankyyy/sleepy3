@@ -14,6 +14,8 @@ import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
+import 'package:sleepy3/features/stats/application/stats_summary_controller.dart';
+import 'package:sleepy3/features/stats/domain/stats_summary_option.dart';
 import 'package:sleepy3/features/stats/presentation/advanced_stats_sheet.dart';
 import 'package:sleepy3/features/stats/presentation/charts/sleep_duration_chart.dart';
 import 'package:sleepy3/features/stats/presentation/charts/sleep_window_chart.dart';
@@ -54,6 +56,7 @@ void main() {
     FakeAppInfoGateway? appInfo,
     bool dark = false,
     bool settle = true,
+    StatsSummaryOption summaryOption = StatsSummaryOption.averageSleep,
   }) async {
     tester.view.physicalSize = size * 3;
     tester.view.devicePixelRatio = 3;
@@ -87,6 +90,9 @@ void main() {
                 ),
                 appInfoGatewayProvider.overrideWithValue(
                   appInfo ?? FakeAppInfoGateway(),
+                ),
+                initialStatsSummaryOptionProvider.overrideWithValue(
+                  summaryOption,
                 ),
               ],
               child: M3EMaterialApp(
@@ -157,39 +163,136 @@ void main() {
     expect(find.byType(M3EChip), findsNothing);
   });
 
-  testWidgets('renders the range summary and the seven-day history', (
+  testWidgets('shows the sleep duration chart as the selected summary block', (
     tester,
   ) async {
     await pumpStats(
       tester,
       clock: () => DateTime(2026, 10, 21, 10),
       initial: SleepSnapshot(closedSessions: sessions),
+      summaryOption: StatsSummaryOption.sleepDuration,
+    );
+
+    expect(find.text('Average sleep'), findsNothing);
+    expect(find.text('Goal hit rate'), findsNothing);
+    expect(find.text('Sleep duration'), findsOneWidget);
+    expect(find.text('Week · 3 nights recorded · Goal 8h'), findsOneWidget);
+    expect(find.byType(SleepDurationChart), findsOneWidget);
+    expect(find.text('View advanced stats'), findsOneWidget);
+  });
+
+  testWidgets('shows the sleep window chart when selected', (tester) async {
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: sessions),
+      summaryOption: StatsSummaryOption.sleepWindow,
+    );
+
+    expect(find.byType(SleepWindowChart), findsOneWidget);
+    expect(find.text('Sleep window'), findsOneWidget);
+    expect(find.text('Average sleep'), findsNothing);
+    expect(find.text('Goal hit rate'), findsNothing);
+    expect(find.text('View advanced stats'), findsOneWidget);
+  });
+
+  testWidgets('shows the weekday chart when selected', (tester) async {
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: sessions),
+      summaryOption: StatsSummaryOption.weekday,
+    );
+
+    expect(find.byType(WeekdayChart), findsOneWidget);
+    expect(find.text('By weekday'), findsOneWidget);
+    expect(find.text('Average sleep'), findsNothing);
+    expect(find.text('Goal hit rate'), findsNothing);
+    expect(find.text('View advanced stats'), findsOneWidget);
+  });
+
+  testWidgets('shows the compact key data block when selected', (tester) async {
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: sessions),
+      summaryOption: StatsSummaryOption.keyData,
+    );
+
+    expect(find.text('Insights'), findsOneWidget);
+    expect(find.text('Best night'), findsOneWidget);
+    expect(find.text('Distribution'), findsOneWidget);
+    final table = tester.widget<Table>(
+      find.descendant(
+        of: find.byType(StatsInsightsCard),
+        matching: find.byType(Table),
+      ),
+    );
+    expect(table.columnWidths, hasLength(2));
+    expect(find.text('Average sleep'), findsNothing);
+    expect(find.text('Goal hit rate'), findsNothing);
+  });
+
+  testWidgets('fits the duration block at 200% text', (tester) async {
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: sessions),
+      summaryOption: StatsSummaryOption.sleepDuration,
+      textScale: 2,
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Sleep duration'), findsOneWidget);
+    expect(find.byType(SleepDurationChart), findsOneWidget);
+  });
+
+  testWidgets('fits the compact key data block at 200% text', (tester) async {
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: sessions),
+      summaryOption: StatsSummaryOption.keyData,
+      textScale: 2,
+    );
+
+    expect(tester.takeException(), isNull);
+    final table = tester.widget<Table>(
+      find.descendant(
+        of: find.byType(StatsInsightsCard),
+        matching: find.byType(Table),
+      ),
+    );
+    expect(table.columnWidths, hasLength(1));
+  });
+
+  testWidgets('renders the four key metrics and the seven-day history', (
+    tester,
+  ) async {
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: sessions),
+      summaryOption: StatsSummaryOption.keyMetrics,
     );
 
     expect(find.text('History'), findsOneWidget);
-    expect(find.text('Average sleep'), findsOneWidget);
-    expect(find.text('7h 21m'), findsOneWidget);
-    expect(find.text('Across 3 nights · 22h 3m total'), findsOneWidget);
-    expect(find.text('3 of 7 nights'), findsOneWidget);
+    expect(find.text('Average sleep'), findsNothing);
+    expect(find.text('3 of 7 nights'), findsNothing);
     expect(find.text('Goal hit rate'), findsOneWidget);
     expect(find.text('33%'), findsOneWidget);
     expect(find.text('1 of 3 nights'), findsOneWidget);
-    expect(find.text('Schedule consistency'), findsNothing);
+    expect(find.text('Schedule consistency'), findsOneWidget);
+    expect(find.text('bedtime'), findsOneWidget);
     expect(find.text('Sleep balance'), findsOneWidget);
     expect(find.text('−1h 57m'), findsOneWidget);
     expect(find.text('debt · vs 8h goal'), findsOneWidget);
-    expect(find.text('Best streak'), findsNothing);
+    expect(find.text('Best streak'), findsOneWidget);
+    expect(find.text('1 night'), findsOneWidget);
+    expect(find.text('current 1'), findsOneWidget);
     expect(find.text('Sleep duration'), findsNothing);
     expect(find.text('View advanced stats'), findsOneWidget);
     expect(find.textContaining('vs previous'), findsNothing);
-
-    final card = tester.widget<M3ECard>(
-      find.descendant(
-        of: find.byType(StatsHeroCard),
-        matching: find.byType(M3ECard),
-      ),
-    );
-    expect(card.variant, M3ECardVariant.outlined);
 
     final metricsCard = tester.widget<M3ECard>(
       find.descendant(
@@ -208,12 +311,10 @@ void main() {
 
     await openAdvanced(tester);
 
-    expect(inAdvanced(find.text('Schedule consistency')), findsOneWidget);
-    expect(inAdvanced(find.text('bedtime')), findsOneWidget);
-    expect(inAdvanced(find.text('Best streak')), findsOneWidget);
-    expect(inAdvanced(find.text('1 night')), findsOneWidget);
-    expect(inAdvanced(find.text('current 1')), findsOneWidget);
+    expect(inAdvanced(find.byType(StatsMetricsCard)), findsNothing);
     expect(inAdvanced(find.byType(SleepDurationChart)), findsOneWidget);
+    expect(inAdvanced(find.byType(SleepWindowChart)), findsOneWidget);
+    expect(inAdvanced(find.byType(WeekdayChart)), findsOneWidget);
     expect(
       inAdvanced(find.text('Week · 3 nights recorded · Goal 8h')),
       findsOneWidget,
@@ -367,13 +468,13 @@ void main() {
     expect(find.text('vs previous week: +1h'), findsOneWidget);
     expect(find.byIcon(M3EIcons.arrow_upward_rounded), findsOneWidget);
     expect(find.text('2 of 7 nights'), findsOneWidget);
-    expect(find.text('100%'), findsOneWidget);
-    expect(find.text('2 of 2 nights'), findsOneWidget);
-    expect(find.text('0m'), findsOneWidget);
-    expect(find.text('even · vs 8h goal'), findsOneWidget);
 
     await openAdvanced(tester);
 
+    expect(inAdvanced(find.text('100%')), findsOneWidget);
+    expect(inAdvanced(find.text('2 of 2 nights')), findsOneWidget);
+    expect(inAdvanced(find.text('0m')), findsOneWidget);
+    expect(inAdvanced(find.text('even · vs 8h goal')), findsOneWidget);
     expect(inAdvanced(find.text('2 nights')), findsOneWidget);
     expect(inAdvanced(find.text('current 2')), findsOneWidget);
   });
@@ -978,10 +1079,6 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(
-      find.bySemanticsLabel(RegExp('Goal hit rate, 33%, 1 of 3 nights')),
-      findsOneWidget,
-    );
     expect(find.bySemanticsLabel('Time range'), findsOneWidget);
 
     await scrollToHistory(tester);
@@ -1058,11 +1155,12 @@ void main() {
       clock: () => DateTime(2026, 10, 21, 10),
       initial: SleepSnapshot(closedSessions: sessions),
       size: const Size(800, 900),
+      summaryOption: StatsSummaryOption.keyMetrics,
     );
 
     expect(tester.takeException(), isNull);
     expect(find.text('Stats'), findsOneWidget);
-    expect(find.text('Average sleep'), findsOneWidget);
+    expect(find.text('Average sleep'), findsNothing);
     expect(tester.getTopLeft(find.text('Stats')).dx, 24);
 
     final summaryTable = tester.widget<Table>(
@@ -1071,12 +1169,12 @@ void main() {
         matching: find.byType(Table),
       ),
     );
-    expect(summaryTable.columnWidths, hasLength(2));
+    expect(summaryTable.columnWidths, hasLength(4));
 
     await openAdvanced(tester);
 
-    final advancedTable = tester.widget<Table>(inAdvanced(find.byType(Table)));
-    expect(advancedTable.columnWidths, hasLength(4));
+    expect(inAdvanced(find.byType(StatsMetricsCard)), findsNothing);
+    expect(inAdvanced(find.byType(SleepDurationChart)), findsOneWidget);
   });
 
   testWidgets('renders the dashboard in the dark theme', (tester) async {
@@ -1566,29 +1664,31 @@ void main() {
       clock: () => DateTime(2026, 10, 21, 10),
       initial: SleepSnapshot(closedSessions: sessions),
       locale: const Locale('es'),
+      summaryOption: StatsSummaryOption.keyMetrics,
     );
 
     expect(find.text('Estadísticas'), findsOneWidget);
     expect(find.text('Historial'), findsOneWidget);
-    expect(find.text('Sueño medio'), findsOneWidget);
+    expect(find.text('Sueño medio'), findsNothing);
     expect(find.text('Semana'), findsOneWidget);
-    expect(find.text('3 de 7 noches'), findsOneWidget);
     expect(find.text('Objetivo cumplido'), findsOneWidget);
     expect(find.text('33 %'), findsOneWidget);
     expect(find.text('1 de 3 noches'), findsOneWidget);
-    expect(find.text('Consistencia del horario'), findsNothing);
+    expect(find.text('Consistencia del horario'), findsOneWidget);
     expect(find.text('Balance de sueño'), findsOneWidget);
     expect(find.text('−1 h 57 min'), findsOneWidget);
     expect(find.text('deuda · frente al objetivo de 8 h'), findsOneWidget);
+    expect(find.text('Mejor racha'), findsOneWidget);
     expect(find.text('Ver estadísticas avanzadas'), findsOneWidget);
 
     await openAdvanced(tester);
 
     expect(inAdvanced(find.text('Estadísticas avanzadas')), findsOneWidget);
-    expect(inAdvanced(find.text('Consistencia del horario')), findsOneWidget);
-    expect(inAdvanced(find.text('Mejor racha')), findsOneWidget);
-    expect(inAdvanced(find.text('1 noche')), findsOneWidget);
-    expect(inAdvanced(find.text('actual 1')), findsOneWidget);
+    expect(inAdvanced(find.byType(StatsMetricsCard)), findsNothing);
+    expect(inAdvanced(find.text('Duración del sueño')), findsOneWidget);
+    expect(inAdvanced(find.text('Ventana de sueño')), findsOneWidget);
+    expect(inAdvanced(find.text('Por día de la semana')), findsOneWidget);
+    expect(inAdvanced(find.text('Datos clave')), findsOneWidget);
 
     await closeAdvanced(tester);
     await scrollToHistory(tester);

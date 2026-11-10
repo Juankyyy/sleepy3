@@ -11,9 +11,15 @@ import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
+import 'package:sleepy3/features/stats/application/stats_summary_controller.dart';
+import 'package:sleepy3/features/stats/domain/stats_summary_option.dart';
 import 'package:sleepy3/features/stats/presentation/advanced_stats_sheet.dart';
+import 'package:sleepy3/features/stats/presentation/charts/sleep_duration_chart.dart';
+import 'package:sleepy3/features/stats/presentation/charts/sleep_window_chart.dart';
+import 'package:sleepy3/features/stats/presentation/charts/weekday_chart.dart';
 import 'package:sleepy3/features/stats/presentation/stats_screen.dart';
 import 'package:sleepy3/features/stats/presentation/widgets/stats_insights_card.dart';
+import 'package:sleepy3/features/stats/presentation/widgets/stats_metrics_card.dart';
 import 'package:sleepy3/l10n/l10n.dart';
 
 import '../../health/fakes.dart';
@@ -37,6 +43,7 @@ void main() {
     FakeHealthConnectGateway? gateway,
     Size size = const Size(360, 800),
     double textScale = 1,
+    StatsSummaryOption summaryOption = StatsSummaryOption.averageSleep,
   }) async {
     tester.view.physicalSize = size * 3;
     tester.view.devicePixelRatio = 3;
@@ -63,6 +70,7 @@ void main() {
             gateway ?? FakeHealthConnectGateway(),
           ),
           healthSyncStoreProvider.overrideWithValue(FakeHealthSyncStore()),
+          initialStatsSummaryOptionProvider.overrideWithValue(summaryOption),
         ],
         child: M3EMaterialApp(
           title: 'Sleepy3',
@@ -124,6 +132,84 @@ void main() {
     expect(inSheet(find.text('Advanced stats')), findsOneWidget);
     expect(inSheet(find.text('Week · 3 nights')), findsOneWidget);
     expect(inSheet(find.byIcon(M3EIcons.close)), findsOneWidget);
+  });
+
+  testWidgets('hides the key metrics block when it is in the summary', (
+    tester,
+  ) async {
+    await pumpStats(tester, summaryOption: StatsSummaryOption.keyMetrics);
+    await openAdvanced(tester);
+
+    expect(inSheet(find.byType(StatsMetricsCard)), findsNothing);
+    expect(inSheet(find.byType(SleepDurationChart)), findsOneWidget);
+    expect(inSheet(find.byType(SleepWindowChart)), findsOneWidget);
+    expect(inSheet(find.byType(WeekdayChart)), findsOneWidget);
+    expect(inSheet(find.byType(StatsInsightsCard)), findsOneWidget);
+  });
+
+  testWidgets('hides the duration chart when it is in the summary', (
+    tester,
+  ) async {
+    await pumpStats(tester, summaryOption: StatsSummaryOption.sleepDuration);
+    await openAdvanced(tester);
+
+    expect(inSheet(find.byType(SleepDurationChart)), findsNothing);
+    expect(inSheet(find.byType(StatsMetricsCard)), findsOneWidget);
+    expect(inSheet(find.byType(SleepWindowChart)), findsOneWidget);
+    expect(inSheet(find.byType(WeekdayChart)), findsOneWidget);
+    expect(inSheet(find.byType(StatsInsightsCard)), findsOneWidget);
+  });
+
+  testWidgets('hides the window chart when it is in the summary', (
+    tester,
+  ) async {
+    await pumpStats(tester, summaryOption: StatsSummaryOption.sleepWindow);
+    await openAdvanced(tester);
+
+    expect(inSheet(find.byType(SleepWindowChart)), findsNothing);
+    expect(inSheet(find.byType(StatsMetricsCard)), findsOneWidget);
+    expect(inSheet(find.byType(SleepDurationChart)), findsOneWidget);
+    expect(inSheet(find.byType(WeekdayChart)), findsOneWidget);
+    expect(inSheet(find.byType(StatsInsightsCard)), findsOneWidget);
+  });
+
+  testWidgets('hides the weekday chart when it is in the summary', (
+    tester,
+  ) async {
+    await pumpStats(tester, summaryOption: StatsSummaryOption.weekday);
+    await openAdvanced(tester);
+
+    expect(inSheet(find.byType(WeekdayChart)), findsNothing);
+    expect(inSheet(find.byType(StatsMetricsCard)), findsOneWidget);
+    expect(inSheet(find.byType(SleepDurationChart)), findsOneWidget);
+    expect(inSheet(find.byType(SleepWindowChart)), findsOneWidget);
+    expect(inSheet(find.byType(StatsInsightsCard)), findsOneWidget);
+  });
+
+  testWidgets('hides the key data card when it is in the summary', (
+    tester,
+  ) async {
+    await pumpStats(tester, summaryOption: StatsSummaryOption.keyData);
+    await openAdvanced(tester);
+
+    expect(inSheet(find.byType(StatsInsightsCard)), findsNothing);
+    expect(inSheet(find.byType(StatsMetricsCard)), findsOneWidget);
+    expect(inSheet(find.byType(SleepDurationChart)), findsOneWidget);
+    expect(inSheet(find.byType(SleepWindowChart)), findsOneWidget);
+    expect(inSheet(find.byType(WeekdayChart)), findsOneWidget);
+  });
+
+  testWidgets('keeps every block when average sleep is in the summary', (
+    tester,
+  ) async {
+    await pumpStats(tester, summaryOption: StatsSummaryOption.averageSleep);
+    await openAdvanced(tester);
+
+    expect(inSheet(find.byType(StatsMetricsCard)), findsOneWidget);
+    expect(inSheet(find.byType(SleepDurationChart)), findsOneWidget);
+    expect(inSheet(find.byType(SleepWindowChart)), findsOneWidget);
+    expect(inSheet(find.byType(WeekdayChart)), findsOneWidget);
+    expect(inSheet(find.byType(StatsInsightsCard)), findsOneWidget);
   });
 
   testWidgets('opens at 70 % and drags between full, the snap and close', (

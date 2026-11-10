@@ -8,16 +8,15 @@ import 'package:material_ui/material_ui.dart';
 import '../../../core/theme/sleepy3_theme.dart';
 import '../../../core/time/local_day_builder.dart';
 import '../../../l10n/l10n.dart';
-import '../../health/application/health_history_permission_controller.dart';
-import '../../health/application/sleep_data_source_controller.dart';
-import '../../health/domain/health_history_access.dart';
-import '../../health/domain/sleep_data_source.dart';
 import '../../health/presentation/health_history_banner.dart';
 import '../../sleep_tracking/application/sleep_tracking_controller.dart';
 import '../../sleep_tracking/domain/sleep_history.dart';
 import '../../sleep_tracking/domain/sleep_insights.dart';
 import '../../sleep_tracking/presentation/widgets/sleep_history_status.dart';
+import '../application/stats_history_limited_provider.dart';
 import '../application/stats_range_controller.dart';
+import '../application/stats_summary_controller.dart';
+import '../domain/stats_summary_option.dart';
 import 'charts/chart_format.dart';
 import 'charts/sleep_duration_chart.dart';
 import 'charts/sleep_window_chart.dart';
@@ -25,6 +24,7 @@ import 'charts/weekday_chart.dart';
 import 'widgets/stats_insights_card.dart';
 import 'widgets/stats_metrics_card.dart';
 import 'widgets/stats_range_selector.dart';
+import 'widgets/stats_sheet_header.dart';
 
 /// The top margin a full-height modal sheet leaves above itself.
 ///
@@ -48,11 +48,6 @@ const _sheetMaxWidth = 640.0;
 /// is a Sleepy3 design decision, not a Material rule. The sheet can still be
 /// dragged to full height or down to close.
 const _sheetInitialSize = 0.70;
-
-/// The close icon button size used to measure the pinned header.
-///
-/// `M3EIconButtonSize.md` maps to the 56dp `M3EButtonSize.md` container.
-const _sheetCloseSize = 56.0;
 
 /// Opens the advanced Stats dashboard as a draggable modal sheet.
 ///
@@ -82,7 +77,9 @@ Future<void> showAdvancedStatsSheet(BuildContext context) {
 /// The advanced Stats dashboard inside its draggable sheet.
 ///
 /// It reads the same [statsRangeProvider] as the summary, so changing the range
-/// here updates both surfaces without duplicating the permission flow.
+/// here updates both surfaces without duplicating the permission flow. The
+/// block already shown in the summary is omitted from the sheet, so the same
+/// data is never repeated on both surfaces.
 class AdvancedStatsSheet extends ConsumerWidget {
   const AdvancedStatsSheet({super.key});
 
@@ -91,10 +88,10 @@ class AdvancedStatsSheet extends ConsumerWidget {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
     final state = ref.watch(sleepTrackingControllerProvider);
-    final source = ref.watch(sleepDataSourceProvider);
-    final permission = ref.watch(healthHistoryPermissionProvider);
     final range = ref.watch(statsRangeProvider);
     final clock = ref.watch(sleepClockProvider);
+    final historyLimited = ref.watch(statsHistoryLimitedProvider);
+    final summaryOption = ref.watch(statsSummaryControllerProvider);
     final screenWidth = MediaQuery.sizeOf(context).width;
     final screenHeight = MediaQuery.sizeOf(context).height;
     final wide = screenWidth > 640;
@@ -109,10 +106,6 @@ class AdvancedStatsSheet extends ConsumerWidget {
       (screenHeight - topMargin) / screenHeight,
     );
     final bottomInset = MediaQuery.paddingOf(context).bottom;
-    final historyLimited =
-        source == SleepDataSource.healthConnect &&
-        range.requiresFullHistory &&
-        permission != HealthHistoryAccess.authorized;
 
     return DraggableScrollableSheet(
       expand: false,
@@ -144,6 +137,30 @@ class AdvancedStatsSheet extends ConsumerWidget {
                     sessions: state.closedSessions,
                     range: range,
                   );
+                  // The block in the summary is not repeated in the sheet.
+                  // Average sleep never lived in the sheet, so selecting it
+                  // keeps all five advanced blocks.
+                  final blocks = <Widget>[
+                    if (summaryOption != StatsSummaryOption.keyMetrics)
+                      StatsMetricsCard(insights: insights),
+                    if (summaryOption != StatsSummaryOption.sleepDuration)
+                      SleepDurationChart(
+                        insights: insights,
+                        historyLimited: historyLimited,
+                      ),
+                    if (summaryOption != StatsSummaryOption.sleepWindow)
+                      SleepWindowChart(
+                        insights: insights,
+                        historyLimited: historyLimited,
+                      ),
+                    if (summaryOption != StatsSummaryOption.weekday)
+                      WeekdayChart(
+                        insights: insights,
+                        historyLimited: historyLimited,
+                      ),
+                    if (summaryOption != StatsSummaryOption.keyData)
+                      StatsInsightsCard(insights: insights),
+                  ];
                   final ready = state.historyStatus == SleepHistoryStatus.ready;
                   final l10n = context.l10n;
                   final title = l10n.advancedStatsTitle;
@@ -154,9 +171,9 @@ class AdvancedStatsSheet extends ConsumerWidget {
                   final supportStyle = theme.typography.baseline.bodySmall;
                   final titleWidth = math.max(
                     0.0,
-                    sheetWidth - contentMargin * 2 - _sheetCloseSize,
+                    sheetWidth - contentMargin * 2 - statsSheetHeaderCloseSize,
                   );
-                  final headerExtent = _headerExtent(
+                  final headerExtent = statsSheetHeaderExtent(
                     context,
                     title: title,
                     support: support,
@@ -172,13 +189,16 @@ class AdvancedStatsSheet extends ConsumerWidget {
                       SliverPersistentHeader(
                         key: const Key('advanced-stats-header'),
                         pinned: true,
-                        delegate: _SheetHeaderDelegate(
+                        delegate: StatsSheetHeaderDelegate(
                           extent: headerExtent,
                           title: title,
                           support: support,
                           margin: contentMargin,
                           titleStyle: titleStyle,
                           supportStyle: supportStyle,
+                          contentKey: const Key(
+                            'advanced-stats-header-content',
+                          ),
                           onClose: () => Navigator.of(context).pop(),
                         ),
                       ),
@@ -244,26 +264,17 @@ class AdvancedStatsSheet extends ConsumerWidget {
                                 ),
                                 HealthHistoryBanner(visible: historyLimited),
                                 // 16dp separates the filters from the first
-                                // card.
+                                // card. The gaps follow the visible blocks so
+                                // hiding one never leaves a double space.
                                 const SizedBox(height: 16),
-                                StatsMetricsCard(insights: insights),
-                                const SizedBox(height: 8),
-                                SleepDurationChart(
-                                  insights: insights,
-                                  historyLimited: historyLimited,
-                                ),
-                                const SizedBox(height: 8),
-                                SleepWindowChart(
-                                  insights: insights,
-                                  historyLimited: historyLimited,
-                                ),
-                                const SizedBox(height: 8),
-                                WeekdayChart(
-                                  insights: insights,
-                                  historyLimited: historyLimited,
-                                ),
-                                const SizedBox(height: 8),
-                                StatsInsightsCard(insights: insights),
+                                for (
+                                  var index = 0;
+                                  index < blocks.length;
+                                  index++
+                                ) ...[
+                                  if (index > 0) const SizedBox(height: 8),
+                                  blocks[index],
+                                ],
                               ],
                             ),
                           ),
@@ -289,142 +300,4 @@ class AdvancedStatsSheet extends ConsumerWidget {
     if (!ready || !insights.hasData) return rangeLabel;
     return '$rangeLabel · ${l10n.metricNights(insights.recordedDays)}';
   }
-
-  double _headerExtent(
-    BuildContext context, {
-    required String title,
-    required String support,
-    required TextStyle titleStyle,
-    required TextStyle supportStyle,
-    required double titleWidth,
-  }) {
-    final textScaler = MediaQuery.textScalerOf(context);
-    final direction = Directionality.of(context);
-
-    final titlePainter = TextPainter(
-      text: TextSpan(text: title, style: titleStyle),
-      textDirection: direction,
-      textScaler: textScaler,
-    )..layout(maxWidth: titleWidth);
-    final supportPainter = TextPainter(
-      text: TextSpan(text: support, style: supportStyle),
-      textDirection: direction,
-      textScaler: textScaler,
-    )..layout(maxWidth: titleWidth);
-
-    final rowHeight = math.max(
-      titlePainter.height + 2 + supportPainter.height,
-      _sheetCloseSize,
-    );
-    // Top padding, handle, gap, row and bottom padding.
-    return 10 + 4 + 10 + rowHeight + 12;
-  }
-}
-
-/// The pinned header delegate, so the handle, title and close stay visible
-/// while the dashboard scrolls under them.
-class _SheetHeaderDelegate extends SliverPersistentHeaderDelegate {
-  const _SheetHeaderDelegate({
-    required this.extent,
-    required this.title,
-    required this.support,
-    required this.margin,
-    required this.titleStyle,
-    required this.supportStyle,
-    required this.onClose,
-  });
-
-  final double extent;
-  final String title;
-  final String support;
-  final double margin;
-  final TextStyle titleStyle;
-  final TextStyle supportStyle;
-  final VoidCallback onClose;
-
-  @override
-  double get minExtent => extent;
-
-  @override
-  double get maxExtent => extent;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    final theme = M3ETheme.of(context);
-    final scheme = theme.colorScheme;
-    final l10n = context.l10n;
-
-    return SizedBox(
-      key: const Key('advanced-stats-header-content'),
-      height: extent,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerLow,
-          border: Border(
-            bottom: BorderSide(color: scheme.outlineVariant, width: 1),
-          ),
-        ),
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(margin, 10, margin, 12),
-          child: Column(
-            children: [
-              Center(
-                child: Container(
-                  width: 32,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: scheme.onSurfaceVariant.withValues(alpha: 0.40),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              // 10dp separates the handle from the title row.
-              const SizedBox(height: 10),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Semantics(
-                          header: true,
-                          child: Text(
-                            title,
-                            style: titleStyle.copyWith(color: scheme.onSurface),
-                          ),
-                        ),
-                        // 2dp keeps the range line attached to the title.
-                        const SizedBox(height: 2),
-                        Text(
-                          support,
-                          style: supportStyle.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  M3EIconButton(
-                    icon: const Icon(M3EIcons.close),
-                    variant: M3EIconButtonVariant.standard,
-                    size: M3EIconButtonSize.md,
-                    tooltip: l10n.close,
-                    onPressed: onClose,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant _SheetHeaderDelegate oldDelegate) => true;
 }

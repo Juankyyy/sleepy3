@@ -13,12 +13,19 @@ import '../../../sleep_tracking/domain/sleep_insights.dart';
 /// My design decisions (not in M3): the 16dp inline icon, the 4dp and 8dp gaps
 /// inside the card, and the arrow that pairs the comparison with its value.
 class StatsHeroCard extends StatelessWidget {
-  const StatsHeroCard({super.key, required this.insights, this.onShowAll});
+  const StatsHeroCard({
+    super.key,
+    required this.insights,
+    this.showLabel = true,
+  });
 
   final SleepInsights insights;
 
-  /// Shown only when the selected range is empty but older history exists.
-  final VoidCallback? onShowAll;
+  /// Whether to show the inline `Average sleep` label.
+  ///
+  /// The summary picker labels the option in its own header, so its preview
+  /// hides the label to avoid repeating it.
+  final bool showLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -60,8 +67,10 @@ class StatsHeroCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(l10n.averageSleep, style: labelStyle),
-                  const SizedBox(height: 4),
+                  if (showLabel) ...[
+                    Text(l10n.averageSleep, style: labelStyle),
+                    const SizedBox(height: 4),
+                  ],
                   Text(
                     average == null ? '—' : l10n.formatSleepDuration(average),
                     style: valueStyle,
@@ -92,15 +101,6 @@ class StatsHeroCard extends StatelessWidget {
               ),
             ),
           ),
-          if (onShowAll != null) ...[
-            const SizedBox(height: 8),
-            M3EButton(
-              style: M3EButtonStyle.text,
-              size: M3EButtonSize.sm,
-              onPressed: onShowAll,
-              child: Text(l10n.showAll),
-            ),
-          ],
         ],
       ),
     );

@@ -1,6 +1,7 @@
 import '../../health/domain/sleep_data_source.dart';
 import '../../reminders/domain/sleep_reminder.dart';
 import '../../sleep_tracking/data/sleepy3_database.dart';
+import '../../stats/domain/stats_summary_option.dart';
 import '../domain/app_language.dart';
 import '../domain/app_theme_mode.dart';
 import '../domain/app_time_format.dart';
@@ -22,6 +23,7 @@ class DriftSettingsStore implements SettingsStore {
       'sleep_notification_permission_asked';
   static const _sleepingNotificationEnabledKey =
       'sleep_status_notification_enabled';
+  static const _statsSummaryOptionKey = 'stats_summary_option';
 
   @override
   Future<AppThemeMode> loadThemeMode() async {
@@ -98,6 +100,18 @@ class DriftSettingsStore implements SettingsStore {
   @override
   Future<void> saveSleepingNotificationEnabled(bool enabled) {
     return _write(_sleepingNotificationEnabledKey, enabled.toString());
+  }
+
+  @override
+  Future<StatsSummaryOption> loadStatsSummaryOption() async {
+    return StatsSummaryOption.fromStorageValue(
+      await _read(_statsSummaryOptionKey),
+    );
+  }
+
+  @override
+  Future<void> saveStatsSummaryOption(StatsSummaryOption option) {
+    return _write(_statsSummaryOptionKey, option.name);
   }
 
   Future<String?> _read(String key) async {

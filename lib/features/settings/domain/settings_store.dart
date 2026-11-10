@@ -1,5 +1,6 @@
 import '../../health/domain/sleep_data_source.dart';
 import '../../reminders/domain/sleep_reminder.dart';
+import '../../stats/domain/stats_summary_option.dart';
 import 'app_language.dart';
 import 'app_theme_mode.dart';
 import 'app_time_format.dart';
@@ -43,4 +44,9 @@ abstract interface class SettingsStore {
   Future<bool> loadSleepingNotificationEnabled();
 
   Future<void> saveSleepingNotificationEnabled(bool enabled);
+
+  /// The block shown above View advanced stats, defaulting to sleep duration.
+  Future<StatsSummaryOption> loadStatsSummaryOption();
+
+  Future<void> saveStatsSummaryOption(StatsSummaryOption option);
 }

@@ -7,7 +7,7 @@ import '../../../sleep_tracking/domain/sleep_insights.dart';
 
 /// The metric tiles shown by [StatsMetricsCard].
 ///
-/// The summary uses the first two; the advanced sheet shows all four.
+/// The key-metrics summary block and the advanced sheet both show all four.
 enum StatsMetricType {
   goalHitRate,
   scheduleConsistency,
@@ -15,14 +15,14 @@ enum StatsMetricType {
   bestStreak,
 }
 
-/// The summary metrics card.
+/// The metric tiles used by the key-metrics summary block and the advanced
+/// dashboard.
 ///
 /// From M3: outlined card, 12dp corners, `outlineVariant` dividers, and the
 /// `labelMedium` / `headlineSmall` / `bodySmall` type roles.
 /// My design decisions (not in M3): a 2x2 grid on compact screens, four
 /// columns from 600dp for the full set, 16dp inside each cell and tabular
-/// figures in the values. The Stats summary passes only two metrics and a
-/// fixed two-column layout.
+/// figures in the values.
 class StatsMetricsCard extends StatelessWidget {
   const StatsMetricsCard({
     super.key,
@@ -36,7 +36,7 @@ class StatsMetricsCard extends StatelessWidget {
   /// Which metrics to render, in order.
   final List<StatsMetricType> metrics;
 
-  /// Overrides the responsive column count. The summary uses 2.
+  /// Overrides the responsive column count.
   final int? columns;
 
   @override

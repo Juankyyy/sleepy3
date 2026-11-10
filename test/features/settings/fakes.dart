@@ -4,6 +4,7 @@ import 'package:sleepy3/features/settings/domain/app_language.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/settings/domain/settings_store.dart';
+import 'package:sleepy3/features/stats/domain/stats_summary_option.dart';
 
 class FakeSettingsStore implements SettingsStore {
   FakeSettingsStore({
@@ -14,6 +15,7 @@ class FakeSettingsStore implements SettingsStore {
     this.sleepReminder = SleepReminder.defaults,
     this.sleepNotificationPermissionAsked = false,
     this.sleepingNotificationEnabled = true,
+    this.statsSummaryOption = StatsSummaryOption.defaultOption,
     this.failWrites = false,
   });
 
@@ -24,6 +26,7 @@ class FakeSettingsStore implements SettingsStore {
   SleepReminder sleepReminder;
   bool sleepNotificationPermissionAsked;
   bool sleepingNotificationEnabled;
+  StatsSummaryOption statsSummaryOption;
   bool failWrites;
   int loads = 0;
   int timeFormatLoads = 0;
@@ -32,6 +35,7 @@ class FakeSettingsStore implements SettingsStore {
   int reminderLoads = 0;
   int sleepNotificationPermissionAskedLoads = 0;
   int sleepingNotificationEnabledLoads = 0;
+  int statsSummaryLoads = 0;
   final saves = <AppThemeMode>[];
   final timeFormatSaves = <AppTimeFormat>[];
   final languageSaves = <AppLanguage>[];
@@ -39,6 +43,7 @@ class FakeSettingsStore implements SettingsStore {
   final reminderSaves = <SleepReminder>[];
   final sleepNotificationPermissionAskedSaves = <bool>[];
   final sleepingNotificationEnabledSaves = <bool>[];
+  final statsSummarySaves = <StatsSummaryOption>[];
 
   @override
   Future<AppThemeMode> loadThemeMode() async {
@@ -129,5 +134,18 @@ class FakeSettingsStore implements SettingsStore {
     if (failWrites) throw StateError('write failed');
     sleepingNotificationEnabled = value;
     sleepingNotificationEnabledSaves.add(value);
+  }
+
+  @override
+  Future<StatsSummaryOption> loadStatsSummaryOption() async {
+    statsSummaryLoads++;
+    return statsSummaryOption;
+  }
+
+  @override
+  Future<void> saveStatsSummaryOption(StatsSummaryOption value) async {
+    if (failWrites) throw StateError('write failed');
+    statsSummaryOption = value;
+    statsSummarySaves.add(value);
   }
 }

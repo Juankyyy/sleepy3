@@ -27,6 +27,9 @@ import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_provi
 import 'package:sleepy3/features/sleep_tracking/application/sleeping_notification_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleeping_notification_enabled_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
+import 'package:sleepy3/features/stats/application/stats_summary_controller.dart';
+import 'package:sleepy3/features/stats/domain/stats_summary_option.dart';
+import 'package:sleepy3/features/stats/presentation/stats_summary_picker.dart';
 import 'package:sleepy3/l10n/l10n.dart';
 
 import '../../health/fakes.dart';
@@ -147,6 +150,27 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> tapPickerLabel(WidgetTester tester, String label) async {
+    final finder = find.text(label);
+    if (finder.evaluate().isEmpty) {
+      await tester.scrollUntilVisible(
+        finder,
+        240,
+        scrollable: find
+            .descendant(
+              of: find.byKey(const Key('stats-summary-picker-list')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+    } else {
+      await tester.ensureVisible(finder.first);
+    }
+    await tester.pumpAndSettle();
+    await tester.tap(finder.first, warnIfMissed: false);
+    await tester.pumpAndSettle();
+  }
+
   Future<void> scrollToLabel(
     WidgetTester tester,
     String label, {
@@ -194,10 +218,12 @@ void main() {
     expect(title.style?.fontFamily, Sleepy3Theme.brandFontFamily);
     expect(title.style?.fontVariations!.single.value, 28);
     expect(
-      find.text('Theme, reminders, sleep data and app info.'),
+      find.text('Theme, stats, reminders, sleep data and app info.'),
       findsOneWidget,
     );
     expect(find.text('Appearance'), findsOneWidget);
+    expect(find.text('Stats summary'), findsOneWidget);
+    expect(find.text('Sleep duration'), findsOneWidget);
     expect(find.text('Reminders'), findsOneWidget);
     expect(find.text('Sleep reminder'), findsOneWidget);
     expect(find.text('Off'), findsOneWidget);
@@ -460,6 +486,7 @@ void main() {
         .read(sleepReminderControllerProvider.notifier)
         .sync(isSleeping: false);
     await tester.pumpAndSettle();
+    await scrollToLabel(tester, 'Aviso de sueño');
 
     expect(tester.takeException(), isNull);
     for (final finder in [
@@ -971,6 +998,162 @@ void main() {
       );
     }
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the stats summary row opens the picker and saves a block', (
+    tester,
+  ) async {
+    final store = await pumpSettings(tester);
+
+    await tapLabel(tester, 'Stats summary');
+
+    expect(find.byType(StatsSummaryPickerSheet), findsOneWidget);
+    expect(find.text('Current block: Sleep duration'), findsOneWidget);
+    expect(find.text('Week'), findsOneWidget);
+    final header = tester.widget<DecoratedBox>(
+      find.byKey(const Key('stats-summary-picker-header-divider')),
+    );
+    final headerDecoration = header.decoration as BoxDecoration;
+    expect(headerDecoration.border?.bottom.width, 1);
+    expect(
+      tester
+          .getTopLeft(find.byKey(const Key('stats-summary-picker-surface')))
+          .dy,
+      closeTo(160, 1),
+    );
+
+    await tapLabel(tester, 'Key metrics');
+    await tester.pumpAndSettle();
+
+    expect(find.byType(StatsSummaryPickerSheet), findsNothing);
+    expect(store.statsSummarySaves, [StatsSummaryOption.keyMetrics]);
+    expect(find.text('Key metrics'), findsOneWidget);
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(SettingsScreen)),
+    );
+    expect(
+      container.read(statsSummaryControllerProvider),
+      StatsSummaryOption.keyMetrics,
+    );
+  });
+
+  testWidgets('scrolls to a lower summary block and saves it', (tester) async {
+    final store = await pumpSettings(tester);
+
+    await tapLabel(tester, 'Stats summary');
+    await tapPickerLabel(tester, 'Key data');
+
+    expect(find.byType(StatsSummaryPickerSheet), findsNothing);
+    expect(store.statsSummarySaves, [StatsSummaryOption.keyData]);
+    expect(find.text('Key data'), findsOneWidget);
+  });
+
+  testWidgets('dragging the summary picker handle down closes it', (
+    tester,
+  ) async {
+    final store = await pumpSettings(tester);
+
+    await tapLabel(tester, 'Stats summary');
+    expect(find.byType(StatsSummaryPickerSheet), findsOneWidget);
+
+    await tester.drag(
+      find.byKey(const Key('stats-summary-picker-handle')),
+      const Offset(0, 520),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(StatsSummaryPickerSheet), findsNothing);
+    expect(store.statsSummarySaves, isEmpty);
+  });
+
+  testWidgets('a short handle drag snaps back to 80 percent', (tester) async {
+    await pumpSettings(tester);
+
+    await tapLabel(tester, 'Stats summary');
+    await tester.drag(
+      find.byKey(const Key('stats-summary-picker-handle')),
+      const Offset(0, 80),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(StatsSummaryPickerSheet), findsOneWidget);
+    expect(
+      tester
+          .getTopLeft(find.byKey(const Key('stats-summary-picker-surface')))
+          .dy,
+      closeTo(160, 1),
+    );
+  });
+
+  testWidgets('a short body drag snaps back to 80 percent', (tester) async {
+    await pumpSettings(tester);
+
+    await tapLabel(tester, 'Stats summary');
+    await tester.drag(
+      find.byKey(const Key('stats-summary-picker-list')),
+      const Offset(0, 80),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(StatsSummaryPickerSheet), findsOneWidget);
+    expect(
+      tester
+          .getTopLeft(find.byKey(const Key('stats-summary-picker-surface')))
+          .dy,
+      closeTo(160, 1),
+    );
+  });
+
+  testWidgets('dragging the summary picker body down closes it', (
+    tester,
+  ) async {
+    final store = await pumpSettings(tester);
+
+    await tapLabel(tester, 'Stats summary');
+    expect(find.byType(StatsSummaryPickerSheet), findsOneWidget);
+
+    await tester.drag(
+      find.byKey(const Key('stats-summary-picker-list')),
+      const Offset(0, 520),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(StatsSummaryPickerSheet), findsNothing);
+    expect(store.statsSummarySaves, isEmpty);
+  });
+
+  testWidgets('closing the stats summary picker changes nothing', (
+    tester,
+  ) async {
+    final store = await pumpSettings(tester);
+
+    await tapLabel(tester, 'Stats summary');
+    expect(find.byType(StatsSummaryPickerSheet), findsOneWidget);
+
+    await tester.tap(find.byIcon(M3EIcons.close));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(StatsSummaryPickerSheet), findsNothing);
+    expect(store.statsSummarySaves, isEmpty);
+    expect(find.text('Sleep duration'), findsOneWidget);
+  });
+
+  testWidgets('the stats summary picker fits at 200% text', (tester) async {
+    await pumpSettings(tester, textScale: 2);
+
+    await tapLabel(tester, 'Stats summary');
+    expect(find.byType(StatsSummaryPickerSheet), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.drag(
+      find.byKey(const Key('stats-summary-picker-list')),
+      const Offset(0, -2400),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(StatsSummaryPickerSheet), findsOneWidget);
   });
 
   testWidgets('applying a theme updates the row and saves it', (tester) async {

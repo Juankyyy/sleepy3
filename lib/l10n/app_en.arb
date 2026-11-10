@@ -13,7 +13,7 @@
   "navSettings": "Settings",
   "mainNavigation": "Main navigation",
   "settingsTitle": "Settings",
-  "settingsSupport": "Theme, reminders, sleep data and app info.",
+  "settingsSupport": "Theme, stats, reminders, sleep data and app info.",
   "appearance": "Appearance",
   "reminders": "Reminders",
   "sleepReminder": "Sleep reminder",
@@ -237,6 +237,18 @@
   },
   "advancedStatsTitle": "Advanced stats",
   "advancedStatsAction": "View advanced stats",
+  "statsSummary": "Stats summary",
+  "statsSummarySupport": "Choose the block shown above View advanced stats. Only one at a time.",
+  "statsSummaryCurrentBlock": "Current block: {block}",
+  "@statsSummaryCurrentBlock": {
+    "placeholders": {
+      "block": {
+        "type": "String"
+      }
+    }
+  },
+  "statsSummaryKeyMetrics": "Key metrics",
+  "statsSummaryKeyData": "Key data",
   "history": "History",
   "timeRange": "Time range",
   "rangeWeek": "Week",

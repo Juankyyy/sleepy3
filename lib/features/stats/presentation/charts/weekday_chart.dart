@@ -27,6 +27,7 @@ class WeekdayChart extends StatelessWidget {
     super.key,
     required this.insights,
     this.historyLimited = false,
+    this.showHeader = true,
   });
 
   final SleepInsights insights;
@@ -35,6 +36,9 @@ class WeekdayChart extends StatelessWidget {
   /// permission allows. The card then names the 30 available days instead of
   /// the range the chips show.
   final bool historyLimited;
+
+  /// Whether to draw the title and supporting line inside the card.
+  final bool showHeader;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +54,7 @@ class WeekdayChart extends StatelessWidget {
       title: l10n.chartWeekdayTitle,
       support: l10n.chartWeekdaySupport(supportRange),
       semanticSummary: _spokenSummary(context, spokenRange),
+      showHeader: showHeader,
       child: hasData
           ? _WeekdayChartBody(insights: insights)
           : ChartEmptyState(message: l10n.noNightsInRange),

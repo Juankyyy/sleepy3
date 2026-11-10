@@ -321,11 +321,16 @@ Reglas:
 
 ### 3.3 Stats e historial
 
-- `Stats` es un resumen de una sola columna: cabecera, cinco filtros de rango, hero,
-  dos métricas clave, la acción `View advanced stats` y el historial. Las cuatro métricas
-  completas, los tres gráficos y los insights viven en una modal sheet arrastrable que se
-  abre desde esa acción; el historial no se mueve a la hoja. El FAB y el pull-to-refresh
-  no cambian.
+- `Stats` es un resumen de una sola columna: cabecera, cinco filtros de rango, un único
+  bloque de resumen configurable, la acción `View advanced stats` y el historial. El
+  bloque se elige en `Settings > Stats > Stats summary` entre `Average sleep`, `Key
+  metrics`, `Sleep duration`, `Sleep window`, `By weekday` y `Key data`. Solo se muestra
+  uno; el valor inicial es `Sleep duration`. Las cuatro métricas completas, los tres
+  gráficos y los insights siguen viviendo en una modal sheet arrastrable que se abre
+  desde esa acción, pero la hoja omite el bloque que ya está en el resumen para no
+  repetirlo. Si el bloque es `Average sleep`, la hoja mantiene los cinco bloques
+  avanzados porque el hero no forma parte de ella. El historial no se mueve a la hoja.
+  El FAB y el pull-to-refresh no cambian.
 - `View advanced stats` abre una modal sheet con scrim y esquinas superiores de 28 dp.
   En compacto abre al 70 % de la altura; al llegar a pantalla completa deja 72 dp arriba.
   En ventanas de más de 640 dp deja 56 dp arriba y a los lados, con un ancho máximo de
@@ -344,33 +349,41 @@ Reglas:
 - Una noche se agrupa por el día local de despertar, igual que el historial. Varias
   sesiones el mismo día cuentan como una sola noche: la duración es la suma de las
   sesiones positivas, el bedtime es el inicio más temprano y el wake el fin más tardío.
-- Hero: `Average sleep` con la media de las noches registradas, `Across {n} nights ·
+- Bloque `Average sleep`: la media de las noches registradas, `Across {n} nights ·
   {total} total`, la comparación con el periodo anterior (`vs previous week: +18 min`)
   y la cobertura (`5 of 7 nights`; en `All`, `X nights recorded`). En `All` no hay
   comparación. En los rangos fijos se oculta si el periodo anterior no tiene datos o su
-  cobertura es menor del 50 %. Sin noches muestra `—`, `No nights in this range` y
-  `Show all` cuando hay historial más antiguo.
-- En el resumen, una card de 2 columnas muestra `Goal hit rate` (porcentaje y noches
-  que cumplen en el apoyo) y `Sleep balance` (`total − 8 h × noches registradas`, con
-  `surplus`, `debt` o `even` en el apoyo). El resto de métricas vive en la hoja.
-- En la hoja, card de métricas 2×2 (4 columnas desde 600 dp): las dos anteriores más
-  `Schedule consistency` (desviación circular del bedtime, `±32 min`) y `Best streak`
-  (mejor racha del rango y racha actual). Sin datos suficientes, el valor es `—` y el
-  apoyo explica por qué; nunca se inventa un 0 %.
-- Gráfico `Sleep duration` (en la hoja): barras por bucket (día en `Week`/`Month`,
-  semana en `3 months`, mes en `Year`, semanal o mensual en `All` según 180 días), línea
-  de objetivo de 8 h, línea de media y huecos para noches sin datos. El tooltip da fecha,
-  duración y número de sesiones; en buckets largos usa el tooltip rico con el rango y la
-  media por noche.
-- Gráfico `Sleep window` (en la hoja): una fila por bucket con una cápsula desde el
-  bedtime hasta el wake, banda de mínimos/máximos y línea de media circular. El eje va de
-  18:00 a 12:00.
-- Gráfico `By weekday` (en la hoja): media por día de despertar, de lunes a domingo; los
-  días sin datos son huecos y el mejor día se marca con la etiqueta `Best`.
-- Card `Insights` (en la hoja): mejor noche, noche más corta, hora media de acostarse y
-  de despertarse, variación del bedtime, noches con más de una sesión y distribución
-  (`<6 h`, `6–7 h`, `7–8 h`, `8–9 h`, `9 h+`). Texto factual, sin consejos ni lenguaje
-  médico.
+  cobertura es menor del 50 %. Sin noches muestra `—` y `No nights in this range`.
+- Bloque `Key metrics`: card de 2 columnas en compacto (4 desde 600 dp) con las cuatro
+  métricas: `Goal hit rate` (porcentaje y noches que cumplen en el apoyo), `Schedule
+  consistency` (desviación circular del bedtime, `±32 min`), `Sleep balance`
+  (`total − 8 h × noches registradas`, con `surplus`, `debt` o `even` en el apoyo) y
+  `Best streak` (mejor racha del rango y racha actual). Sin datos suficientes, el valor
+  es `—` y el apoyo explica por qué; nunca se inventa un 0 %.
+- `Sleep duration`, `Sleep window` y `By weekday` pueden ser el bloque del resumen; usan
+  el mismo gráfico y el mismo aviso de historial limitado que la hoja avanzada.
+- `Key data` usa una variante horizontal en el resumen: dos columnas en móvil, tres desde
+  600 dp y una cuando el texto está al 150 % o más. Conserva las seis filas y la
+  distribución. La hoja avanzada mantiene la tarjeta vertical completa.
+- `Show all` aparece debajo del bloque elegido cuando el rango no tiene noches pero hay
+  historial anterior, así que sigue disponible con cualquier bloque. `View advanced
+  stats` queda debajo cuando hay datos. Sin noches, el bloque muestra su propio estado
+  vacío y el botón avanzado se oculta, igual que antes.
+- Gráfico `Sleep duration` (en la hoja o como bloque del resumen): barras por bucket (día
+  en `Week`/`Month`, semana en `3 months`, mes en `Year`, semanal o mensual en `All`
+  según 180 días), línea de objetivo de 8 h, línea de media y huecos para noches sin
+  datos. El tooltip da fecha, duración y número de sesiones; en buckets largos usa el
+  tooltip rico con el rango y la media por noche.
+- Gráfico `Sleep window` (en la hoja o como bloque del resumen): una fila por bucket con
+  una cápsula desde el bedtime hasta el wake, banda de mínimos/máximos y línea de media
+  circular. El eje va de 18:00 a 12:00.
+- Gráfico `By weekday` (en la hoja o como bloque del resumen): media por día de
+  despertar, de lunes a domingo; los días sin datos son huecos y el mejor día se marca
+  con la etiqueta `Best`.
+- Card `Insights` (en la hoja, y en su variante compacta como bloque del resumen): mejor
+  noche, noche más corta, hora media de acostarse y de despertarse, variación del
+  bedtime, noches con más de una sesión y distribución (`<6 h`, `6–7 h`, `7–8 h`,
+  `8–9 h`, `9 h+`). Texto factual, sin consejos ni lenguaje médico.
 - Reglas de cálculo: media y mediana solo sobre días con datos; una noche cumple el
   objetivo si su total es ≥ 8 h (8 h exactas cuentan); la racha actual solo cuenta si la
   última noche es hoy o ayer; las horas de acostarse y levantarse usan media y
@@ -566,8 +579,8 @@ Reglas:
 ### 3.4 Settings
 
 - La pantalla tiene cabecera `Settings` y línea de apoyo
-  `Theme, reminders, sleep data and app info.`, seguida de cinco secciones:
-  `Appearance`, `Reminders`, `Sleep data`, `Google Health` y `About`.
+  `Theme, stats, reminders, sleep data and app info.`, seguida de seis secciones:
+  `Appearance`, `Stats`, `Reminders`, `Sleep data`, `Google Health` y `About`.
 - Cada sección usa un encabezado `titleMedium` emphasized y una lista agrupada
   `M3EList`/`M3EListItem` con radio exterior 16 dp, interior 4 dp y gap 2 dp.
 - `Appearance` contiene:
@@ -583,6 +596,25 @@ Reglas:
     ofrece esos dos idiomas, sin `System`. Si no hay preferencia guardada, el primer
     arranque resuelve el idioma del teléfono (`es` → Español; cualquier otro → English),
     lo persiste en `preferences` (`language`) y lo aplica a toda la app.
+- `Stats` contiene la fila `Stats summary`, cuyo supporting text muestra el bloque
+  actual. Al tocarla se abre una modal sheet M3 de altura completa, con esquinas
+  superiores de 28 dp, ancho máximo de 640 dp, márgenes de 72/56 dp arriba y 56 dp a los
+  lados, scrim y aspa de cierre. Abrir a altura completa es una decisión Sleepy3, como el
+  70 % inicial de la hoja avanzada, para que las vistas previas quepan sin convertir el
+  selector en un diálogo pequeño. La lista muestra las seis opciones con una vista previa
+  real del bloque para el rango actual: `Average sleep`, `Key metrics`, `Sleep duration`,
+  `Sleep window`, `By weekday` y `Key data`. La selección es única con semántica de radio;
+  al tocar una opción se aplica, se persiste y la hoja se cierra. La hoja abre al 80 % de
+  la pantalla y hace snap entre el 80 % y la altura completa. Comparte con la hoja
+  avanzada la misma cabecera fija: handle, título, una única línea de apoyo `rango ·
+  noches`, aspa y borde inferior `outlineVariant` de 1 dp. El texto `Elige el bloque…` y
+  el bloque actual viven en el cuerpo, encima de las opciones. La lista se desplaza por
+  dentro; cuando está al inicio, un arrastre corto hacia abajo vuelve al 80 %, y solo
+  cierra si pasa el punto medio entre el 80 % y el borde inferior. El aspa, el scrim y
+  atrás también cierran. Las miniaturas de los gráficos se recortan a 240 dp y la tarjeta
+  completa se ve en Stats. El valor inicial es
+  `Duración del sueño`. La preferencia se guarda en `preferences` como
+  `stats_summary_option`; no hay migración de esquema.
 - `Reminders` contiene:
   - `Sleep reminder`, un interruptor con apoyo `Off` o `Every day at {time}`. Al
     activarlo se pide permiso de notificaciones si hace falta y se programa el aviso
@@ -635,8 +667,8 @@ Reglas:
   con `{version} ({build})` cuando el plugin de información de la app responde (la fila se
   oculta si no hay dato) y `Licenses`, que abre la página de licencias de Flutter con el
   nombre, la versión y la leyenda GPLv3.
-- El modo de tema y la fuente de datos se guardan en la tabla `preferences` de la misma
-  base Drift; no se usa `shared_preferences`.
+- El modo de tema, la fuente de datos y el bloque del resumen de Stats se guardan en la
+  tabla `preferences` de la misma base Drift; no se usa `shared_preferences`.
 
 #### 3.4.1 Recordatorios de sueño
 

@@ -49,7 +49,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTitle => 'Settings';
 
   @override
-  String get settingsSupport => 'Theme, reminders, sleep data and app info.';
+  String get settingsSupport =>
+      'Theme, stats, reminders, sleep data and app info.';
 
   @override
   String get appearance => 'Appearance';
@@ -465,6 +466,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get advancedStatsAction => 'View advanced stats';
+
+  @override
+  String get statsSummary => 'Stats summary';
+
+  @override
+  String get statsSummarySupport =>
+      'Choose the block shown above View advanced stats. Only one at a time.';
+
+  @override
+  String statsSummaryCurrentBlock(String block) {
+    return 'Current block: $block';
+  }
+
+  @override
+  String get statsSummaryKeyMetrics => 'Key metrics';
+
+  @override
+  String get statsSummaryKeyData => 'Key data';
 
   @override
   String get history => 'History';

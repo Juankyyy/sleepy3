@@ -6,6 +6,7 @@ import 'package:sleepy3/features/settings/data/drift_settings_store.dart';
 import 'package:sleepy3/features/settings/domain/app_language.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_time_format.dart';
+import 'package:sleepy3/features/stats/domain/stats_summary_option.dart';
 import 'package:sleepy3/features/sleep_tracking/data/drift_sleep_session_store.dart';
 import 'package:sleepy3/features/sleep_tracking/data/sleepy3_database.dart';
 
@@ -238,6 +239,45 @@ void main() {
 
       await store.saveSleepingNotificationEnabled(true);
       expect(await store.loadSleepingNotificationEnabled(), isTrue);
+    });
+
+    test('defaults to the sleep duration summary block', () async {
+      expect(
+        await store.loadStatsSummaryOption(),
+        StatsSummaryOption.sleepDuration,
+      );
+    });
+
+    test('round-trips every summary block', () async {
+      for (final option in StatsSummaryOption.values) {
+        await store.saveStatsSummaryOption(option);
+        expect(await store.loadStatsSummaryOption(), option);
+      }
+    });
+
+    test('stores the summary block under stats_summary_option', () async {
+      await store.saveStatsSummaryOption(StatsSummaryOption.keyData);
+
+      final rows = await database.select(database.preferences).get();
+      expect(rows, hasLength(1));
+      expect(rows.single.settingKey, 'stats_summary_option');
+      expect(rows.single.settingValue, 'keyData');
+    });
+
+    test('falls back to sleep duration for an unknown summary block', () async {
+      await database
+          .into(database.preferences)
+          .insert(
+            PreferencesCompanion.insert(
+              settingKey: 'stats_summary_option',
+              settingValue: 'moonPhase',
+            ),
+          );
+
+      expect(
+        await store.loadStatsSummaryOption(),
+        StatsSummaryOption.sleepDuration,
+      );
     });
 
     test('stores the theme and the source side by side', () async {

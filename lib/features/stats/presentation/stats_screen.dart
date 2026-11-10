@@ -24,20 +24,22 @@ import '../../sleep_tracking/domain/sleep_history.dart';
 import '../../sleep_tracking/domain/sleep_insights.dart';
 import '../../sleep_tracking/domain/sleep_session.dart';
 import '../../sleep_tracking/presentation/widgets/sleep_history_status.dart';
+import '../application/stats_history_limited_provider.dart';
 import '../application/stats_range_controller.dart';
+import '../application/stats_summary_controller.dart';
 import 'advanced_stats_sheet.dart';
 import 'widgets/session_editor.dart';
 import 'widgets/sleep_history_list.dart';
-import 'widgets/stats_hero_card.dart';
-import 'widgets/stats_metrics_card.dart';
 import 'widgets/stats_range_selector.dart';
+import 'widgets/stats_summary_panel.dart';
 
 /// The Stats destination: a compact range summary and the full session
 /// history.
 ///
-/// The four advanced metrics, the three charts and the insights live in
-/// [AdvancedStatsSheet]. Keeping them off the default scroll puts the history
-/// near the first screen while the advanced data stays one tap away.
+/// The summary shows one block chosen in Settings (average, the four metrics,
+/// one of the charts or the compact key-data card). The complete dashboard
+/// with every metric, chart and insight lives in [AdvancedStatsSheet], one tap
+/// away, so the history stays near the first screen.
 class StatsScreen extends ConsumerStatefulWidget {
   const StatsScreen({super.key});
 
@@ -103,6 +105,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
     final controller = ref.read(sleepTrackingControllerProvider.notifier);
     final source = ref.watch(sleepDataSourceProvider);
     final range = ref.watch(statsRangeProvider);
+    final summaryOption = ref.watch(statsSummaryControllerProvider);
+    final historyLimited = ref.watch(statsHistoryLimitedProvider);
     final l10n = context.l10n;
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
@@ -204,32 +208,30 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                                         range.requiresFullHistory,
                                   ),
                                   const SizedBox(height: 24),
-                                  StatsHeroCard(
+                                  StatsSummaryPanel(
+                                    option: summaryOption,
                                     insights: insights,
-                                    onShowAll: showAll
-                                        ? () {
-                                            unawaited(
-                                              ref
-                                                  .read(
-                                                    statsRangeProvider.notifier,
-                                                  )
-                                                  .select(
-                                                    SleepHistoryRange.all,
-                                                  ),
-                                            );
-                                          }
-                                        : null,
+                                    historyLimited: historyLimited,
                                   ),
-                                  if (insights.hasData) ...[
+                                  if (showAll) ...[
                                     const SizedBox(height: 8),
-                                    StatsMetricsCard(
-                                      insights: insights,
-                                      metrics: const [
-                                        StatsMetricType.goalHitRate,
-                                        StatsMetricType.sleepBalance,
-                                      ],
-                                      columns: 2,
+                                    Align(
+                                      alignment:
+                                          AlignmentDirectional.centerStart,
+                                      child: _ShowAllButton(
+                                        onPressed: () {
+                                          unawaited(
+                                            ref
+                                                .read(
+                                                  statsRangeProvider.notifier,
+                                                )
+                                                .select(SleepHistoryRange.all),
+                                          );
+                                        },
+                                      ),
                                     ),
+                                  ],
+                                  if (insights.hasData) ...[
                                     const SizedBox(height: 8),
                                     Align(
                                       alignment:
@@ -540,6 +542,27 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
     if (!refreshed) {
       M3ESnackbar.show(context, message: context.l10n.refreshFailed);
     }
+  }
+}
+
+/// The shortcut to All when the selected range has no nights but older
+/// history exists.
+///
+/// It sits below the selected summary block so it works for every block, not
+/// only the average hero.
+class _ShowAllButton extends StatelessWidget {
+  const _ShowAllButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return M3EButton(
+      style: M3EButtonStyle.text,
+      size: M3EButtonSize.sm,
+      onPressed: onPressed,
+      child: Text(context.l10n.showAll),
+    );
   }
 }
 

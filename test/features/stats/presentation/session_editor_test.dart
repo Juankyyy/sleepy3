@@ -14,6 +14,8 @@ import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
+import 'package:sleepy3/features/stats/application/stats_summary_controller.dart';
+import 'package:sleepy3/features/stats/domain/stats_summary_option.dart';
 import 'package:sleepy3/features/stats/presentation/stats_screen.dart';
 import 'package:sleepy3/features/stats/presentation/widgets/session_editor.dart';
 import 'package:sleepy3/features/stats/presentation/widgets/sleep_goal_mark.dart';
@@ -97,6 +99,9 @@ void main() {
                   () => DateTime(2026, 10, 21, 10),
                 ),
                 sleepSessionStoreProvider.overrideWithValue(sleepStore),
+                initialStatsSummaryOptionProvider.overrideWithValue(
+                  StatsSummaryOption.averageSleep,
+                ),
                 initialSleepSnapshotProvider.overrideWithValue(
                   SleepSnapshot.empty,
                 ),

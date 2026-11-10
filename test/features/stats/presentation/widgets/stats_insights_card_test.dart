@@ -39,6 +39,8 @@ void main() {
     double textScale = 1,
     Locale locale = const Locale('en'),
     bool use24HourFormat = false,
+    bool compact = false,
+    bool showTitle = true,
   }) async {
     tester.view.physicalSize = size * 3;
     tester.view.devicePixelRatio = 3;
@@ -65,7 +67,11 @@ void main() {
               home: Scaffold(
                 body: SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
-                  child: StatsInsightsCard(insights: value),
+                  child: StatsInsightsCard(
+                    insights: value,
+                    compact: compact,
+                    showTitle: showTitle,
+                  ),
                 ),
               ),
             ),
@@ -174,5 +180,54 @@ void main() {
 
     expect(find.text('Insights'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  group('compact summary variant', () {
+    Table table(WidgetTester tester) {
+      return tester.widget<Table>(
+        find.descendant(
+          of: find.byType(StatsInsightsCard),
+          matching: find.byType(Table),
+        ),
+      );
+    }
+
+    testWidgets('uses two columns on a phone', (tester) async {
+      await pumpCard(tester, insights, compact: true);
+
+      expect(find.text('Insights'), findsOneWidget);
+      expect(find.text('Best night'), findsOneWidget);
+      expect(table(tester).columnWidths, hasLength(2));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('uses three columns from 600dp', (tester) async {
+      await pumpCard(
+        tester,
+        insights,
+        compact: true,
+        size: const Size(800, 900),
+      );
+
+      expect(table(tester).columnWidths, hasLength(3));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('falls back to one column at 200% text', (tester) async {
+      await pumpCard(tester, insights, compact: true, textScale: 2);
+
+      expect(table(tester).columnWidths, hasLength(1));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('can hide the inline title for the picker preview', (
+      tester,
+    ) async {
+      await pumpCard(tester, insights, compact: true, showTitle: false);
+
+      expect(find.text('Insights'), findsNothing);
+      expect(find.text('Best night'), findsOneWidget);
+      expect(find.text('Distribution'), findsOneWidget);
+    });
   });
 }

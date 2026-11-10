@@ -179,7 +179,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsSupport.
   ///
   /// In en, this message translates to:
-  /// **'Theme, reminders, sleep data and app info.'**
+  /// **'Theme, stats, reminders, sleep data and app info.'**
   String get settingsSupport;
 
   /// No description provided for @appearance.
@@ -895,6 +895,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View advanced stats'**
   String get advancedStatsAction;
+
+  /// No description provided for @statsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Stats summary'**
+  String get statsSummary;
+
+  /// No description provided for @statsSummarySupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the block shown above View advanced stats. Only one at a time.'**
+  String get statsSummarySupport;
+
+  /// No description provided for @statsSummaryCurrentBlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Current block: {block}'**
+  String statsSummaryCurrentBlock(String block);
+
+  /// No description provided for @statsSummaryKeyMetrics.
+  ///
+  /// In en, this message translates to:
+  /// **'Key metrics'**
+  String get statsSummaryKeyMetrics;
+
+  /// No description provided for @statsSummaryKeyData.
+  ///
+  /// In en, this message translates to:
+  /// **'Key data'**
+  String get statsSummaryKeyData;
 
   /// No description provided for @history.
   ///

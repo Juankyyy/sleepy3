@@ -21,10 +21,17 @@ class ChartScene extends StatelessWidget {
     required this.child,
     this.legend = const [],
     this.canvasHeight = ChartDimensions.canvasHeight,
+    this.showHeader = true,
   });
 
   final String title;
   final String support;
+
+  /// Whether to draw the title and supporting line inside the card.
+  ///
+  /// The summary picker labels each option in its own header, so its chart
+  /// thumbnails omit this block and use the space for the drawing.
+  final bool showHeader;
 
   /// One spoken summary for the canvas. The history remains the accessible
   /// view for every individual night.
@@ -46,23 +53,25 @@ class ChartScene extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Semantics(
-            header: true,
-            child: Text(
-              title,
-              style: theme.typography.emphasized.titleMedium.copyWith(
-                color: scheme.onSurface,
+          if (showHeader) ...[
+            Semantics(
+              header: true,
+              child: Text(
+                title,
+                style: theme.typography.emphasized.titleMedium.copyWith(
+                  color: scheme.onSurface,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            support,
-            style: theme.typography.baseline.bodySmall.copyWith(
-              color: scheme.onSurfaceVariant,
+            const SizedBox(height: 2),
+            Text(
+              support,
+              style: theme.typography.baseline.bodySmall.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
+          ],
           Semantics(
             container: true,
             label: semanticSummary,

@@ -31,6 +31,7 @@ class SleepWindowChart extends StatelessWidget {
     super.key,
     required this.insights,
     this.historyLimited = false,
+    this.showHeader = true,
   });
 
   final SleepInsights insights;
@@ -39,6 +40,9 @@ class SleepWindowChart extends StatelessWidget {
   /// permission allows. The card then names the 30 available days instead of
   /// the range the chips show.
   final bool historyLimited;
+
+  /// Whether to draw the title and supporting line inside the card.
+  final bool showHeader;
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +73,7 @@ class SleepWindowChart extends StatelessWidget {
       support: l10n.chartSleepWindowSupport(supportRange),
       semanticSummary: _spokenSummary(context, spokenRange),
       canvasHeight: canvasHeight,
+      showHeader: showHeader,
       legend: hasData
           ? [
               ChartLegendEntry(

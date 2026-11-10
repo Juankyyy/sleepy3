@@ -29,6 +29,8 @@ import 'features/sleep_tracking/data/drift_sleep_session_store.dart';
 import 'features/sleep_tracking/data/sleepy3_database.dart';
 import 'features/sleep_tracking/domain/sleep_session.dart';
 import 'features/sleep_tracking/domain/sleep_session_store.dart';
+import 'features/stats/application/stats_summary_controller.dart';
+import 'features/stats/domain/stats_summary_option.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +51,7 @@ Future<void> main() async {
   final sleepingNotificationEnabled = await _loadSleepingNotificationEnabled(
     settingsStore,
   );
+  final statsSummaryOption = await _loadStatsSummaryOption(settingsStore);
   final packageInfo = await _loadPackageInfo();
   final appVersion = _appVersionFrom(packageInfo);
 
@@ -70,6 +73,7 @@ Future<void> main() async {
         initialSleepingNotificationEnabledProvider.overrideWithValue(
           sleepingNotificationEnabled,
         ),
+        initialStatsSummaryOptionProvider.overrideWithValue(statsSummaryOption),
         appVersionProvider.overrideWithValue(appVersion),
         currentAppPackageProvider.overrideWithValue(
           packageInfo?.packageName ?? 'com.sleepy3.app',
@@ -199,6 +203,17 @@ Future<bool> _loadSleepingNotificationEnabled(SettingsStore store) async {
       'Sleepy3: could not load the sleep status setting: $error\n$stackTrace',
     );
     return true;
+  }
+}
+
+Future<StatsSummaryOption> _loadStatsSummaryOption(SettingsStore store) async {
+  try {
+    return await store.loadStatsSummaryOption();
+  } catch (error, stackTrace) {
+    debugPrint(
+      'Sleepy3: could not load the stats summary block: $error\n$stackTrace',
+    );
+    return StatsSummaryOption.defaultOption;
   }
 }
 

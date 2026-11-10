@@ -10,6 +10,7 @@ import 'package:sleepy3/features/settings/domain/app_night_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/settings/domain/settings_store.dart';
+import 'package:sleepy3/features/stats/domain/stats_summary_option.dart';
 
 import '../fakes.dart';
 
@@ -170,4 +171,11 @@ class _ControlledSettingsStore implements SettingsStore {
 
   @override
   Future<void> saveSleepingNotificationEnabled(bool enabled) async {}
+
+  @override
+  Future<StatsSummaryOption> loadStatsSummaryOption() async =>
+      StatsSummaryOption.defaultOption;
+
+  @override
+  Future<void> saveStatsSummaryOption(StatsSummaryOption option) async {}
 }

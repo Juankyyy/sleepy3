@@ -50,7 +50,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsSupport =>
-      'Tema, recordatorios, datos de sueño e información de la app.';
+      'Tema, estadísticas, recordatorios, datos de sueño e información de la app.';
 
   @override
   String get appearance => 'Apariencia';
@@ -469,6 +469,24 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get advancedStatsAction => 'Ver estadísticas avanzadas';
+
+  @override
+  String get statsSummary => 'Resumen de estadísticas';
+
+  @override
+  String get statsSummarySupport =>
+      'Elige el bloque que aparece sobre Ver estadísticas avanzadas. Solo uno a la vez.';
+
+  @override
+  String statsSummaryCurrentBlock(String block) {
+    return 'Bloque actual: $block';
+  }
+
+  @override
+  String get statsSummaryKeyMetrics => 'Métricas clave';
+
+  @override
+  String get statsSummaryKeyData => 'Datos clave';
 
   @override
   String get history => 'Historial';

@@ -34,6 +34,7 @@ class SleepDurationChart extends StatelessWidget {
     super.key,
     required this.insights,
     this.historyLimited = false,
+    this.showHeader = true,
   });
 
   final SleepInsights insights;
@@ -42,6 +43,9 @@ class SleepDurationChart extends StatelessWidget {
   /// permission allows. The card then names the 30 available days instead of
   /// the range the chips show.
   final bool historyLimited;
+
+  /// Whether to draw the title and supporting line inside the card.
+  final bool showHeader;
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +66,7 @@ class SleepDurationChart extends StatelessWidget {
         goal,
       ),
       semanticSummary: _spokenSummary(context, spokenRange, goal),
+      showHeader: showHeader,
       legend: insights.hasData
           ? [
               ChartLegendEntry(

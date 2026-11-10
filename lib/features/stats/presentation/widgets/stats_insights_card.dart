@@ -12,10 +12,28 @@ import '../charts/chart_format.dart';
 /// `bodyMedium` / `titleMedium` / `bodySmall` type roles.
 /// My design decisions (not in M3): the title + row layout, the 16dp padding of
 /// each row and the compact five-part distribution bar.
+///
+/// [compact] is the horizontal variant used inside the Stats summary. It lays
+/// the six rows out in two or three columns so the card fits above the advanced
+/// button. The advanced sheet keeps the full vertical card.
 class StatsInsightsCard extends StatelessWidget {
-  const StatsInsightsCard({super.key, required this.insights});
+  const StatsInsightsCard({
+    super.key,
+    required this.insights,
+    this.compact = false,
+    this.showTitle = true,
+  });
 
   final SleepInsights insights;
+
+  /// Whether to use the horizontal summary layout.
+  final bool compact;
+
+  /// Whether to draw the inline `Key data` title.
+  ///
+  /// The summary picker labels the option in its own header, so its preview
+  /// hides the title to avoid repeating it.
+  final bool showTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -32,16 +50,17 @@ class StatsInsightsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Semantics(
-              header: true,
-              child: Text(l10n.insightsTitle, style: titleStyle),
+          if (showTitle)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Semantics(
+                header: true,
+                child: Text(l10n.insightsTitle, style: titleStyle),
+              ),
             ),
-          ),
           if (!insights.hasData)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: EdgeInsets.fromLTRB(16, showTitle ? 0 : 16, 16, 16),
               child: Text(
                 l10n.noNightsInRange,
                 style: theme.typography.baseline.bodyMedium.copyWith(
@@ -49,8 +68,13 @@ class StatsInsightsCard extends StatelessWidget {
                 ),
               ),
             )
-          else ...[
+          else if (compact) ...[
+            if (showTitle) _Divider(color: scheme.outlineVariant),
+            _CompactInsightsGrid(rows: _rows(context)),
             _Divider(color: scheme.outlineVariant),
+            _DistributionRow(insights: insights),
+          ] else ...[
+            if (showTitle) _Divider(color: scheme.outlineVariant),
             for (final row in _rows(context)) ...[
               _InsightRow(row: row),
               _Divider(color: scheme.outlineVariant),
@@ -134,6 +158,103 @@ class _InsightRowData {
   final String value;
   final String? spokenValue;
   final String? support;
+
+  String get spoken => [label, spokenValue ?? value, ?support].join(', ');
+}
+
+/// The horizontal summary layout: a compact grid with the same six readings.
+///
+/// Two columns on a phone, three from 600dp. At 150% text or more it falls back
+/// to one column so every label keeps its full width.
+class _CompactInsightsGrid extends StatelessWidget {
+  const _CompactInsightsGrid({required this.rows});
+
+  final List<_InsightRowData> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = M3ETheme.of(context).colorScheme;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final textScale = MediaQuery.textScalerOf(context).scale(1);
+        final columns = textScale >= 1.5
+            ? 1
+            : constraints.maxWidth >= 600
+            ? 3
+            : 2;
+        final rowCount = (rows.length / columns).ceil();
+
+        return Table(
+          defaultVerticalAlignment: TableCellVerticalAlignment.top,
+          columnWidths: {
+            for (var index = 0; index < columns; index++)
+              index: const FlexColumnWidth(),
+          },
+          border: TableBorder(
+            horizontalInside: BorderSide(color: scheme.outlineVariant),
+            verticalInside: BorderSide(color: scheme.outlineVariant),
+          ),
+          children: [
+            for (var row = 0; row < rowCount; row++)
+              TableRow(
+                children: [
+                  for (var column = 0; column < columns; column++)
+                    if (row * columns + column < rows.length)
+                      _CompactInsightCell(row: rows[row * columns + column])
+                    else
+                      const SizedBox.shrink(),
+                ],
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _CompactInsightCell extends StatelessWidget {
+  const _CompactInsightCell({required this.row});
+
+  final _InsightRowData row;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = M3ETheme.of(context);
+    final scheme = theme.colorScheme;
+    final labelStyle = theme.typography.baseline.bodySmall.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
+    final valueStyle = theme.typography.emphasized.titleMedium.copyWith(
+      color: scheme.onSurface,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+    final supportStyle = theme.typography.baseline.bodySmall.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
+
+    return Semantics(
+      container: true,
+      label: row.spoken,
+      child: ExcludeSemantics(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(row.label, style: labelStyle),
+              const SizedBox(height: 2),
+              Text(row.value, style: valueStyle),
+              if (row.support != null) ...[
+                const SizedBox(height: 2),
+                Text(row.support!, style: supportStyle),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _InsightRow extends StatelessWidget {
@@ -155,15 +276,10 @@ class _InsightRow extends StatelessWidget {
     final supportStyle = theme.typography.baseline.bodySmall.copyWith(
       color: scheme.onSurfaceVariant,
     );
-    final spoken = [
-      row.label,
-      row.spokenValue ?? row.value,
-      if (row.support != null) row.support!,
-    ].join(', ');
 
     return Semantics(
       container: true,
-      label: spoken,
+      label: row.spoken,
       child: ExcludeSemantics(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

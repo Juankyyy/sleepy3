@@ -13,7 +13,7 @@
   "navSettings": "Ajustes",
   "mainNavigation": "Navegación principal",
   "settingsTitle": "Ajustes",
-  "settingsSupport": "Tema, recordatorios, datos de sueño e información de la app.",
+  "settingsSupport": "Tema, estadísticas, recordatorios, datos de sueño e información de la app.",
   "appearance": "Apariencia",
   "reminders": "Recordatorios",
   "sleepReminder": "Aviso de sueño",
@@ -222,6 +222,18 @@
   },
   "advancedStatsTitle": "Estadísticas avanzadas",
   "advancedStatsAction": "Ver estadísticas avanzadas",
+  "statsSummary": "Resumen de estadísticas",
+  "statsSummarySupport": "Elige el bloque que aparece sobre Ver estadísticas avanzadas. Solo uno a la vez.",
+  "statsSummaryCurrentBlock": "Bloque actual: {block}",
+  "@statsSummaryCurrentBlock": {
+    "placeholders": {
+      "block": {
+        "type": "String"
+      }
+    }
+  },
+  "statsSummaryKeyMetrics": "Métricas clave",
+  "statsSummaryKeyData": "Datos clave",
   "history": "Historial",
   "timeRange": "Rango de tiempo",
   "rangeWeek": "Semana",
