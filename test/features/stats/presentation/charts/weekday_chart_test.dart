@@ -131,6 +131,11 @@ void main() {
 
     await gesture.up();
     await tester.pumpAndSettle();
+    expect(find.byType(ChartTooltip), findsOneWidget);
+
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+    expect(find.byType(ChartTooltip), findsNothing);
   });
 
   testWidgets('marks a weekday without data in the tooltip', (tester) async {

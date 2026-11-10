@@ -1154,30 +1154,6 @@ abstract class AppLocalizations {
   /// **'{range} · {nights, plural, =1{1 night recorded} other{{nights} nights recorded}} · Goal {goal}'**
   String chartSleepDurationSupport(String range, int nights, String goal);
 
-  /// No description provided for @chartLegendSleep.
-  ///
-  /// In en, this message translates to:
-  /// **'Sleep'**
-  String get chartLegendSleep;
-
-  /// No description provided for @chartLegendAverage.
-  ///
-  /// In en, this message translates to:
-  /// **'Average'**
-  String get chartLegendAverage;
-
-  /// No description provided for @chartGoalLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Goal {goal}'**
-  String chartGoalLabel(String goal);
-
-  /// No description provided for @chartAverageLabel.
-  ///
-  /// In en, this message translates to:
-  /// **'Avg'**
-  String get chartAverageLabel;
-
   /// No description provided for @chartTooltipDate.
   ///
   /// In en, this message translates to:
@@ -1233,18 +1209,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Bedtime to wake · {range}'**
   String chartSleepWindowSupport(String range);
-
-  /// No description provided for @chartLegendWindow.
-  ///
-  /// In en, this message translates to:
-  /// **'Bedtime to wake'**
-  String get chartLegendWindow;
-
-  /// No description provided for @chartLegendRange.
-  ///
-  /// In en, this message translates to:
-  /// **'Range'**
-  String get chartLegendRange;
 
   /// No description provided for @chartWindowSpoken.
   ///

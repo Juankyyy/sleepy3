@@ -10,7 +10,6 @@ import '../../../sleep_tracking/domain/sleep_insights.dart';
 import 'chart_axis.dart';
 import 'chart_empty_state.dart';
 import 'chart_format.dart';
-import 'chart_legend.dart';
 import 'chart_motion.dart';
 import 'chart_painter.dart';
 import 'chart_scene.dart';
@@ -47,7 +46,6 @@ class SleepWindowChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final palette = ChartPalette.of(context);
     final range = chartRangeLabel(l10n, insights.range);
     final supportRange = historyLimited
         ? l10n.historyLast30DaysAvailable
@@ -74,25 +72,6 @@ class SleepWindowChart extends StatelessWidget {
       semanticSummary: _spokenSummary(context, spokenRange),
       canvasHeight: canvasHeight,
       showHeader: showHeader,
-      legend: hasData
-          ? [
-              ChartLegendEntry(
-                label: l10n.chartLegendWindow,
-                mark: ChartLegendMark.bar,
-                color: palette.bar,
-              ),
-              ChartLegendEntry(
-                label: l10n.chartLegendRange,
-                mark: ChartLegendMark.band,
-                color: palette.selectionHalo,
-              ),
-              ChartLegendEntry(
-                label: l10n.chartLegendAverage,
-                mark: ChartLegendMark.line,
-                color: palette.averageLine,
-              ),
-            ]
-          : const [],
       child: hasData
           ? _SleepWindowChartBody(insights: insights)
           : ChartEmptyState(message: l10n.noNightsInRange),
@@ -808,9 +787,6 @@ class _WindowChartPainter extends ChartPainter {
       capsule,
       Paint()..color = palette.bar.withValues(alpha: opacity),
     );
-
-    _paintAverageTick(canvas, plot, centerY, bedtime, opacity);
-    _paintAverageTick(canvas, plot, centerY, wake, opacity);
   }
 
   void _paintBand(
@@ -833,23 +809,6 @@ class _WindowChartPainter extends ChartPainter {
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, const Radius.circular(3)),
       Paint()..color = palette.band.withValues(alpha: opacity),
-    );
-  }
-
-  void _paintAverageTick(
-    Canvas canvas,
-    Rect plot,
-    double centerY,
-    double minutes,
-    double opacity,
-  ) {
-    final x = _xFor(minutes, plot);
-    canvas.drawLine(
-      Offset(x, centerY - 7),
-      Offset(x, centerY + 7),
-      Paint()
-        ..color = palette.averageLine.withValues(alpha: opacity)
-        ..strokeWidth = ChartDimensions.dataLineWidth,
     );
   }
 

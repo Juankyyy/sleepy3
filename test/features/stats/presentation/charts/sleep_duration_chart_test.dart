@@ -88,14 +88,16 @@ void main() {
     }
   }
 
-  testWidgets('renders the duration chart card and its legend', (tester) async {
+  testWidgets('renders the duration chart card without a legend', (
+    tester,
+  ) async {
     await pumpChart(tester, week);
 
     expect(find.text('Sleep duration'), findsOneWidget);
     expect(find.text('Week · 3 nights recorded · Goal 8h'), findsOneWidget);
-    expect(find.text('Sleep'), findsOneWidget);
-    expect(find.text('Goal 8h'), findsOneWidget);
-    expect(find.text('Average'), findsOneWidget);
+    expect(find.text('Sleep'), findsNothing);
+    expect(find.text('Goal 8h'), findsNothing);
+    expect(find.text('Average'), findsNothing);
     expect(find.byType(SleepDurationChart), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -142,7 +144,7 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('shows a tooltip while scrubbing and clears it on release', (
+  testWidgets('keeps the tooltip after release until an outside tap', (
     tester,
   ) async {
     await pumpChart(tester, week);
@@ -158,6 +160,10 @@ void main() {
     expect(find.text('Wed, Oct 21 · 8h 0m'), findsOneWidget);
 
     await gesture.up();
+    await tester.pumpAndSettle();
+    expect(find.text('Wed, Oct 21 · 8h 0m'), findsOneWidget);
+
+    await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
     expect(find.text('Wed, Oct 21 · 8h 0m'), findsNothing);
   });
@@ -245,7 +251,6 @@ void main() {
     expect(find.text('Sleep duration'), findsOneWidget);
     expect(find.text('Week · 0 nights recorded · Goal 8h'), findsOneWidget);
     expect(find.text('No nights in this range'), findsOneWidget);
-    expect(find.text('Sleep'), findsNothing);
     expect(find.byType(ChartEmptyState), findsOneWidget);
   });
 
@@ -282,7 +287,6 @@ void main() {
     await pumpChart(tester, week, textScale: 2);
 
     expect(find.text('Sleep duration'), findsOneWidget);
-    expect(find.text('Sleep'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -294,9 +298,9 @@ void main() {
       find.text('Semana · 3 noches registradas · Objetivo 8 h'),
       findsOneWidget,
     );
-    expect(find.text('Sueño'), findsOneWidget);
-    expect(find.text('Objetivo 8 h'), findsOneWidget);
-    expect(find.text('Media'), findsOneWidget);
+    expect(find.text('Sueño'), findsNothing);
+    expect(find.text('Objetivo 8 h'), findsNothing);
+    expect(find.text('Media'), findsNothing);
   });
 
   testWidgets('works with reduced motion', (tester) async {

@@ -372,12 +372,12 @@ Reglas:
   muestra su propio estado vacío y la acción se oculta, igual que antes.
 - Gráfico `Sleep duration` (en la hoja o como bloque del resumen): barras por bucket (día
   en `Week`/`Month`, semana en `3 months`, mes en `Year`, semanal o mensual en `All`
-  según 180 días), línea de objetivo de 8 h, línea de media y huecos para noches sin
-  datos. El tooltip da fecha, duración y número de sesiones; en buckets largos usa el
+  según 180 días), línea de objetivo de 8 h sin etiqueta ni leyenda y huecos para noches
+  sin datos. El tooltip da fecha, duración y número de sesiones; en buckets largos usa el
   tooltip rico con el rango y la media por noche.
 - Gráfico `Sleep window` (en la hoja o como bloque del resumen): una fila por bucket con
-  una cápsula desde el bedtime hasta el wake, banda de mínimos/máximos y línea de media
-  circular. El eje va de 18:00 a 12:00.
+  una cápsula desde el bedtime hasta el wake, banda de mínimos/máximos y sin leyenda
+  inferior. El eje va de 18:00 a 12:00.
 - Gráfico `By weekday` (en la hoja o como bloque del resumen): media por día de
   despertar, de lunes a domingo; los días sin datos son huecos y el mejor día se marca
   con la etiqueta `Best`.
@@ -1009,20 +1009,20 @@ Reglas:
   - Gráficos: cada uno es una `M3ECard` outlined (radio 12 dp, padding 16 dp) con título
     `titleMedium` emphasized, apoyo `bodySmall` en `onSurfaceVariant`, un único
     `CustomPaint` de 180 dp y `RepaintBoundary`; la card `Sleep window` crece en alto con
-    una fila por bucket. La leyenda usa muestras de línea/barra y texto, nunca solo color.
-    M3 no publica un componente de gráficos: la altura, los anchos, el stagger y el radio
-    de barra son decisiones de diseño de Sleepy3.
+    una fila por bucket. Ningún gráfico usa leyenda inferior: la línea de apoyo y el
+    resumen hablado explican el dibujo. M3 no publica un componente de gráficos: la
+    altura, los anchos, el stagger y el radio de barra son decisiones de Sleepy3.
   - `Sleep duration`: barras `primary` con radio superior de 4 dp, ancho adaptativo entre
-    4 y 28 dp; línea de objetivo `outline` de 1.5 dp con etiqueta `Goal 8h`; línea de
-    media `tertiary` (o `onSurfaceVariant` si no llega a 3:1 sobre `surface`); grid
+    4 y 28 dp; línea de objetivo `outline` de 1.5 dp sin etiqueta y sin leyenda; grid
     `outlineVariant` de 1 dp al 60 %; noches sin datos como marca discontinua, nunca una
-    barra a cero. El tooltip da el valor y el número de sesiones, y en buckets semanales
-    o mensuales usa el tooltip rico con el rango y la media por noche.
+    barra a cero. El objetivo se nombra solo en la línea de apoyo. El tooltip da el valor
+    y el número de sesiones, y en buckets semanales o mensuales usa el tooltip rico con el
+    rango y la media por noche.
   - `Sleep window`: una cápsula `primary` con extremos full por bucket, banda de
-    mínimos/máximos `primaryContainer` al 20 %, línea de media `tertiary` y eje de 18:00
-    a 12:00 con etiquetas `6 PM` / `12 AM` / `6 AM` / `12 PM` (o 18:00 / 00:00 / 06:00 /
-    12:00 en 24 h). En rangos largos cada fila es un bucket semanal o mensual con la
-    media y el rango, no una fila por noche.
+    mínimos/máximos `primaryContainer` al 20 %, sin leyenda y eje de 18:00 a 12:00 con
+    etiquetas `6 PM` / `12 AM` / `6 AM` / `12 PM` (o 18:00 / 00:00 / 06:00 / 12:00 en
+    24 h). En rangos largos cada fila es un bucket semanal o mensual con la media y el
+    rango, no una fila por noche.
   - `By weekday`: siete barras `primary` de lunes a domingo, con los días sin datos como
     hueco; el mejor día lleva la etiqueta `Best` y el tooltip indica cuántas noches
     sostienen la media.
@@ -1033,11 +1033,12 @@ Reglas:
     cero y las que desaparecen se desvanecen. Con `disableAnimations` se dibuja el estado
     final de inmediato, sin entrada, stagger ni morph.
   - Interacción: una sola zona de scrub por gráfico selecciona la barra más cercana con
-    tap o arrastre; solo hay un tooltip a la vez y se cierra al soltar o tocar fuera. El
-    tooltip plano es `inverseSurface` / `onInverseSurface`, 24 dp de alto, 8 dp de
-    padding y 4 dp de separación; el rico usa `surfaceContainer` / `onSurfaceVariant` y
-    radio 12 dp. La barra seleccionada escala 1.02 con spring espacial y un halo
-    `primaryContainer` de 2 dp; hay un `selectionClick` háptico al cambiar de barra.
+    tap o arrastre; solo hay un tooltip a la vez, se mantiene al soltar y se cierra al
+    tocar fuera del gráfico. El tooltip plano es `inverseSurface` / `onInverseSurface`,
+    24 dp de alto, 8 dp de padding y 4 dp de separación; el rico usa `surfaceContainer` /
+    `onSurfaceVariant` y radio 12 dp. La barra seleccionada escala 1.02 con spring
+    espacial y un halo `primaryContainer` de 2 dp; hay un `selectionClick` háptico al
+    cambiar de barra.
   - Accesibilidad de gráficos: cada canvas va dentro de `ExcludeSemantics` y un
     `Semantics` con un solo resumen hablado (rango, media, mejor y peor noche, noches
     bajo objetivo y noches sin datos). No se crean 30 tab stops: el historial sigue
@@ -1765,8 +1766,9 @@ dart run tool/generate_brand_assets.dart
   con el periodo anterior y su caso de cobertura insuficiente, buckets diarios, semanales
   y mensuales, `All` adaptativo, DST en Europe/Madrid y duraciones negativas.
 - Gráficos: duración, ventana de sueño y día de la semana en los cinco rangos, huecos sin
-  barras a cero, tooltip plano y rico, una sola zona de scrub, resumen hablado, morph al
-  cambiar de rango, reduced motion, texto al 200 %, ventana de 600 dp y español.
+  barras a cero, tooltip plano y rico, tooltip persistente y cierre al tocar fuera, una
+  sola zona de scrub, resumen hablado, morph al cambiar de rango, reduced motion, texto al
+  200 %, ventana de 600 dp y español.
 - Night context: comparación con las 7 noches anteriores, caso de menos de 2 noches,
   ranking dentro del rango, noche dividida, editor y solo lectura, y texto al 200 %.
 - Stats editable: todas las tarjetas son botones, sin icono de edición; las de solo lectura

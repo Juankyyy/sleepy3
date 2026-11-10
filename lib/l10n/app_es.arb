@@ -408,17 +408,6 @@
       }
     }
   },
-  "chartLegendSleep": "Sueño",
-  "chartLegendAverage": "Media",
-  "chartGoalLabel": "Objetivo {goal}",
-  "@chartGoalLabel": {
-    "placeholders": {
-      "goal": {
-        "type": "String"
-      }
-    }
-  },
-  "chartAverageLabel": "Media",
   "chartTooltipDate": "{date} · {duration}",
   "@chartTooltipDate": {
     "placeholders": {
@@ -503,8 +492,6 @@
       }
     }
   },
-  "chartLegendWindow": "De acostarse a despertar",
-  "chartLegendRange": "Rango",
   "chartWindowSpoken": "Ventana de sueño en {range}. Hora media de acostarse {bedtime} y de despertar {wake}. {missing, plural, =0{Todas las noches tienen datos} =1{1 noche no tiene datos} other{{missing} noches no tienen datos}}.",
   "@chartWindowSpoken": {
     "placeholders": {

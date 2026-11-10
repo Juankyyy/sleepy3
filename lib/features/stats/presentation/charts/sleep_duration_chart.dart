@@ -13,7 +13,6 @@ import '../../../sleep_tracking/domain/sleep_insights.dart';
 import 'chart_axis.dart';
 import 'chart_empty_state.dart';
 import 'chart_format.dart';
-import 'chart_legend.dart';
 import 'chart_motion.dart';
 import 'chart_painter.dart';
 import 'chart_scene.dart';
@@ -50,7 +49,6 @@ class SleepDurationChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final palette = ChartPalette.of(context);
     final goal = l10n.formatGoalDelta(dailySleepGoal);
     final range = chartRangeLabel(l10n, insights.range);
     final supportRange = historyLimited
@@ -67,25 +65,6 @@ class SleepDurationChart extends StatelessWidget {
       ),
       semanticSummary: _spokenSummary(context, spokenRange, goal),
       showHeader: showHeader,
-      legend: insights.hasData
-          ? [
-              ChartLegendEntry(
-                label: l10n.chartLegendSleep,
-                mark: ChartLegendMark.bar,
-                color: palette.bar,
-              ),
-              ChartLegendEntry(
-                label: l10n.chartGoalLabel(goal),
-                mark: ChartLegendMark.line,
-                color: palette.goalLine,
-              ),
-              ChartLegendEntry(
-                label: l10n.chartLegendAverage,
-                mark: ChartLegendMark.line,
-                color: palette.averageLine,
-              ),
-            ]
-          : const [],
       child: insights.hasData
           ? _SleepDurationChartBody(insights: insights)
           : ChartEmptyState(message: l10n.noNightsInRange),
@@ -151,8 +130,6 @@ class _SleepDurationChartBodyState extends State<_SleepDurationChartBody>
   List<double?> _toValues = const [];
   SleepHistoryRange? _fromRange;
   SleepHistoryRange? _toRange;
-  Duration? _fromAverage;
-  Duration? _toAverage;
 
   Duration _elapsed = Duration.zero;
   bool _reduceMotion = false;
@@ -165,7 +142,6 @@ class _SleepDurationChartBodyState extends State<_SleepDurationChartBody>
     _toBuckets = widget.insights.chartBuckets;
     _toValues = _valuesFor(_toBuckets);
     _toRange = widget.insights.range;
-    _toAverage = widget.insights.average;
   }
 
   @override
@@ -193,16 +169,13 @@ class _SleepDurationChartBodyState extends State<_SleepDurationChartBody>
     if (_sameData(oldWidget.insights, widget.insights)) return;
 
     final currentValues = _displayedValues();
-    final currentAverage = _displayedAverage();
     setState(() {
       _fromBuckets = _toBuckets;
       _fromValues = currentValues;
       _fromRange = _toRange;
-      _fromAverage = currentAverage;
       _toBuckets = widget.insights.chartBuckets;
       _toValues = _valuesFor(_toBuckets);
       _toRange = widget.insights.range;
-      _toAverage = widget.insights.average;
       _selectedIndex = null;
       _selectionController.value = 0;
     });
@@ -267,16 +240,6 @@ class _SleepDurationChartBodyState extends State<_SleepDurationChartBody>
     return from + (to - from) * progress;
   }
 
-  Duration? _displayedAverage() {
-    final from = _fromAverage?.inMinutes.toDouble();
-    final to = _toAverage?.inMinutes.toDouble();
-    if (from == null && to == null) return null;
-    final progress = _averageProgress();
-    final start = from ?? to!;
-    final end = to ?? from!;
-    return Duration(minutes: (start + (end - start) * progress).round());
-  }
-
   double _barProgress(int index) {
     if (_reduceMotion) return 1;
     final seconds = _elapsed.inMicroseconds / 1e6;
@@ -284,11 +247,6 @@ class _SleepDurationChartBodyState extends State<_SleepDurationChartBody>
     final local = seconds - delay;
     if (local <= 0) return 0;
     return _barSpring.x(local);
-  }
-
-  double _averageProgress() {
-    if (_reduceMotion) return 1;
-    return _barSpring.x(_elapsed.inMicroseconds / 1e6).clamp(0.0, 1.0);
   }
 
   double _fadeProgress() {
@@ -300,7 +258,6 @@ class _SleepDurationChartBodyState extends State<_SleepDurationChartBody>
     if (a.range != b.range ||
         a.recordedDays != b.recordedDays ||
         a.total != b.total ||
-        a.average != b.average ||
         a.chartBuckets.length != b.chartBuckets.length) {
       return false;
     }
@@ -335,17 +292,13 @@ class _SleepDurationChartBodyState extends State<_SleepDurationChartBody>
   @override
   Widget build(BuildContext context) {
     final palette = ChartPalette.of(context);
-    final l10n = context.l10n;
     final goal = dailySleepGoal;
-    final goalLabel = l10n.chartGoalLabel(l10n.formatGoalDelta(goal));
-    final averageLabel = l10n.chartAverageLabel;
     final axis = _buildAxis(context);
     final count = math.max(_fromBuckets.length, _toBuckets.length);
     final barProgress = [
       for (var index = 0; index < count; index++) _barProgress(index),
     ];
     final fade = _fadeProgress();
-    final averageProgress = _averageProgress();
     final dense = MediaQuery.textScalerOf(context).scale(1) >= 1.5;
     final fromLabels = _labelsFor(_fromBuckets, _fromRange, dense);
     final toLabels = _labelsFor(_toBuckets, _toRange, dense);
@@ -370,14 +323,9 @@ class _SleepDurationChartBodyState extends State<_SleepDurationChartBody>
               toValues: _toValues,
               fromLabels: fromLabels,
               toLabels: toLabels,
-              fromAverage: _fromAverage,
-              toAverage: _toAverage,
               barProgress: barProgress,
               fadeProgress: fade,
-              averageProgress: averageProgress,
               goal: goal,
-              goalLabel: goalLabel,
-              averageLabel: averageLabel,
               selectedIndex: _selectedIndex,
               selectionProgress: _selectionController.value,
             );
@@ -413,12 +361,6 @@ class _SleepDurationChartBodyState extends State<_SleepDurationChartBody>
     for (final value in [..._fromValues, ..._toValues]) {
       if (value != null && value > maxMinutes) maxMinutes = value;
     }
-    final fromAverage = _fromAverage?.inMinutes.toDouble();
-    final toAverage = _toAverage?.inMinutes.toDouble();
-    if (fromAverage != null && fromAverage > maxMinutes) {
-      maxMinutes = fromAverage;
-    }
-    if (toAverage != null && toAverage > maxMinutes) maxMinutes = toAverage;
     final maxHours = math.max(12, ((maxMinutes + 60) / 60 / 4).ceil() * 4);
     final dense = MediaQuery.textScalerOf(context).scale(1) >= 1.5;
     final step = dense ? 8 : 4;
@@ -578,14 +520,9 @@ class _DurationChartPainter extends ChartPainter {
     required this.toValues,
     required this.fromLabels,
     required this.toLabels,
-    required this.fromAverage,
-    required this.toAverage,
     required this.barProgress,
     required this.fadeProgress,
-    required this.averageProgress,
     required this.goal,
-    required this.goalLabel,
-    required this.averageLabel,
     required this.selectedIndex,
     required this.selectionProgress,
   });
@@ -596,14 +533,9 @@ class _DurationChartPainter extends ChartPainter {
   final List<double?> toValues;
   final List<String?> fromLabels;
   final List<String?> toLabels;
-  final Duration? fromAverage;
-  final Duration? toAverage;
   final List<double> barProgress;
   final double fadeProgress;
-  final double averageProgress;
   final Duration goal;
-  final String goalLabel;
-  final String averageLabel;
   final int? selectedIndex;
   final double selectionProgress;
 
@@ -678,27 +610,11 @@ class _DurationChartPainter extends ChartPainter {
       }
     }
 
-    final average = _averageValue();
-    final goalY = yFor(goal.inMinutes.toDouble(), plot);
-    if (average != null) {
-      final averageY = yFor(average, plot);
-      paintRule(
-        canvas,
-        plot,
-        value: average,
-        color: palette.averageLine,
-        label: averageLabel,
-        labelBackground: palette.surface,
-        labelBelow: (goalY - averageY).abs() < 20,
-      );
-    }
     paintRule(
       canvas,
       plot,
       value: goal.inMinutes.toDouble(),
       color: palette.goalLine,
-      label: goalLabel,
-      labelBackground: palette.surface,
     );
 
     if (fade < 1) {
@@ -715,15 +631,6 @@ class _DurationChartPainter extends ChartPainter {
       _labels(toLabels, toCount, plot),
       opacity: fade,
     );
-  }
-
-  double? _averageValue() {
-    final from = fromAverage?.inMinutes.toDouble();
-    final to = toAverage?.inMinutes.toDouble();
-    if (from == null && to == null) return null;
-    final start = from ?? to!;
-    final end = to ?? from!;
-    return start + (end - start) * averageProgress;
   }
 
   bool _hasBar(SleepChartBucket bucket) {

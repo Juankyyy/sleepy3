@@ -4,7 +4,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
 import 'package:sleepy3/features/stats/presentation/charts/chart_axis.dart';
 import 'package:sleepy3/features/stats/presentation/charts/chart_empty_state.dart';
-import 'package:sleepy3/features/stats/presentation/charts/chart_legend.dart';
 import 'package:sleepy3/features/stats/presentation/charts/chart_motion.dart';
 import 'package:sleepy3/features/stats/presentation/charts/chart_painter.dart';
 import 'package:sleepy3/features/stats/presentation/charts/chart_scene.dart';
@@ -64,18 +63,7 @@ void main() {
     });
   });
 
-  test('computes the WCAG contrast ratio', () {
-    expect(
-      chartContrastRatio(const Color(0xFF000000), const Color(0xFFFFFFFF)),
-      closeTo(21, 0.01),
-    );
-    expect(
-      chartContrastRatio(const Color(0xFF112233), const Color(0xFF112233)),
-      1,
-    );
-  });
-
-  testWidgets('ChartScene frames the title, support, legend and semantics', (
+  testWidgets('ChartScene frames the title, support and semantics', (
     tester,
   ) async {
     final handle = tester.ensureSemantics();
@@ -87,18 +75,6 @@ void main() {
           title: 'Sleep duration',
           support: 'Week · 5 nights recorded · Goal 8h',
           semanticSummary: 'Average 7 hours 21 minutes across 3 nights.',
-          legend: const [
-            ChartLegendEntry(
-              label: 'Sleep',
-              mark: ChartLegendMark.bar,
-              color: Color(0xFF252B81),
-            ),
-            ChartLegendEntry(
-              label: 'Goal',
-              mark: ChartLegendMark.line,
-              color: Color(0xFF74777F),
-            ),
-          ],
           child: const ColoredBox(color: Color(0xFFEEEEEE)),
         ),
       ),
@@ -106,8 +82,6 @@ void main() {
 
     expect(find.text('Sleep duration'), findsOneWidget);
     expect(find.text('Week · 5 nights recorded · Goal 8h'), findsOneWidget);
-    expect(find.text('Sleep'), findsOneWidget);
-    expect(find.text('Goal'), findsOneWidget);
     expect(
       find.bySemanticsLabel('Average 7 hours 21 minutes across 3 nights.'),
       findsOneWidget,
@@ -261,37 +235,42 @@ void main() {
     );
   });
 
-  testWidgets('scrub area selects the nearest slot and clears on release', (
-    tester,
-  ) async {
-    final selections = <int?>[];
-    await pump(
-      tester,
-      SizedBox(
-        width: 200,
-        height: 100,
-        child: ChartScrubArea(
-          slotCount: 4,
-          enableHaptics: false,
-          onSelectionChanged: selections.add,
-          child: const SizedBox.expand(),
+  testWidgets(
+    'scrub area keeps the nearest slot and clears on an outside tap',
+    (tester) async {
+      final selections = <int?>[];
+      await pump(
+        tester,
+        SizedBox(
+          width: 200,
+          height: 100,
+          child: ChartScrubArea(
+            slotCount: 4,
+            enableHaptics: false,
+            onSelectionChanged: selections.add,
+            child: const SizedBox.expand(),
+          ),
         ),
-      ),
-    );
+      );
 
-    final origin = tester.getTopLeft(find.byType(ChartScrubArea));
-    final gesture = await tester.startGesture(origin + const Offset(25, 50));
-    await tester.pump(const Duration(milliseconds: 110));
-    expect(selections, [0]);
+      final origin = tester.getTopLeft(find.byType(ChartScrubArea));
+      final gesture = await tester.startGesture(origin + const Offset(25, 50));
+      await tester.pump(const Duration(milliseconds: 110));
+      expect(selections, [0]);
 
-    await gesture.moveTo(origin + const Offset(125, 50));
-    await tester.pump();
-    expect(selections, [0, 2]);
+      await gesture.moveTo(origin + const Offset(125, 50));
+      await tester.pump();
+      expect(selections, [0, 2]);
 
-    await gesture.up();
-    await tester.pump();
-    expect(selections, [0, 2, null]);
-  });
+      await gesture.up();
+      await tester.pump();
+      expect(selections, [0, 2]);
+
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pump();
+      expect(selections, [0, 2, null]);
+    },
+  );
 
   testWidgets('scrub area can select on tap without capturing drags', (
     tester,
@@ -324,7 +303,7 @@ void main() {
 
     await gesture.up();
     await tester.pump();
-    expect(selections, [2, null]);
+    expect(selections, [2]);
   });
 
   testWidgets('scrub area maps the vertical axis to rows', (tester) async {
@@ -350,52 +329,7 @@ void main() {
     expect(selections, [2]);
     await gesture.up();
     await tester.pump();
-    expect(selections, [2, null]);
-  });
-
-  testWidgets('legend renders every mark and label', (tester) async {
-    await pump(
-      tester,
-      const SizedBox(
-        width: 320,
-        child: ChartLegend(
-          entries: [
-            ChartLegendEntry(
-              label: 'Bar',
-              mark: ChartLegendMark.bar,
-              color: Color(0xFF252B81),
-            ),
-            ChartLegendEntry(
-              label: 'Line',
-              mark: ChartLegendMark.line,
-              color: Color(0xFF74777F),
-            ),
-            ChartLegendEntry(
-              label: 'Dashed',
-              mark: ChartLegendMark.dashed,
-              color: Color(0xFF74777F),
-            ),
-            ChartLegendEntry(
-              label: 'Band',
-              mark: ChartLegendMark.band,
-              color: Color(0xFFC6CCF7),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    expect(find.text('Bar'), findsOneWidget);
-    expect(find.text('Line'), findsOneWidget);
-    expect(find.text('Dashed'), findsOneWidget);
-    expect(find.text('Band'), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byType(ChartLegend),
-        matching: find.byType(CustomPaint),
-      ),
-      findsNWidgets(4),
-    );
+    expect(selections, [2]);
   });
 
   testWidgets('ChartFade jumps to the final opacity with reduced motion', (
@@ -536,13 +470,11 @@ ChartPalette _palette() {
     surface: Color(0xFFEFF4F9),
     bar: Color(0xFF252B81),
     goalLine: Color(0xFF74777F),
-    averageLine: Color(0xFF3C5A78),
     grid: Color(0x9974777F),
     emptyMark: Color(0xFF74777F),
     selectionHalo: Color(0xFFDDE1FF),
     band: Color(0x33C6CCF7),
     axisLabel: TextStyle(color: Color(0xFF43474E)),
-    legendLabel: TextStyle(color: Color(0xFF43474E)),
     plainTooltipContainer: Color(0xFF2F3033),
     plainTooltipLabel: TextStyle(color: Color(0xFFF1F0F4)),
     richTooltipContainer: Color(0xFFF1F0F4),

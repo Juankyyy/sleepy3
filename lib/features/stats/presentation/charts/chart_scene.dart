@@ -1,7 +1,6 @@
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
-import 'chart_legend.dart';
 import 'chart_theme.dart';
 
 /// The M3 card that frames one Stats chart.
@@ -19,7 +18,6 @@ class ChartScene extends StatelessWidget {
     required this.support,
     required this.semanticSummary,
     required this.child,
-    this.legend = const [],
     this.canvasHeight = ChartDimensions.canvasHeight,
     this.showHeader = true,
   });
@@ -40,7 +38,6 @@ class ChartScene extends StatelessWidget {
   /// The chart canvas: a single `CustomPaint` wrapped by its scrub area.
   final Widget child;
 
-  final List<ChartLegendEntry> legend;
   final double canvasHeight;
 
   @override
@@ -81,10 +78,6 @@ class ChartScene extends StatelessWidget {
               ),
             ),
           ),
-          if (legend.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            ChartLegend(entries: legend),
-          ],
         ],
       ),
     );

@@ -96,14 +96,14 @@ void main() {
     }
   }
 
-  testWidgets('renders the sleep window card and its legend', (tester) async {
+  testWidgets('renders the sleep window card without a legend', (tester) async {
     await pumpChart(tester, week);
 
     expect(find.text('Sleep window'), findsOneWidget);
     expect(find.text('Bedtime to wake · Week'), findsOneWidget);
-    expect(find.text('Bedtime to wake'), findsOneWidget);
-    expect(find.text('Range'), findsOneWidget);
-    expect(find.text('Average'), findsOneWidget);
+    expect(find.text('Bedtime to wake'), findsNothing);
+    expect(find.text('Range'), findsNothing);
+    expect(find.text('Average'), findsNothing);
     expect(find.byType(SleepWindowChart), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -123,7 +123,9 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('shows a tooltip for a recorded night', (tester) async {
+  testWidgets('keeps the tooltip after release until an outside tap', (
+    tester,
+  ) async {
     await pumpChart(tester, week);
 
     final area = tester.getRect(find.byType(ChartScrubArea));
@@ -136,6 +138,10 @@ void main() {
     expect(find.text('Wed, Oct 21 · 11:00 PM – 7:00 AM'), findsOneWidget);
 
     await gesture.up();
+    await tester.pumpAndSettle();
+    expect(find.text('Wed, Oct 21 · 11:00 PM – 7:00 AM'), findsOneWidget);
+
+    await tester.tapAt(const Offset(5, 5));
     await tester.pumpAndSettle();
     expect(find.text('Wed, Oct 21 · 11:00 PM – 7:00 AM'), findsNothing);
   });
@@ -240,8 +246,9 @@ void main() {
 
     expect(find.text('Ventana de sueño'), findsOneWidget);
     expect(find.text('De acostarse a despertar · Semana'), findsOneWidget);
-    expect(find.text('Rango'), findsOneWidget);
-    expect(find.text('Media'), findsOneWidget);
+    expect(find.text('De acostarse a despertar'), findsNothing);
+    expect(find.text('Rango'), findsNothing);
+    expect(find.text('Media'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

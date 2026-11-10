@@ -423,17 +423,6 @@
       }
     }
   },
-  "chartLegendSleep": "Sleep",
-  "chartLegendAverage": "Average",
-  "chartGoalLabel": "Goal {goal}",
-  "@chartGoalLabel": {
-    "placeholders": {
-      "goal": {
-        "type": "String"
-      }
-    }
-  },
-  "chartAverageLabel": "Avg",
   "chartTooltipDate": "{date} · {duration}",
   "@chartTooltipDate": {
     "placeholders": {
@@ -518,8 +507,6 @@
       }
     }
   },
-  "chartLegendWindow": "Bedtime to wake",
-  "chartLegendRange": "Range",
   "chartWindowSpoken": "Sleep window for {range}. Average bedtime {bedtime} and average wake {wake}. {missing, plural, =0{Every night has data} =1{1 night has no data} other{{missing} nights have no data}}.",
   "@chartWindowSpoken": {
     "placeholders": {

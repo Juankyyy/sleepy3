@@ -85,7 +85,6 @@ abstract class ChartPainter extends CustomPainter {
     String? label,
     Color? labelBackground,
     double opacity = 1,
-    bool labelBelow = false,
   }) {
     if (opacity <= 0) return;
     final lineColor = color.withValues(alpha: opacity);
@@ -105,9 +104,7 @@ abstract class ChartPainter extends CustomPainter {
       palette.axisLabel.copyWith(color: lineColor),
     );
     final left = plot.right - text.width;
-    final top = labelBelow
-        ? math.min(plot.bottom - text.height, y + 1)
-        : math.max(plot.top, y - text.height - 1);
+    final top = math.max(plot.top, y - text.height - 1);
     if (labelBackground != null) {
       canvas.drawRect(
         Rect.fromLTWH(left - 2, top - 1, text.width + 4, text.height + 2),

@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -27,8 +25,7 @@ abstract final class ChartDimensions {
   /// Fraction of a slot the bar occupies before the min/max clamp.
   static const double barWidthFactor = 0.62;
 
-  /// From M3: the 1.5dp data lines keep the goal and average readable above
-  /// the 1dp grid.
+  /// From M3: the 1.5dp goal line stays readable above the 1dp grid.
   static const double dataLineWidth = 1.5;
   static const double gridLineWidth = 1;
 
@@ -45,22 +42,19 @@ abstract final class ChartDimensions {
 /// Colors and text roles used by the chart painters and their chrome.
 ///
 /// From M3: bars use `primary`; the grid uses `outlineVariant` at 60%; the
-/// goal line uses `outline`; the average uses `tertiary` when it reaches 3:1
-/// on the surface, otherwise `onSurfaceVariant`; the plain tooltip uses
-/// `inverseSurface` / `onInverseSurface`; the rich tooltip uses
-/// `surfaceContainer` / `onSurfaceVariant`.
+/// goal line uses `outline`; the plain tooltip uses `inverseSurface` /
+/// `onInverseSurface`; the rich tooltip uses `surfaceContainer` /
+/// `onSurfaceVariant`.
 class ChartPalette {
   const ChartPalette({
     required this.surface,
     required this.bar,
     required this.goalLine,
-    required this.averageLine,
     required this.grid,
     required this.emptyMark,
     required this.selectionHalo,
     required this.band,
     required this.axisLabel,
-    required this.legendLabel,
     required this.plainTooltipContainer,
     required this.plainTooltipLabel,
     required this.richTooltipContainer,
@@ -74,17 +68,10 @@ class ChartPalette {
     final textScaler = MediaQuery.textScalerOf(context);
     final tabular = <FontFeature>[const FontFeature.tabularFigures()];
 
-    // The published tertiary role does not always reach 3:1 on surface. The
-    // average line is the only accent where the plan requires a fallback.
-    final averageLine = chartContrastRatio(scheme.tertiary, scheme.surface) >= 3
-        ? scheme.tertiary
-        : scheme.onSurfaceVariant;
-
     return ChartPalette(
       surface: scheme.surface,
       bar: scheme.primary,
       goalLine: scheme.outline,
-      averageLine: averageLine,
       grid: scheme.outlineVariant.withValues(alpha: 0.6),
       emptyMark: scheme.outlineVariant,
       selectionHalo: scheme.primaryContainer,
@@ -92,9 +79,6 @@ class ChartPalette {
       axisLabel: theme.typography.baseline.labelSmall.copyWith(
         color: scheme.onSurfaceVariant,
         fontFeatures: tabular,
-      ),
-      legendLabel: theme.typography.baseline.labelSmall.copyWith(
-        color: scheme.onSurfaceVariant,
       ),
       plainTooltipContainer: scheme.inverseSurface,
       plainTooltipLabel: theme.typography.baseline.labelMedium.copyWith(
@@ -113,14 +97,12 @@ class ChartPalette {
 
   final Color bar;
   final Color goalLine;
-  final Color averageLine;
   final Color grid;
   final Color emptyMark;
   final Color selectionHalo;
   final Color band;
 
   final TextStyle axisLabel;
-  final TextStyle legendLabel;
 
   final Color plainTooltipContainer;
   final TextStyle plainTooltipLabel;
@@ -129,14 +111,4 @@ class ChartPalette {
 
   /// Canvas labels scale with the system text scale.
   final TextScaler textScaler;
-}
-
-/// WCAG contrast ratio between two opaque colors.
-///
-/// Used to decide whether `tertiary` can carry the average line on the current
-/// surface; alpha is ignored because the chart paints opaque data on surface.
-double chartContrastRatio(Color a, Color b) {
-  final lighter = math.max(a.computeLuminance(), b.computeLuminance());
-  final darker = math.min(a.computeLuminance(), b.computeLuminance());
-  return (lighter + 0.05) / (darker + 0.05);
 }

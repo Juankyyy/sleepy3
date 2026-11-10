@@ -674,20 +674,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get chartLegendSleep => 'Sleep';
-
-  @override
-  String get chartLegendAverage => 'Average';
-
-  @override
-  String chartGoalLabel(String goal) {
-    return 'Goal $goal';
-  }
-
-  @override
-  String get chartAverageLabel => 'Avg';
-
-  @override
   String chartTooltipDate(String date, String duration) {
     return '$date · $duration';
   }
@@ -758,12 +744,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String chartSleepWindowSupport(String range) {
     return 'Bedtime to wake · $range';
   }
-
-  @override
-  String get chartLegendWindow => 'Bedtime to wake';
-
-  @override
-  String get chartLegendRange => 'Range';
 
   @override
   String chartWindowSpoken(

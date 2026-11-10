@@ -6,9 +6,10 @@ import 'package:material_ui/material_ui.dart';
 
 /// Turns a chart canvas into one scrub target.
 ///
-/// A tap or drag selects the nearest slot along [axis]; a pointer up, a tap
-/// outside the current gesture or a drag end clears the selection. Only one
-/// selection exists per chart, so there is never more than one tooltip.
+/// A tap or drag selects the nearest slot along [axis] and shows its tooltip.
+/// The selection stays after the pointer is released and only clears when the
+/// user taps outside the chart. Only one selection exists per chart, so there
+/// is never more than one tooltip.
 class ChartScrubArea extends StatefulWidget {
   const ChartScrubArea({
     super.key,
@@ -56,9 +57,8 @@ class _ChartScrubAreaState extends State<ChartScrubArea> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final size = constraints.biggest;
-        return Listener(
-          onPointerUp: (_) => _clear(),
-          onPointerCancel: (_) => _clear(),
+        return TapRegion(
+          onTapOutside: (_) => _clear(),
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTapDown: widget.enabled
@@ -76,18 +76,6 @@ class _ChartScrubAreaState extends State<ChartScrubArea> {
                     widget.axis == Axis.horizontal
                 ? (details) => _select(details.localPosition, size)
                 : null,
-            onHorizontalDragEnd:
-                widget.enabled &&
-                    widget.dragEnabled &&
-                    widget.axis == Axis.horizontal
-                ? (_) => _clear()
-                : null,
-            onHorizontalDragCancel:
-                widget.enabled &&
-                    widget.dragEnabled &&
-                    widget.axis == Axis.horizontal
-                ? _clear
-                : null,
             onVerticalDragStart:
                 widget.enabled &&
                     widget.dragEnabled &&
@@ -99,18 +87,6 @@ class _ChartScrubAreaState extends State<ChartScrubArea> {
                     widget.dragEnabled &&
                     widget.axis == Axis.vertical
                 ? (details) => _select(details.localPosition, size)
-                : null,
-            onVerticalDragEnd:
-                widget.enabled &&
-                    widget.dragEnabled &&
-                    widget.axis == Axis.vertical
-                ? (_) => _clear()
-                : null,
-            onVerticalDragCancel:
-                widget.enabled &&
-                    widget.dragEnabled &&
-                    widget.axis == Axis.vertical
-                ? _clear
                 : null,
             child: widget.child,
           ),
