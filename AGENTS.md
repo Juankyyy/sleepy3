@@ -14,7 +14,7 @@ local session history, and Health Connect as an optional data source.
 - Platform features that cannot run in Flutter (the widget, Health Connect manifest
   entries, app labels and the custom sleep notification card) stay in the Android layer
   behind small, documented bridges.
-- Current state: v0.2.2 is the latest stable release (without the home-screen widget). The
+- Current state: v0.3.0 is the latest stable release (without the home-screen widget). The
   single contextual Sleep/Wake action on Home, the live sleeping duration and its
   entrance cue, the sleep state machine, Drift persistence,
   Stats summary with tonal cards, a draggable advanced sheet with a 70 % snap (metrics,
@@ -27,7 +27,7 @@ local session history, and Health Connect as an optional data source.
   full history access and per-build record ownership), the glass dock, the Space Grotesk /
   Google Sans Flex type, the branded launcher icon and splash, and the manual release
   workflow (`minor`, `patch`, `exact`) work. The Glance widget is the next milestone
-  (0.3.0). Sessions, preferences and Health Connect metadata live in `sleepy3.sqlite`
+  (0.4.0). Sessions, preferences and Health Connect metadata live in `sleepy3.sqlite`
   (schema v5); generated Drift and localization code is committed.
 
 ## Commands

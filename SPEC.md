@@ -3,12 +3,13 @@
 **Proyecto:** Sleepy3
 **Plataforma:** Android
 **Stack principal:** Flutter + Material 3 Expressive
-**Estado:** v0.2.2, última release estable (sin widget). Home (con una sola acción
-contextual), Stats (dashboard de cinco rangos con gráficos de duración, ventana y día de la
-semana, insights, historial tonal con marcas de objetivo animadas, pull-to-refresh, alta
-manual, edición y borrado de sesiones y detalles de solo lectura para registros de otras
-apps), Settings, la persistencia local y Health Connect (Local/Google Health) funcionan. El
-widget de pantalla de inicio es el siguiente bloque (0.3.0).
+**Estado:** v0.3.0, última release estable (sin widget). Home (con una sola acción
+contextual), Stats (resumen configurable y dashboard avanzado de cinco rangos con gráficos
+de duración, ventana y día de la semana, insights, historial tonal con marcas de objetivo
+animadas, pull-to-refresh, alta manual, edición y borrado de sesiones y detalles de solo
+lectura para registros de otras apps), la notificación silenciosa de sueño en curso,
+Settings, la persistencia local y Health Connect (Local/Google Health) funcionan. El
+widget de pantalla de inicio es el siguiente bloque (0.4.0).
 
 ---
 
@@ -115,7 +116,7 @@ ci(release): publish the APK
 - Después de publicar, aplicar notas y título con:
 
 ```bash
-dart run tool/apply_release_notes.dart v0.2.2
+dart run tool/apply_release_notes.dart v0.3.0
 ```
 
   El script lee el título de la primera línea y ejecuta `gh release edit`; no toca el APK.
@@ -745,7 +746,7 @@ Reglas:
   al abrir Sleepy3 si la sesión sigue abierta. No se añade un receiver nativo ni un
   foreground service en esta iteración.
 
-### 3.5 Widget de pantalla de inicio (0.3.0)
+### 3.5 Widget de pantalla de inicio (0.4.0)
 
 - Dos acciones: **Sleep** y **Wake**.
 - El toque registra la hora sin abrir la app.
@@ -1373,7 +1374,7 @@ lib/
     │   ├── data/           # timezone-aware reminder scheduler
     │   ├── application/    # reminder controller and providers
     │   └── presentation/   # Reminders section and switch row
-    └── widget/             # 0.3.0
+    └── widget/             # 0.4.0
 assets/
 ├── brand/                 # fuentes del logo, marca del splash e iconos generados
 └── fonts/                 # Space Grotesk, Google Sans Flex para títulos y licencias OFL
@@ -1640,7 +1641,7 @@ dart run build_runner build
 
 ---
 
-## 8. Widget de pantalla de inicio (0.3.0)
+## 8. Widget de pantalla de inicio (0.4.0)
 
 - Implementación nativa con Jetpack Glance y `RemoteViews`; no usa el engine de Flutter.
 - Dos acciones: Sleep/Wake.
@@ -1899,17 +1900,13 @@ dart run tool/generate_brand_assets.dart
   el alta manual, la animación de la marca de objetivo y la propiedad por build en Health
   Connect; la 0.2.1 añade la interfaz en inglés y español y el formato de hora 12/24; la
   0.2.2 añade el recordatorio nocturno, el deslizamiento para despertar y la duración en
-  vivo. Ninguna incluye el widget.
-- Stats avanzadas en `feat/stats-charts`: resumen con hero, dos métricas y el historial,
-  y una modal sheet arrastrable con snap al 70 % y cuatro métricas, gráficos M3 de
-  duración, ventana y día de la semana, insights y `Night context` por sesión. Pendiente
-  de validación en dispositivo y release.
+  vivo; la 0.3.0 añade las Stats avanzadas con resumen configurable, gráficos, insights y
+  `Night context`, y la notificación de sueño en curso. Ninguna incluye el widget.
 - Tests de estado, persistencia y UI.
 
 ### Siguiente
 
-1. Widget de pantalla de inicio con Glance y `home_widget` (0.3.0).
-2. Validación en dispositivo y release de las Stats avanzadas.
+1. Widget de pantalla de inicio con Glance y `home_widget` (0.4.0).
 
 ---
 
