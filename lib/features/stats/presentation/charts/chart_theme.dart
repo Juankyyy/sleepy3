@@ -49,10 +49,17 @@ abstract final class ChartDimensions {
 /// goal line uses `outline`; the plain tooltip uses `inverseSurface` /
 /// `onInverseSurface`; the rich tooltip uses `surfaceContainer` /
 /// `onSurfaceVariant`.
+/// My design decision (not in M3): every bar starts from `primary`, but a bar
+/// under the nightly goal is drawn as the 85% primary blended into the card
+/// surface, and a bar that reaches the goal uses a darker primary in the light
+/// theme (the full primary in the dark theme, where darkening would lose
+/// contrast).
 class ChartPalette {
   const ChartPalette({
     required this.surface,
     required this.bar,
+    required this.barMuted,
+    required this.goalMetBar,
     required this.goalLine,
     required this.grid,
     required this.emptyMark,
@@ -71,10 +78,18 @@ class ChartPalette {
     final scheme = theme.colorScheme;
     final textScaler = MediaQuery.textScalerOf(context);
     final tabular = <FontFeature>[const FontFeature.tabularFigures()];
+    final isDark = scheme.brightness == Brightness.dark;
 
     return ChartPalette(
       surface: scheme.surface,
       bar: scheme.primary,
+      barMuted: Color.alphaBlend(
+        scheme.primary.withValues(alpha: 0.85),
+        scheme.surface,
+      ),
+      goalMetBar: isDark
+          ? scheme.primary
+          : Color.lerp(scheme.primary, Colors.black, 0.15)!,
       goalLine: scheme.outline,
       grid: scheme.outlineVariant.withValues(alpha: 0.6),
       emptyMark: scheme.outlineVariant,
@@ -99,7 +114,15 @@ class ChartPalette {
   /// The card surface behind the chart, used for label knockouts.
   final Color surface;
 
+  /// The base primary, also used by the `Best` label.
   final Color bar;
+
+  /// The 85% primary blended into the card surface, for bars under the goal.
+  final Color barMuted;
+
+  /// The emphasis tone for bars that reach the nightly goal.
+  final Color goalMetBar;
+
   final Color goalLine;
   final Color grid;
   final Color emptyMark;

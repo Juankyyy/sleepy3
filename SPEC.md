@@ -373,14 +373,17 @@ Reglas:
 - Gráfico `Sleep duration` (en la hoja o como bloque del resumen): barras por bucket (día
   en `Week`/`Month`, semana en `3 months`, mes en `Year`, semanal o mensual en `All`
   según 180 días), línea de objetivo de 8 h sin etiqueta ni leyenda y huecos para noches
-  sin datos. El tooltip da fecha, duración y número de sesiones; en buckets largos usa el
+  sin datos. Las barras que alcanzan el objetivo usan un tono más oscuro; las demás se
+  atenúan. El tooltip da fecha, duración y número de sesiones; en buckets largos usa el
   tooltip rico con el rango y la media por noche.
 - Gráfico `Sleep window` (en la hoja o como bloque del resumen): una fila por bucket con
   una cápsula desde el bedtime hasta el wake, banda de mínimos/máximos y sin leyenda
-  inferior. El eje va de 18:00 a 12:00.
+  inferior. La cápsula usa el tono oscuro cuando la ventana alcanza las 8 h y se atenúa
+  cuando no. El eje va de 18:00 a 12:00.
 - Gráfico `By weekday` (en la hoja o como bloque del resumen): media por día de
-  despertar, de lunes a domingo; los días sin datos son huecos y el mejor día se marca
-  con la etiqueta `Best`.
+  despertar, de lunes a domingo; los días sin datos son huecos, el mejor día se marca
+  con la etiqueta `Best`, hay una línea de objetivo de 8 h y las barras que lo alcanzan
+  usan el mismo tono oscuro/atenuado que `Sleep duration`.
 - Card `Insights` (en la hoja, y en su variante compacta como bloque del resumen): mejor
   noche, noche más corta, hora media de acostarse y de despertarse, variación del
   bedtime, noches con más de una sesión y distribución (`<6 h`, `6–7 h`, `7–8 h`,

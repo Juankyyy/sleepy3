@@ -5,6 +5,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../../l10n/l10n.dart';
+import '../../../sleep_tracking/domain/sleep_goal.dart';
 import '../../../sleep_tracking/domain/sleep_history.dart';
 import '../../../sleep_tracking/domain/sleep_insights.dart';
 import 'chart_axis.dart';
@@ -32,9 +33,10 @@ const _selectedCapsuleGrowth = 2.0;
 /// emphasized, `bodySmall` support, `labelSmall` axes and `onSurfaceVariant`
 /// for the secondary text.
 /// My design decisions (not in M3): the 24dp minimum row, the 12dp capsule,
-/// the 8dp range bands, the tap-only selection and the canvas sitting 4dp from
-/// the card edge. The row count follows the range buckets, so the card grows
-/// instead of squeezing thirty nights into 180dp.
+/// the 8dp range bands, the tap-only selection, the muted/emphasis split for
+/// capsules under and over the goal and the canvas sitting 4dp from the card
+/// edge. The row count follows the range buckets, so the card grows instead of
+/// squeezing thirty nights into 180dp.
 class SleepWindowChart extends StatelessWidget {
   const SleepWindowChart({
     super.key,
@@ -774,6 +776,8 @@ class _WindowChartPainter extends ChartPainter {
 
     final left = _xFor(math.min(bedtime, wake), plot);
     final right = _xFor(math.max(bedtime, wake), plot);
+    final goalMet =
+        (wake - bedtime).abs() >= dailySleepGoal.inMinutes.toDouble();
     final height = _capsuleHeight + (_selectedCapsuleGrowth * selection);
     final rect = Rect.fromLTRB(
       left,
@@ -793,10 +797,8 @@ class _WindowChartPainter extends ChartPainter {
       );
     }
 
-    canvas.drawRRect(
-      capsule,
-      Paint()..color = palette.bar.withValues(alpha: opacity),
-    );
+    final fill = goalMet ? palette.goalMetBar : palette.barMuted;
+    canvas.drawRRect(capsule, Paint()..color = fill.withValues(alpha: opacity));
   }
 
   void _paintBand(

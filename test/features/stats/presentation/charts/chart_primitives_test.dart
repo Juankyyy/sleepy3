@@ -17,6 +17,7 @@ void main() {
     Widget child, {
     bool disableAnimations = false,
     Size size = const Size(360, 500),
+    Brightness brightness = Brightness.light,
   }) async {
     tester.view.physicalSize = size * 3;
     tester.view.devicePixelRatio = 3;
@@ -27,7 +28,7 @@ void main() {
         FakeAccessibilityFeatures(disableAnimations: disableAnimations);
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
 
-    final data = Sleepy3Theme.light();
+    final data = Sleepy3Theme.forBrightness(brightness);
     await tester.pumpWidget(
       M3EMaterialApp(
         title: 'Sleepy3',
@@ -431,6 +432,52 @@ void main() {
     expect(plot.left, greaterThan(ChartDimensions.axisGutter));
   });
 
+  testWidgets('light charts mute bars under the goal and darken the met tone', (
+    tester,
+  ) async {
+    late ChartPalette palette;
+    await pump(
+      tester,
+      Builder(
+        builder: (context) {
+          palette = ChartPalette.of(context);
+          return const SizedBox.shrink();
+        },
+      ),
+    );
+
+    expect(
+      palette.barMuted.computeLuminance(),
+      greaterThan(palette.bar.computeLuminance()),
+    );
+    expect(
+      palette.goalMetBar.computeLuminance(),
+      lessThan(palette.bar.computeLuminance()),
+    );
+  });
+
+  testWidgets('dark charts keep the full primary for goal-met bars', (
+    tester,
+  ) async {
+    late ChartPalette palette;
+    await pump(
+      tester,
+      Builder(
+        builder: (context) {
+          palette = ChartPalette.of(context);
+          return const SizedBox.shrink();
+        },
+      ),
+      brightness: Brightness.dark,
+    );
+
+    expect(
+      palette.barMuted.computeLuminance(),
+      lessThan(palette.bar.computeLuminance()),
+    );
+    expect(palette.goalMetBar, palette.bar);
+  });
+
   testWidgets('base painter draws bars, rules and missing-data marks', (
     tester,
   ) async {
@@ -483,6 +530,8 @@ ChartPalette _palette() {
   return const ChartPalette(
     surface: Color(0xFFEFF4F9),
     bar: Color(0xFF252B81),
+    barMuted: Color(0xFF434993),
+    goalMetBar: Color(0xFF1F256E),
     goalLine: Color(0xFF74777F),
     grid: Color(0x9974777F),
     emptyMark: Color(0xFF74777F),

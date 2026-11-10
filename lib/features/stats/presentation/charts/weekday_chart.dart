@@ -21,8 +21,9 @@ import 'chart_tooltip.dart';
 /// From M3: outlined card, 12dp corners, 16dp header padding, `titleMedium`
 /// emphasized, `bodySmall` support and `labelSmall` axes.
 /// My design decisions (not in M3): the 180dp canvas, the 4dp bar radius, the
-/// small `Best` label above the longest day and the canvas sitting 4dp from
-/// the card edge. M3 has no chart component.
+/// small `Best` label above the longest day, the 8h goal line, the
+/// muted/emphasis split for bars under and over the goal and the canvas sitting
+/// 4dp from the card edge. M3 has no chart component.
 class WeekdayChart extends StatelessWidget {
   const WeekdayChart({
     super.key,
@@ -380,6 +381,7 @@ class _WeekdayChartPainter extends ChartPainter {
   void paintChart(Canvas canvas, Rect plot) {
     final t = progress;
     final fade = t.clamp(0.0, 1.0).toDouble();
+    final goalMinutes = dailySleepGoal.inMinutes.toDouble();
     final count = math.max(fromValues.length, toValues.length);
     final fromSlotWidth = fromValues.isEmpty
         ? 0.0
@@ -418,6 +420,7 @@ class _WeekdayChartPainter extends ChartPainter {
           slot,
           value: from + (to - from) * t,
           selected: selectedIndex == index,
+          goalMet: to >= goalMinutes,
           selectionProgress: selectionProgress,
           opacity: 1,
         );
@@ -428,6 +431,7 @@ class _WeekdayChartPainter extends ChartPainter {
           slot,
           value: to,
           selected: selectedIndex == index,
+          goalMet: to >= goalMinutes,
           selectionProgress: selectionProgress,
           opacity: fade,
         );
@@ -438,6 +442,7 @@ class _WeekdayChartPainter extends ChartPainter {
           slot,
           value: from,
           selected: false,
+          goalMet: from >= goalMinutes,
           opacity: 1 - fade,
         );
       } else {
@@ -445,6 +450,7 @@ class _WeekdayChartPainter extends ChartPainter {
       }
     }
 
+    paintRule(canvas, plot, value: goalMinutes, color: palette.goalLine);
     _paintBestLabel(canvas, plot, t);
     paintXAxisLabels(canvas, plot, [
       for (var index = 0; index < labels.length && index < count; index++)

@@ -138,13 +138,15 @@ abstract class ChartPainter extends CustomPainter {
   ///
   /// The selected bar grows by 2% and gets a 2dp `primaryContainer` halo. The
   /// bar width is adaptive: it stays comfortable with seven buckets and never
-  /// goes below 4dp with thirty.
+  /// goes below 4dp with thirty. Bars under the nightly goal use
+  /// [ChartPalette.barMuted]; bars that reach it use [ChartPalette.goalMetBar].
   void paintBar(
     Canvas canvas,
     Rect plot,
     Rect slot, {
     required double value,
     bool selected = false,
+    bool goalMet = false,
     double selectionProgress = 1,
     double opacity = 1,
     Color? color,
@@ -189,10 +191,8 @@ abstract class ChartPainter extends CustomPainter {
       );
     }
 
-    canvas.drawRRect(
-      rrect,
-      Paint()..color = (color ?? palette.bar).withValues(alpha: opacity),
-    );
+    final fill = color ?? (goalMet ? palette.goalMetBar : palette.barMuted);
+    canvas.drawRRect(rrect, Paint()..color = fill.withValues(alpha: opacity));
   }
 
   /// Marks a slot with no data as a dashed line at the baseline.

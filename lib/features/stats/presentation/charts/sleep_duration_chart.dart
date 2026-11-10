@@ -26,8 +26,9 @@ import 'chart_tooltip.dart';
 /// emphasized, `bodySmall` support, `labelSmall` axes and `onSurfaceVariant`
 /// for the secondary text.
 /// My design decisions (not in M3): the 180dp canvas, 4dp bar radius, 4h grid
-/// step, 16ms entry stagger, 2% selected-bar scale and the canvas sitting 4dp
-/// from the card edge. M3 publishes no chart component and no stagger value.
+/// step, 16ms entry stagger, 2% selected-bar scale, the canvas sitting 4dp
+/// from the card edge and the muted/emphasis split for bars under and over the
+/// goal. M3 publishes no chart component and no stagger value.
 class SleepDurationChart extends StatelessWidget {
   const SleepDurationChart({
     super.key,
@@ -543,6 +544,7 @@ class _DurationChartPainter extends ChartPainter {
   @override
   void paintChart(Canvas canvas, Rect plot) {
     final fade = fadeProgress.clamp(0.0, 1.0);
+    final goalMinutes = goal.inMinutes.toDouble();
     final count = math.max(fromBuckets.length, toBuckets.length);
     final fromCount = fromBuckets.length;
     final toCount = toBuckets.length;
@@ -580,6 +582,7 @@ class _DurationChartPainter extends ChartPainter {
           ),
           value: bar,
           selected: selectedIndex == index,
+          goalMet: toValue >= goalMinutes,
           selectionProgress: selectionProgress,
           opacity: fromHas ? 1 : fade,
         );
@@ -595,6 +598,7 @@ class _DurationChartPainter extends ChartPainter {
             height: plot.height,
           ),
           value: fromValue,
+          goalMet: fromValue >= goalMinutes,
           opacity: 1 - fade,
         );
       } else if (index < toCount) {
@@ -611,12 +615,7 @@ class _DurationChartPainter extends ChartPainter {
       }
     }
 
-    paintRule(
-      canvas,
-      plot,
-      value: goal.inMinutes.toDouble(),
-      color: palette.goalLine,
-    );
+    paintRule(canvas, plot, value: goalMinutes, color: palette.goalLine);
 
     if (fade < 1) {
       paintXAxisLabels(
