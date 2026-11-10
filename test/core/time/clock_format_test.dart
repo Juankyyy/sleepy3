@@ -153,6 +153,47 @@ void main() {
     });
   });
 
+  group('formatHourLabel', () {
+    test('keeps 24-hour labels with minutes', () {
+      final time = DateTime(2000, 1, 1, 18);
+
+      expect(
+        formatHourLabel(time, use24HourFormat: true, localeName: 'en'),
+        '18:00',
+      );
+      expect(
+        formatHourLabel(time, use24HourFormat: true, localeName: 'es'),
+        '18:00',
+      );
+    });
+
+    test('forces 12-hour labels in English', () {
+      String label(int hour) => formatHourLabel(
+        DateTime(2000, 1, 1, hour),
+        use24HourFormat: false,
+        localeName: 'en',
+      );
+
+      expect(label(18), '6 PM');
+      expect(label(0), '12 AM');
+      expect(label(6), '6 AM');
+      expect(label(12), '12 PM');
+    });
+
+    test('forces 12-hour labels in a locale that prefers 24 hours', () {
+      String label(int hour) => formatHourLabel(
+        DateTime(2000, 1, 1, hour),
+        use24HourFormat: false,
+        localeName: 'es',
+      );
+
+      expect(label(18), '6 p.\u202Fm.');
+      expect(label(0), '12 a.\u202Fm.');
+      expect(label(6), '6 a.\u202Fm.');
+      expect(label(12), '12 p.\u202Fm.');
+    });
+  });
+
   test('formatClockDate follows the locale and omits the year', () {
     final date = DateTime(2026, 10, 20);
     expect(formatClockDate(date, localeName: 'en'), 'Tuesday, October 20');

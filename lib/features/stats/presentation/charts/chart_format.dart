@@ -57,9 +57,11 @@ String chartHourLabel({
   required int hour,
   required bool use24HourFormat,
 }) {
-  final date = DateTime(2000, 1, 1, hour);
-  final pattern = use24HourFormat ? 'Hm' : 'jm';
-  return DateFormat(pattern, l10n.localeName).format(date);
+  return formatHourLabel(
+    DateTime(2000, 1, 1, hour),
+    use24HourFormat: use24HourFormat,
+    localeName: l10n.localeName,
+  );
 }
 
 /// The short weekday name used under the weekday chart: `Mon` or `lun`.

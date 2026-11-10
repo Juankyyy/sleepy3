@@ -35,6 +35,23 @@ String formatSessionTime(
   return '${_hour12(time.hour)}:$minute $period';
 }
 
+/// A compact hour for chart axes, for example `18:00` or `6 PM`.
+///
+/// The 12-hour form is built here instead of using the `jm` skeleton because
+/// `jm` follows the locale's preferred hour cycle: Spanish prefers 24 hours, so
+/// it would ignore the app's 12-hour setting.
+String formatHourLabel(
+  DateTime time, {
+  required bool use24HourFormat,
+  required String localeName,
+}) {
+  if (use24HourFormat) {
+    return DateFormat('Hm', localeName).format(time);
+  }
+  final period = formatDayPeriod(time, localeName: localeName);
+  return '${_hour12(time.hour)} $period';
+}
+
 /// The date under the clock, for example `Tuesday, October 20` or
 /// `martes, 20 de octubre`.
 String formatClockDate(DateTime time, {required String localeName}) {
