@@ -17,14 +17,23 @@ import 'chart_scrub_area.dart';
 import 'chart_theme.dart';
 import 'chart_tooltip.dart';
 
+/// The average sleep-window capsule. My design decision (not in M3).
+const _capsuleHeight = 12.0;
+
+/// The faint earliest/latest band behind each capsule.
+const _bandHeight = 8.0;
+
+/// How much the selected capsule grows.
+const _selectedCapsuleGrowth = 2.0;
+
 /// The Sleep window chart on Stats.
 ///
 /// From M3: outlined card, 12dp corners, 16dp header padding, `titleMedium`
 /// emphasized, `bodySmall` support, `labelSmall` axes and `onSurfaceVariant`
 /// for the secondary text.
-/// My design decisions (not in M3): the 24dp minimum row, the 8dp capsule, the
-/// 6dp range bands, the tap-only selection and the canvas sitting 4dp from the
-/// card edge. The row count follows the range buckets, so the card grows
+/// My design decisions (not in M3): the 24dp minimum row, the 12dp capsule,
+/// the 8dp range bands, the tap-only selection and the canvas sitting 4dp from
+/// the card edge. The row count follows the range buckets, so the card grows
 /// instead of squeezing thirty nights into 180dp.
 class SleepWindowChart extends StatelessWidget {
   const SleepWindowChart({
@@ -765,7 +774,7 @@ class _WindowChartPainter extends ChartPainter {
 
     final left = _xFor(math.min(bedtime, wake), plot);
     final right = _xFor(math.max(bedtime, wake), plot);
-    final height = 8 + (2 * selection);
+    final height = _capsuleHeight + (_selectedCapsuleGrowth * selection);
     final rect = Rect.fromLTRB(
       left,
       centerY - height / 2,
@@ -803,12 +812,12 @@ class _WindowChartPainter extends ChartPainter {
     final right = _xFor(math.max(start, end), plot);
     final rect = Rect.fromLTRB(
       left,
-      centerY - 3,
+      centerY - _bandHeight / 2,
       right < left + 1 ? left + 1 : right,
-      centerY + 3,
+      centerY + _bandHeight / 2,
     );
     canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, const Radius.circular(3)),
+      RRect.fromRectAndRadius(rect, const Radius.circular(_bandHeight / 2)),
       Paint()..color = palette.band.withValues(alpha: opacity),
     );
   }
