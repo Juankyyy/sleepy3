@@ -9,6 +9,12 @@ abstract interface class HealthSyncStore {
   /// Closed local sessions that still need uploading, oldest first.
   Future<List<StoredSleepSession>> loadPendingUploads();
 
+  /// Imported local sessions that only an explicit Add may upload.
+  ///
+  /// Automatic retries never include these rows. They are ordered oldest
+  /// first, like [loadPendingUploads].
+  Future<List<StoredSleepSession>> loadBlockedUploads();
+
   /// Pending uploads that already have a Health Connect record.
   ///
   /// These are edits of synchronized sessions, not new records. Used by Local

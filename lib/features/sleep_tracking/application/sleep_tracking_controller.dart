@@ -386,6 +386,16 @@ class SleepTrackingController extends Notifier<SleepTrackingState> {
     await _startHistoryLoad();
   }
 
+  /// Reloads the history after a backup import.
+  ///
+  /// The imported rows are local, so Google Health mode will not show them in
+  /// its list; the read keeps that source consistent and the pending count
+  /// tells Settings how many sessions are waiting for an explicit `Add`.
+  Future<void> reloadAfterHistoryImport() async {
+    await reloadHistory();
+    await _refreshHealthPendingCount();
+  }
+
   /// Re-reads the closed history without dropping the rows already on screen.
   ///
   /// Used by the Stats pull-to-refresh and after Wake. Returns false only when

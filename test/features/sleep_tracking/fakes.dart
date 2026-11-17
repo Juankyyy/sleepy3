@@ -16,6 +16,7 @@ class FakeSleepSessionStore implements SleepSessionStore {
   final updates = <SleepSession>[];
   final deletes = <int>[];
   final retimedStarts = <DateTime>[];
+  final blockedIds = <int>{};
   int loads = 0;
   int openLoads = 0;
   int closedLoads = 0;
@@ -60,7 +61,10 @@ class FakeSleepSessionStore implements SleepSessionStore {
   }
 
   @override
-  Future<SleepSession> insertClosedSession(SleepSession session) async {
+  Future<SleepSession> insertClosedSession(
+    SleepSession session, {
+    bool blockHealthSync = false,
+  }) async {
     if (session.endedAt == null) {
       throw ArgumentError.value(
         session,
@@ -83,6 +87,7 @@ class FakeSleepSessionStore implements SleepSessionStore {
       closedSessions: next,
     );
     inserted.add(insertedSession);
+    if (blockHealthSync) blockedIds.add(nextId);
     return insertedSession;
   }
 

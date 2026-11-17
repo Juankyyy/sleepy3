@@ -56,6 +56,23 @@ void main() {
       expect(await store.loadPendingCount(), 0);
     });
 
+    test('a blocked import is only uploaded explicitly', () async {
+      create();
+      final row = store.addLocal(closed, blocked: true);
+
+      final batch = await service.retryPending();
+
+      expect(batch.total, 0);
+      expect(gateway.writes, isEmpty);
+
+      final result = await service.uploadStored(row);
+
+      expect(result.status, SleepUploadStatus.uploaded);
+      expect(store.rows.single.healthSyncBlocked, isFalse);
+      expect(store.rows.single.healthSyncedAt, now);
+      expect(await store.loadPendingCount(), 0);
+    });
+
     test('skips a zero duration session without writing', () async {
       final zero = SleepSession(startedAt: startedAt, endedAt: startedAt);
       create(pending: [zero]);

@@ -9,6 +9,7 @@ environment:
 dependencies:
   drift: ^2.35.2
   drift_flutter: ^0.3.1
+  file_picker: ^13.4.0
   flutter:
     sdk: flutter
   # 23.0.0 requires compileSdk 37 and AGP 9.1.1; this project uses 36 and

@@ -18,6 +18,7 @@
 - **A quiet timer while you sleep.** An ongoing notification shows the live elapsed time and when you will reach your eight-hour goal. It stays silent and disappears when you wake.
 - **A reminder if you want one.** Choose a time in Settings and Sleepy3 sends a local notification so you do not forget to tap Sleep. It never fires while a night is already in progress.
 - **Your last nights at a glance.** Home shows today, yesterday and the day before with a three-day average and bars against an eight-hour goal.
+- **A backup you can hold.** Export the whole history to a versioned JSON file and import it back on a new install. The file stays on your phone or wherever you choose to save it; nothing is uploaded.
 - **Nothing leaves your phone.** There is no account, no server of ours and no analytics. Health Connect is optional, and the reminder is scheduled on the device.
 - **Designed for 3 a.m.** A big Sleep button, a slide to wake, one-hand use, a clear awake/sleeping state and light and dark themes that follow your phone.
 
@@ -35,11 +36,11 @@ Sleepy3 runs on **Android 9 or newer**. Version **0.3.0** is the latest stable r
 
 1. Tap **Sleep** when you go to bed. The control shows the live sleep duration, a small slide to wake hint and a breathing moon; the header switches to a sleeping state and the clock keeps running. A quiet ongoing notification also shows the live timer and the goal time.
 2. Slide to wake when you get up. Sleepy3 shows **Saving session** while it stores the night, then **Session saved**; the button returns to **Sleep** and shows how long you slept.
-3. Open **Stats** to review or fix your history, use the plus button to add a night you forgot to track, and **Settings** for the theme, the 12/24-hour clock, the language, the nightly reminder and Health Connect.
+3. Open **Stats** to review or fix your history, use the plus button to add a night you forgot to track, and **Settings** for the theme, the 12/24-hour clock, the language, the nightly reminder, Health Connect and a backup of your data.
 
 Use the floating glass dock at the bottom to move between **Home**, **Stats** and **Settings**; the selected destination shows its label, and the content stays visible behind the dock.
 
-Settings is split into **Appearance** (theme, 12/24-hour clock and language), **Stats** (the block shown in the Stats summary), **Reminders** (the optional nightly notification and the sleep status switch), **Sleep data** (Local or Google Health, and Import), **Google Health** (connection status, Sync and Add) and **About** (privacy, version and open-source licenses). The interface is available in **English** and **Spanish**; there is no separate “System” option, so the first launch resolves and stores the phone's language and you can change it later in **Appearance → Language**.
+Settings is split into **Appearance** (theme, 12/24-hour clock and language), **Stats** (the block shown in the Stats summary), **Reminders** (the optional nightly notification and the sleep status switch), **Sleep data** (Local or Google Health, and Import), **Data** (export or import your history), **Google Health** (connection status, Sync and Add) and **About** (privacy, version and open-source licenses). The interface is available in **English** and **Spanish**; there is no separate “System” option, so the first launch resolves and stores the phone's language and you can change it later in **Appearance → Language**.
 
 The reminder is **off by default**. Turn it on in **Settings → Reminders**, allow notifications when Android asks, and choose the time with the clock picker. Sleepy3 schedules the next notification on the phone; if you already tapped **Sleep**, it skips that reminder and rearms it when you wake up. Tapping the notification opens **Home** so the large Sleep button is one tap away. Changing the app language updates the notification text. On Android 13 and newer the permission is requested only when you enable the reminder; if you deny it, the switch stays off and the app offers to open the system notification settings. You can revoke it later in Android settings, and Settings will show a warning if notifications are blocked. Reminders are inexact by design: Android may deliver them a few minutes late, especially with battery saver. There is no push server and the notification contains no sleep data.
 
@@ -100,12 +101,16 @@ Health Connect hides records older than 30 days unless you give Sleepy3 the hist
 - Sessions, the theme, the 12/24-hour clock, the language, the data source and the reminder preference are stored in a local database on your phone.
 - There is no account, no backend and no analytics. Nothing is sent to us.
 - Local mode works completely offline. Health Connect is optional, and denying permission never blocks local tracking.
-- Uninstalling Sleepy3 deletes the local database. If Android backup is enabled, the system may restore it when you reinstall.
+- **Settings → Data → Export history** writes the history currently shown in **Stats** to a versioned JSON file. In Local mode that is the sessions stored by Sleepy3, including copies downloaded from Health Connect. In Google Health mode it is the Health Connect records Stats is showing; those records are saved as read-only copies with their Health Connect ids, and the same 30-day limit as Stats applies when full history access is not granted. Choose any folder Android offers: Downloads, Drive, a USB drive or another app. The file contains exact start and end times and never contains the night in progress.
+- **Settings → Data → Import history** reads a Sleepy3 JSON file and shows a preview first: how many sessions it contains, the date range, how many are new and how many are already in your history. Duplicates are skipped by exact start and end times or by Health Connect record id, so importing the same file twice never creates doubles. The import itself never writes to Health Connect and the automatic sync ignores imported sessions; send them later with **Add** in Google Health if you want them there. Sessions that came from Health Connect stay read-only copies, while local sessions become local rows.
+- Uninstalling Sleepy3 deletes the local database. If Android backup is enabled, the system may restore it when you reinstall. The app ships explicit auto-backup rules for its database and journal files; you can also keep your own export. Android may not back up a device without a Google account, so an export is the reliable copy.
 - Sleepy3 talks to Health Connect on your phone, not to Google's cloud. A record that exists only in the Google Health cloud appears once Google Health syncs it to Health Connect.
 
 ## Common questions
 
-**I reinstalled the app and my history is gone.** There is no account to sign in to. If Android did not restore the local database from a backup, earlier sessions cannot be recovered.
+**I reinstalled the app and my history is gone.** There is no account to sign in to. If you exported a history file or Android restored the local database from a backup, the nights are still there. Otherwise, earlier sessions cannot be recovered.
+
+**How do I move my history to a new phone?** On the old phone, open **Settings → Data → Export history** and save the JSON file somewhere you can open on the new phone (Drive, a USB cable or a file manager). Install Sleepy3 on the new phone, open **Settings → Data → Import history**, pick the file and confirm the preview. Only the nights in the file are imported; Health Connect is not touched.
 
 **Android won't install the APK over my old copy.** Android requires the same signing key. Uninstall the old app first; that also deletes its local database.
 
@@ -130,6 +135,7 @@ Health Connect hides records older than 30 days unless you give Sleepy3 the hist
 - [x] Silent sleep-status notification with a live timer and goal time (0.3.0).
 - [x] Advanced Stats with five ranges, duration, window and weekday charts, insights and night context (0.3.0).
 - [x] Customizable Stats summary block with real previews in Settings (0.3.0).
+- [x] Export and import your sleep history as a versioned JSON file, plus Android auto-backup rules.
 - [ ] Home-screen widget with Sleep and Wake buttons (0.4.0).
 - [ ] Motion and accessibility polish.
 
@@ -187,6 +193,11 @@ lib/
     │   ├── data/          # Health Connect gateway, repositories and Drift sync store
     │   ├── application/   # source, history, history permission, sync, upload and copy
     │   └── presentation/  # copy dialogs, sync and history banners, source text
+    ├── backup/
+    │   ├── domain/        # versioned sleep history file
+    │   ├── data/          # Android document picker gateway
+    │   ├── application/   # export/import service and providers
+    │   └── presentation/  # Data section and preview/result dialogs
     ├── reminders/
     │   ├── domain/        # reminder value, next occurrence and scheduler contract
     │   ├── data/          # local notification and timezone scheduler
@@ -220,6 +231,7 @@ The reminder follows the same rule at a smaller scale: `SleepReminderController`
 | State | Riverpod (`flutter_riverpod` 3.x) |
 | Localization | Flutter `gen-l10n` + ARB (`app_en.arb`, `app_es.arb`) |
 | Persistence | Drift over SQLite (`drift`, `drift_flutter`) |
+| Files | `file_picker` (Android Storage Access Framework) |
 | App info | `package_info_plus` |
 | Widget | `home_widget` + native Kotlin / Jetpack Glance (planned) |
 | Health | Health Connect `SleepSessionRecord` |
@@ -233,7 +245,8 @@ The reminder follows the same rule at a smaller scale: `SleepReminderController`
 - Drift generated code is committed. After changing the schema, bump `schemaVersion`, add a migration, then run `dart run build_runner build`.
 - All user-facing copy lives in `lib/l10n/app_en.arb` and `app_es.arb`; run `flutter gen-l10n` after editing them and use `context.l10n` in widgets. The generated `lib/l10n/generated/` files are committed.
 - Domain logic never calls `DateTime.now()`; the clock is injected through `sleepClockProvider`.
-- Health Connect internals (stable client record ids, versions and deduplication) are documented in `SPEC.md §9`.
+- Health Connect internals (stable client record ids, versions and deduplication) are documented in `SPEC.md §9`. History export/import and the Android auto-backup rules are documented in `SPEC.md §7`.
+- Android auto-backup includes a small database whose path is `app_flutter/sleepy3.sqlite`. The manifest rules live in `android/app/src/main/res/xml/` and are covered by `test/features/backup/data/android_backup_config_test.dart`; check the real thing with `adb shell bmgr backupnow com.sleepy3.app`.
 - `SPEC.md` holds the detailed behavior, data model and roadmap.
 
 ### Design and brand

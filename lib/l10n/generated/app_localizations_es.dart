@@ -50,7 +50,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get settingsSupport =>
-      'Tema, estadísticas, recordatorios, datos de sueño e información de la app.';
+      'Tema, estadísticas, recordatorios, datos de sueño, copia de seguridad e información de la app.';
 
   @override
   String get appearance => 'Apariencia';
@@ -138,6 +138,23 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get sleepData => 'Datos de sueño';
+
+  @override
+  String get data => 'Datos';
+
+  @override
+  String get exportHistory => 'Exportar historial';
+
+  @override
+  String get exportHistorySupport =>
+      'Guarda el historial que ves en Stats en un archivo.';
+
+  @override
+  String get importHistory => 'Importar historial';
+
+  @override
+  String get importHistorySupport =>
+      'Restaura el historial de sueño desde un archivo de Sleepy3.';
 
   @override
   String get googleHealth => 'Google Health';
@@ -1378,6 +1395,156 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String timeRangeSpoken(String from, String to) {
     return '$from a $to';
+  }
+
+  @override
+  String get historyExportDialogTitle => 'Exportar historial de sueño';
+
+  @override
+  String get historyImportDialogTitle => 'Importar historial de sueño';
+
+  @override
+  String get historyExportEmpty => 'No hay historial de sueño para exportar.';
+
+  @override
+  String get historyExportFailed =>
+      'No se pudo exportar el historial de sueño. Inténtalo de nuevo.';
+
+  @override
+  String historyExported(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sesiones exportadas',
+      one: '1 sesión exportada',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get historyImportPreviewTitle => '¿Importar historial?';
+
+  @override
+  String historyImportSummary(int count, String first, String last) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sesiones',
+      one: '1 sesión',
+    );
+    return 'Este archivo contiene $_temp0 desde $first hasta $last.';
+  }
+
+  @override
+  String historyImportNew(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Se añadirán $count sesiones nuevas.',
+      one: 'Se añadirá 1 sesión nueva.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String historyImportDuplicates(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sesiones ya están en tu historial y se omitirán.',
+      one: '1 sesión ya está en tu historial y se omitirá.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String historyImportInvalid(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'No se pueden importar $count sesiones del archivo.',
+      one: 'No se puede importar 1 sesión del archivo.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get historyImportNothingNew => 'No hay nada nuevo que importar.';
+
+  @override
+  String get historyImportStaysLocal =>
+      'Las sesiones importadas se guardan en este dispositivo.';
+
+  @override
+  String get historyImportAddLater =>
+      'Usa Añadir en Google Health para enviarlas más adelante.';
+
+  @override
+  String get historyImportReadOnlyCopies =>
+      'Las sesiones de Google Health se importan como copias de solo lectura.';
+
+  @override
+  String get historyImporting => 'Importando historial';
+
+  @override
+  String get historyImportCouldNotRead => 'No se pudo importar este archivo';
+
+  @override
+  String get historyImportInvalidFile =>
+      'Elige un archivo de historial de sueño de Sleepy3 (.json).';
+
+  @override
+  String get historyImportNewerVersion =>
+      'Este archivo lo creó una versión más reciente de Sleepy3. Actualiza la app e inténtalo de nuevo.';
+
+  @override
+  String get historyImportNoSessions =>
+      'Este archivo no tiene sesiones de sueño para importar.';
+
+  @override
+  String get historyImportFailedTitle => 'No se pudo importar el historial';
+
+  @override
+  String get historyImportFailed =>
+      'Algo falló al leer el archivo. Inténtalo de nuevo.';
+
+  @override
+  String get historyImportSomeFailed => 'Algunas sesiones no se importaron';
+
+  @override
+  String get historyImportComplete => 'Importación completa';
+
+  @override
+  String historyImportAdded(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sesiones añadidas',
+      one: '1 sesión añadida',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String historyImportSkipped(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sesiones omitidas',
+      one: '1 sesión omitida',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String historyImportFailedCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count sesiones fallidas',
+      one: '1 sesión fallida',
+    );
+    return '$_temp0';
   }
 
   @override

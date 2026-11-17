@@ -32,6 +32,7 @@ class StoredSleepSession {
     this.healthRecordVersion = 0,
     this.healthSyncedAt,
     this.healthSyncSkipped = false,
+    this.healthSyncBlocked = false,
     this.origin = SleepSessionOrigin.local,
   });
 
@@ -59,6 +60,10 @@ class StoredSleepSession {
   /// minimumRecordableSleep.
   final bool healthSyncSkipped;
 
+  /// True when a history import restored the row and only an explicit Add may
+  /// upload it. Automatic retries ignore blocked rows.
+  final bool healthSyncBlocked;
+
   final SleepSessionOrigin origin;
 
   bool get isUploaded => healthSyncedAt != null;
@@ -66,12 +71,26 @@ class StoredSleepSession {
   /// Whether this session still has to be written to Health Connect.
   ///
   /// Only sessions started in Sleepy3 are uploaded. Downloaded and open
-  /// sessions are never pending, and neither are skipped ones.
+  /// sessions are never pending, and neither are skipped or import-blocked
+  /// ones.
   bool get isPendingUpload =>
       origin == SleepSessionOrigin.local &&
       !session.isOpen &&
       !isUploaded &&
-      !healthSyncSkipped;
+      !healthSyncSkipped &&
+      !healthSyncBlocked;
+
+  /// An imported row waiting for the user to tap Add.
+  ///
+  /// The automatic retry never sends these; the copy action passes the row to
+  /// the upload service explicitly.
+  bool get isBlockedUpload =>
+      origin == SleepSessionOrigin.local &&
+      !session.isOpen &&
+      !isUploaded &&
+      !healthSyncSkipped &&
+      healthSyncBlocked &&
+      healthRecordId == null;
 
   /// A pending upload that already has a Health Connect record.
   ///
@@ -85,5 +104,6 @@ class StoredSleepSession {
       'healthClientRecordId: $healthClientRecordId, '
       'healthRecordVersion: $healthRecordVersion, origin: $origin, '
       'healthSyncedAt: $healthSyncedAt, '
-      'healthSyncSkipped: $healthSyncSkipped)';
+      'healthSyncSkipped: $healthSyncSkipped, '
+      'healthSyncBlocked: $healthSyncBlocked)';
 }

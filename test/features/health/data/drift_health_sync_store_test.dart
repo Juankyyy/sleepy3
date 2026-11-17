@@ -270,6 +270,57 @@ void main() {
       expect(row.origin, SleepSessionOrigin.healthConnect.storageValue);
     });
 
+    test('migrates a v5 database and adds the import block column', () async {
+      final startedAt = DateTime(2026, 10, 20, 22);
+      final endedAt = DateTime(2026, 10, 21, 6);
+      final database = Sleepy3Database.forTesting(
+        NativeDatabase.memory(
+          setup: (raw) {
+            raw.execute('''
+              CREATE TABLE sleep_sessions (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                started_at_millis INTEGER NOT NULL,
+                ended_at_millis INTEGER NULL,
+                health_record_id TEXT NULL,
+                health_client_record_id TEXT NULL,
+                health_record_version INTEGER NOT NULL DEFAULT 0,
+                health_synced_at_millis INTEGER NULL,
+                health_sync_skipped INTEGER NOT NULL DEFAULT 0,
+                origin TEXT NOT NULL DEFAULT 'local',
+                source_id TEXT NULL
+              )
+            ''');
+            raw.execute('''
+              CREATE UNIQUE INDEX sleep_sessions_health_record_id
+              ON sleep_sessions (health_record_id)
+            ''');
+            raw.execute('''
+              CREATE TABLE preferences (
+                setting_key TEXT NOT NULL,
+                setting_value TEXT NOT NULL,
+                PRIMARY KEY (setting_key)
+              )
+            ''');
+            raw.execute(
+              'INSERT INTO sleep_sessions '
+              '(started_at_millis, ended_at_millis, origin) '
+              "VALUES (?, ?, 'local')",
+              [
+                startedAt.millisecondsSinceEpoch,
+                endedAt.millisecondsSinceEpoch,
+              ],
+            );
+            raw.userVersion = 5;
+          },
+        ),
+      );
+      addTearDown(database.close);
+
+      final row = await database.select(database.sleepSessions).getSingle();
+      expect(row.healthSyncBlocked, isFalse);
+      expect(row.origin, SleepSessionOrigin.local.storageValue);
+    });
+
     test('new rows default to local and unsynced', () async {
       final database = Sleepy3Database.forTesting(NativeDatabase.memory());
       addTearDown(database.close);
@@ -370,6 +421,7 @@ void main() {
       int healthRecordVersion = 0,
       DateTime? healthSyncedAt,
       bool healthSyncSkipped = false,
+      bool healthSyncBlocked = false,
       SleepSessionOrigin origin = SleepSessionOrigin.local,
       String? sourceId,
     }) {
@@ -386,6 +438,7 @@ void main() {
                 healthSyncedAt?.millisecondsSinceEpoch,
               ),
               healthSyncSkipped: Value(healthSyncSkipped),
+              healthSyncBlocked: Value(healthSyncBlocked),
               origin: Value(origin.storageValue),
               sourceId: Value(sourceId),
             ),
@@ -417,12 +470,47 @@ void main() {
         endedAt: endOf(DateTime(2026, 10, 20, 3)),
         origin: SleepSessionOrigin.healthConnect,
       );
+      await insertRow(
+        startedAt: DateTime(2026, 10, 20, 4),
+        endedAt: endOf(DateTime(2026, 10, 20, 4)),
+        healthSyncBlocked: true,
+      );
 
       final pending = await store.loadPendingUploads();
 
       expect(pending.map((row) => row.id), [olderId, newerId]);
       expect(pending.every((row) => row.isPendingUpload), isTrue);
       expect(await store.loadPendingCount(), 2);
+    });
+
+    test('loads imported blocked sessions separately', () async {
+      final blockedStart = DateTime(2026, 10, 18, 22);
+      final pendingStart = DateTime(2026, 10, 19, 22);
+      final blockedId = await insertRow(
+        startedAt: blockedStart,
+        endedAt: endOf(blockedStart),
+        healthSyncBlocked: true,
+      );
+      await insertRow(startedAt: pendingStart, endedAt: endOf(pendingStart));
+      await insertRow(
+        startedAt: DateTime(2026, 10, 20, 22),
+        endedAt: endOf(DateTime(2026, 10, 20, 22)),
+        healthRecordId: 'record-1',
+        healthSyncBlocked: true,
+      );
+      await insertRow(
+        startedAt: DateTime(2026, 10, 20, 1),
+        endedAt: endOf(DateTime(2026, 10, 20, 1)),
+        origin: SleepSessionOrigin.healthConnect,
+        healthSyncBlocked: true,
+      );
+
+      final blocked = await store.loadBlockedUploads();
+
+      expect(blocked.map((row) => row.id), [blockedId]);
+      expect(blocked.single.isBlockedUpload, isTrue);
+      expect(blocked.single.isPendingUpload, isFalse);
+      expect(await store.loadPendingCount(), 1);
     });
 
     test('loads the most recent pending session', () async {

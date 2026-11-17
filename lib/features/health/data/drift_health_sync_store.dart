@@ -15,7 +15,17 @@ class DriftHealthSyncStore implements HealthSyncStore {
     return row.origin.equals(SleepSessionOrigin.local.storageValue) &
         row.endedAtMillis.isNotNull() &
         row.healthSyncedAtMillis.isNull() &
-        row.healthSyncSkipped.equals(false);
+        row.healthSyncSkipped.equals(false) &
+        row.healthSyncBlocked.equals(false);
+  }
+
+  Expression<bool> _isBlocked($SleepSessionsTable row) {
+    return row.origin.equals(SleepSessionOrigin.local.storageValue) &
+        row.endedAtMillis.isNotNull() &
+        row.healthSyncedAtMillis.isNull() &
+        row.healthSyncSkipped.equals(false) &
+        row.healthSyncBlocked.equals(true) &
+        row.healthRecordId.isNull();
   }
 
   @override
@@ -36,6 +46,19 @@ class DriftHealthSyncStore implements HealthSyncStore {
     final rows =
         await (_db.select(_db.sleepSessions)
               ..where((row) => _isPending(row) & row.healthRecordId.isNotNull())
+              ..orderBy([
+                (row) => OrderingTerm.asc(row.startedAtMillis),
+                (row) => OrderingTerm.asc(row.id),
+              ]))
+            .get();
+    return List.unmodifiable(rows.map(_toDomain));
+  }
+
+  @override
+  Future<List<StoredSleepSession>> loadBlockedUploads() async {
+    final rows =
+        await (_db.select(_db.sleepSessions)
+              ..where(_isBlocked)
               ..orderBy([
                 (row) => OrderingTerm.asc(row.startedAtMillis),
                 (row) => OrderingTerm.asc(row.id),
@@ -99,6 +122,7 @@ class DriftHealthSyncStore implements HealthSyncStore {
         healthRecordVersion: Value(version),
         healthSyncedAtMillis: Value(syncedAt.millisecondsSinceEpoch),
         healthSyncSkipped: const Value(false),
+        healthSyncBlocked: const Value(false),
       ),
     );
   }
@@ -280,6 +304,7 @@ class DriftHealthSyncStore implements HealthSyncStore {
           ? null
           : DateTime.fromMillisecondsSinceEpoch(row.healthSyncedAtMillis!),
       healthSyncSkipped: row.healthSyncSkipped,
+      healthSyncBlocked: row.healthSyncBlocked,
       origin: SleepSessionOrigin.fromStorageValue(row.origin),
     );
   }

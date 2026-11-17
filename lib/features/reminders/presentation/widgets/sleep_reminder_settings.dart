@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../../core/time/clock_format.dart';
 import '../../../../l10n/l10n.dart';
+import '../../../settings/presentation/widgets/settings_action_row.dart';
 import '../../../settings/presentation/widgets/settings_list.dart';
 import '../../../settings/presentation/widgets/settings_toggle_row.dart';
 import '../../application/sleep_reminder_controller.dart';
@@ -53,7 +54,7 @@ class _SleepReminderSettingsState extends ConsumerState<SleepReminderSettings> {
         ),
         if (reminder.enabled) ...[
           const SizedBox(height: 2),
-          _ReminderActionRow(
+          SettingsActionRow(
             showLeading: showLeading,
             leadingIcon: M3EIcons.schedule_outlined,
             headline: l10n.reminderTime,
@@ -63,7 +64,7 @@ class _SleepReminderSettingsState extends ConsumerState<SleepReminderSettings> {
         ],
         if (reminder.enabled && state.systemNotificationsEnabled == false) ...[
           const SizedBox(height: 2),
-          _ReminderActionRow(
+          SettingsActionRow(
             showLeading: showLeading,
             leadingIcon: M3EIcons.notifications_off_outlined,
             headline: l10n.notificationsOff,
@@ -132,85 +133,5 @@ class _SleepReminderSettingsState extends ConsumerState<SleepReminderSettings> {
               : null,
         ),
       );
-  }
-}
-
-/// A tappable reminder row with the same filled surface as the Settings lists.
-///
-/// It allows the headline and supporting text to wrap at large text scales,
-/// which [M3EListItem] cannot do because it clamps the headline to one line.
-class _ReminderActionRow extends StatelessWidget {
-  const _ReminderActionRow({
-    required this.showLeading,
-    required this.leadingIcon,
-    required this.headline,
-    required this.supporting,
-    required this.onTap,
-  });
-
-  final bool showLeading;
-  final IconData leadingIcon;
-  final String headline;
-  final String supporting;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = M3ETheme.of(context);
-    final scheme = theme.colorScheme;
-    final rowStyle = theme.typography.baseline.bodyLarge.copyWith(
-      color: scheme.onSurface,
-    );
-    final supportStyle = theme.typography.baseline.bodyMedium.copyWith(
-      color: scheme.onSurfaceVariant,
-    );
-
-    return Semantics(
-      container: true,
-      excludeSemantics: true,
-      button: true,
-      label: headline,
-      hint: supporting,
-      onTap: onTap,
-      child: Material(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 72),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              child: Row(
-                children: [
-                  if (showLeading) ...[
-                    Icon(leadingIcon, size: 24, color: scheme.onSurfaceVariant),
-                    const SizedBox(width: 16),
-                  ],
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(headline, style: rowStyle),
-                        const SizedBox(height: 2),
-                        Text(supporting, style: supportStyle),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    M3EIcons.chevron_right,
-                    size: 24,
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }

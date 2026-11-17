@@ -76,7 +76,10 @@ class DriftSleepSessionStore implements SleepSessionStore {
   }
 
   @override
-  Future<SleepSession> insertClosedSession(SleepSession session) async {
+  Future<SleepSession> insertClosedSession(
+    SleepSession session, {
+    bool blockHealthSync = false,
+  }) async {
     final endedAt = session.endedAt;
     if (endedAt == null) {
       throw ArgumentError.value(
@@ -93,6 +96,7 @@ class DriftSleepSessionStore implements SleepSessionStore {
             startedAtMillis: session.startedAt.millisecondsSinceEpoch,
             endedAtMillis: Value(endedAt.millisecondsSinceEpoch),
             healthClientRecordId: Value(session.healthClientRecordId),
+            healthSyncBlocked: Value(blockHealthSync),
           ),
         );
     return session.withLocalId(id);

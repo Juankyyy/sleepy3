@@ -47,8 +47,12 @@ abstract interface class SleepSessionStore {
   /// The row is local, so a later upload can still find it as its safety copy.
   /// [SleepSession.healthClientRecordId] is preserved when present: it is what
   /// lets a retry or an edit address the same Health Connect record. The
-  /// session must be closed.
-  Future<SleepSession> insertClosedSession(SleepSession session);
+  /// session must be closed. With [blockHealthSync] the row is restored from a
+  /// backup and only an explicit Add may upload it.
+  Future<SleepSession> insertClosedSession(
+    SleepSession session, {
+    bool blockHealthSync = false,
+  });
 
   /// Updates the times of a local session.
   ///

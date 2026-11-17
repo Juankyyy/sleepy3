@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ cloud backup and device-transfer rules.
+  Sleepy3 stores sessions and preferences in one SQLite database under
+  app_flutter/. The database and its journal files are included explicitly so
+  an auto-backup restore recreates the local history, including sessions that
+  have not been exported to a file.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="root" path="app_flutter/sleepy3.sqlite" />
+        <include domain="root" path="app_flutter/sleepy3.sqlite-wal" />
+        <include domain="root" path="app_flutter/sleepy3.sqlite-shm" />
+        <include domain="root" path="app_flutter/sleepy3.sqlite-journal" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="root" path="app_flutter/sleepy3.sqlite" />
+        <include domain="root" path="app_flutter/sleepy3.sqlite-wal" />
+        <include domain="root" path="app_flutter/sleepy3.sqlite-shm" />
+        <include domain="root" path="app_flutter/sleepy3.sqlite-journal" />
+    </device-transfer>
+</data-extraction-rules>

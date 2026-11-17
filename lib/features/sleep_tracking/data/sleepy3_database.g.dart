@@ -102,6 +102,21 @@ class $SleepSessionsTable extends SleepSessions
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _healthSyncBlockedMeta = const VerificationMeta(
+    'healthSyncBlocked',
+  );
+  @override
+  late final GeneratedColumn<bool> healthSyncBlocked = GeneratedColumn<bool>(
+    'health_sync_blocked',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("health_sync_blocked" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _originMeta = const VerificationMeta('origin');
   @override
   late final GeneratedColumn<String> origin = GeneratedColumn<String>(
@@ -133,6 +148,7 @@ class $SleepSessionsTable extends SleepSessions
     healthRecordVersion,
     healthSyncedAtMillis,
     healthSyncSkipped,
+    healthSyncBlocked,
     origin,
     sourceId,
   ];
@@ -216,6 +232,15 @@ class $SleepSessionsTable extends SleepSessions
         ),
       );
     }
+    if (data.containsKey('health_sync_blocked')) {
+      context.handle(
+        _healthSyncBlockedMeta,
+        healthSyncBlocked.isAcceptableOrUnknown(
+          data['health_sync_blocked']!,
+          _healthSyncBlockedMeta,
+        ),
+      );
+    }
     if (data.containsKey('origin')) {
       context.handle(
         _originMeta,
@@ -269,6 +294,10 @@ class $SleepSessionsTable extends SleepSessions
         DriftSqlType.bool,
         data['${effectivePrefix}health_sync_skipped'],
       )!,
+      healthSyncBlocked: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}health_sync_blocked'],
+      )!,
       origin: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}origin'],
@@ -314,6 +343,10 @@ class SleepSessionRow extends DataClass implements Insertable<SleepSessionRow> {
   /// than the recordable minimum.
   final bool healthSyncSkipped;
 
+  /// Set by a history import. Automatic retries skip blocked rows; only an
+  /// explicit `Add` may upload them.
+  final bool healthSyncBlocked;
+
   /// `local` for sessions started in Sleepy3, `healthConnect` for downloads.
   final String origin;
 
@@ -331,6 +364,7 @@ class SleepSessionRow extends DataClass implements Insertable<SleepSessionRow> {
     required this.healthRecordVersion,
     this.healthSyncedAtMillis,
     required this.healthSyncSkipped,
+    required this.healthSyncBlocked,
     required this.origin,
     this.sourceId,
   });
@@ -353,6 +387,7 @@ class SleepSessionRow extends DataClass implements Insertable<SleepSessionRow> {
       map['health_synced_at_millis'] = Variable<int>(healthSyncedAtMillis);
     }
     map['health_sync_skipped'] = Variable<bool>(healthSyncSkipped);
+    map['health_sync_blocked'] = Variable<bool>(healthSyncBlocked);
     map['origin'] = Variable<String>(origin);
     if (!nullToAbsent || sourceId != null) {
       map['source_id'] = Variable<String>(sourceId);
@@ -378,6 +413,7 @@ class SleepSessionRow extends DataClass implements Insertable<SleepSessionRow> {
           ? const Value.absent()
           : Value(healthSyncedAtMillis),
       healthSyncSkipped: Value(healthSyncSkipped),
+      healthSyncBlocked: Value(healthSyncBlocked),
       origin: Value(origin),
       sourceId: sourceId == null && nullToAbsent
           ? const Value.absent()
@@ -405,6 +441,7 @@ class SleepSessionRow extends DataClass implements Insertable<SleepSessionRow> {
         json['healthSyncedAtMillis'],
       ),
       healthSyncSkipped: serializer.fromJson<bool>(json['healthSyncSkipped']),
+      healthSyncBlocked: serializer.fromJson<bool>(json['healthSyncBlocked']),
       origin: serializer.fromJson<String>(json['origin']),
       sourceId: serializer.fromJson<String?>(json['sourceId']),
     );
@@ -421,6 +458,7 @@ class SleepSessionRow extends DataClass implements Insertable<SleepSessionRow> {
       'healthRecordVersion': serializer.toJson<int>(healthRecordVersion),
       'healthSyncedAtMillis': serializer.toJson<int?>(healthSyncedAtMillis),
       'healthSyncSkipped': serializer.toJson<bool>(healthSyncSkipped),
+      'healthSyncBlocked': serializer.toJson<bool>(healthSyncBlocked),
       'origin': serializer.toJson<String>(origin),
       'sourceId': serializer.toJson<String?>(sourceId),
     };
@@ -435,6 +473,7 @@ class SleepSessionRow extends DataClass implements Insertable<SleepSessionRow> {
     int? healthRecordVersion,
     Value<int?> healthSyncedAtMillis = const Value.absent(),
     bool? healthSyncSkipped,
+    bool? healthSyncBlocked,
     String? origin,
     Value<String?> sourceId = const Value.absent(),
   }) => SleepSessionRow(
@@ -454,6 +493,7 @@ class SleepSessionRow extends DataClass implements Insertable<SleepSessionRow> {
         ? healthSyncedAtMillis.value
         : this.healthSyncedAtMillis,
     healthSyncSkipped: healthSyncSkipped ?? this.healthSyncSkipped,
+    healthSyncBlocked: healthSyncBlocked ?? this.healthSyncBlocked,
     origin: origin ?? this.origin,
     sourceId: sourceId.present ? sourceId.value : this.sourceId,
   );
@@ -481,6 +521,9 @@ class SleepSessionRow extends DataClass implements Insertable<SleepSessionRow> {
       healthSyncSkipped: data.healthSyncSkipped.present
           ? data.healthSyncSkipped.value
           : this.healthSyncSkipped,
+      healthSyncBlocked: data.healthSyncBlocked.present
+          ? data.healthSyncBlocked.value
+          : this.healthSyncBlocked,
       origin: data.origin.present ? data.origin.value : this.origin,
       sourceId: data.sourceId.present ? data.sourceId.value : this.sourceId,
     );
@@ -497,6 +540,7 @@ class SleepSessionRow extends DataClass implements Insertable<SleepSessionRow> {
           ..write('healthRecordVersion: $healthRecordVersion, ')
           ..write('healthSyncedAtMillis: $healthSyncedAtMillis, ')
           ..write('healthSyncSkipped: $healthSyncSkipped, ')
+          ..write('healthSyncBlocked: $healthSyncBlocked, ')
           ..write('origin: $origin, ')
           ..write('sourceId: $sourceId')
           ..write(')'))
@@ -513,6 +557,7 @@ class SleepSessionRow extends DataClass implements Insertable<SleepSessionRow> {
     healthRecordVersion,
     healthSyncedAtMillis,
     healthSyncSkipped,
+    healthSyncBlocked,
     origin,
     sourceId,
   );
@@ -528,6 +573,7 @@ class SleepSessionRow extends DataClass implements Insertable<SleepSessionRow> {
           other.healthRecordVersion == this.healthRecordVersion &&
           other.healthSyncedAtMillis == this.healthSyncedAtMillis &&
           other.healthSyncSkipped == this.healthSyncSkipped &&
+          other.healthSyncBlocked == this.healthSyncBlocked &&
           other.origin == this.origin &&
           other.sourceId == this.sourceId);
 }
@@ -541,6 +587,7 @@ class SleepSessionsCompanion extends UpdateCompanion<SleepSessionRow> {
   final Value<int> healthRecordVersion;
   final Value<int?> healthSyncedAtMillis;
   final Value<bool> healthSyncSkipped;
+  final Value<bool> healthSyncBlocked;
   final Value<String> origin;
   final Value<String?> sourceId;
   const SleepSessionsCompanion({
@@ -552,6 +599,7 @@ class SleepSessionsCompanion extends UpdateCompanion<SleepSessionRow> {
     this.healthRecordVersion = const Value.absent(),
     this.healthSyncedAtMillis = const Value.absent(),
     this.healthSyncSkipped = const Value.absent(),
+    this.healthSyncBlocked = const Value.absent(),
     this.origin = const Value.absent(),
     this.sourceId = const Value.absent(),
   });
@@ -564,6 +612,7 @@ class SleepSessionsCompanion extends UpdateCompanion<SleepSessionRow> {
     this.healthRecordVersion = const Value.absent(),
     this.healthSyncedAtMillis = const Value.absent(),
     this.healthSyncSkipped = const Value.absent(),
+    this.healthSyncBlocked = const Value.absent(),
     this.origin = const Value.absent(),
     this.sourceId = const Value.absent(),
   }) : startedAtMillis = Value(startedAtMillis);
@@ -576,6 +625,7 @@ class SleepSessionsCompanion extends UpdateCompanion<SleepSessionRow> {
     Expression<int>? healthRecordVersion,
     Expression<int>? healthSyncedAtMillis,
     Expression<bool>? healthSyncSkipped,
+    Expression<bool>? healthSyncBlocked,
     Expression<String>? origin,
     Expression<String>? sourceId,
   }) {
@@ -591,6 +641,7 @@ class SleepSessionsCompanion extends UpdateCompanion<SleepSessionRow> {
       if (healthSyncedAtMillis != null)
         'health_synced_at_millis': healthSyncedAtMillis,
       if (healthSyncSkipped != null) 'health_sync_skipped': healthSyncSkipped,
+      if (healthSyncBlocked != null) 'health_sync_blocked': healthSyncBlocked,
       if (origin != null) 'origin': origin,
       if (sourceId != null) 'source_id': sourceId,
     });
@@ -605,6 +656,7 @@ class SleepSessionsCompanion extends UpdateCompanion<SleepSessionRow> {
     Value<int>? healthRecordVersion,
     Value<int?>? healthSyncedAtMillis,
     Value<bool>? healthSyncSkipped,
+    Value<bool>? healthSyncBlocked,
     Value<String>? origin,
     Value<String?>? sourceId,
   }) {
@@ -617,6 +669,7 @@ class SleepSessionsCompanion extends UpdateCompanion<SleepSessionRow> {
       healthRecordVersion: healthRecordVersion ?? this.healthRecordVersion,
       healthSyncedAtMillis: healthSyncedAtMillis ?? this.healthSyncedAtMillis,
       healthSyncSkipped: healthSyncSkipped ?? this.healthSyncSkipped,
+      healthSyncBlocked: healthSyncBlocked ?? this.healthSyncBlocked,
       origin: origin ?? this.origin,
       sourceId: sourceId ?? this.sourceId,
     );
@@ -653,6 +706,9 @@ class SleepSessionsCompanion extends UpdateCompanion<SleepSessionRow> {
     if (healthSyncSkipped.present) {
       map['health_sync_skipped'] = Variable<bool>(healthSyncSkipped.value);
     }
+    if (healthSyncBlocked.present) {
+      map['health_sync_blocked'] = Variable<bool>(healthSyncBlocked.value);
+    }
     if (origin.present) {
       map['origin'] = Variable<String>(origin.value);
     }
@@ -673,6 +729,7 @@ class SleepSessionsCompanion extends UpdateCompanion<SleepSessionRow> {
           ..write('healthRecordVersion: $healthRecordVersion, ')
           ..write('healthSyncedAtMillis: $healthSyncedAtMillis, ')
           ..write('healthSyncSkipped: $healthSyncSkipped, ')
+          ..write('healthSyncBlocked: $healthSyncBlocked, ')
           ..write('origin: $origin, ')
           ..write('sourceId: $sourceId')
           ..write(')'))
@@ -935,6 +992,7 @@ typedef $$SleepSessionsTableCreateCompanionBuilder =
       Value<int> healthRecordVersion,
       Value<int?> healthSyncedAtMillis,
       Value<bool> healthSyncSkipped,
+      Value<bool> healthSyncBlocked,
       Value<String> origin,
       Value<String?> sourceId,
     });
@@ -948,6 +1006,7 @@ typedef $$SleepSessionsTableUpdateCompanionBuilder =
       Value<int> healthRecordVersion,
       Value<int?> healthSyncedAtMillis,
       Value<bool> healthSyncSkipped,
+      Value<bool> healthSyncBlocked,
       Value<String> origin,
       Value<String?> sourceId,
     });
@@ -998,6 +1057,11 @@ class $$SleepSessionsTableFilterComposer
 
   ColumnFilters<bool> get healthSyncSkipped => $composableBuilder(
     column: $table.healthSyncSkipped,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get healthSyncBlocked => $composableBuilder(
+    column: $table.healthSyncBlocked,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1061,6 +1125,11 @@ class $$SleepSessionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get healthSyncBlocked => $composableBuilder(
+    column: $table.healthSyncBlocked,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get origin => $composableBuilder(
     column: $table.origin,
     builder: (column) => ColumnOrderings(column),
@@ -1119,6 +1188,11 @@ class $$SleepSessionsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get healthSyncBlocked => $composableBuilder(
+    column: $table.healthSyncBlocked,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get origin =>
       $composableBuilder(column: $table.origin, builder: (column) => column);
 
@@ -1171,6 +1245,7 @@ class $$SleepSessionsTableTableManager
                 Value<int> healthRecordVersion = const Value.absent(),
                 Value<int?> healthSyncedAtMillis = const Value.absent(),
                 Value<bool> healthSyncSkipped = const Value.absent(),
+                Value<bool> healthSyncBlocked = const Value.absent(),
                 Value<String> origin = const Value.absent(),
                 Value<String?> sourceId = const Value.absent(),
               }) => SleepSessionsCompanion(
@@ -1182,6 +1257,7 @@ class $$SleepSessionsTableTableManager
                 healthRecordVersion: healthRecordVersion,
                 healthSyncedAtMillis: healthSyncedAtMillis,
                 healthSyncSkipped: healthSyncSkipped,
+                healthSyncBlocked: healthSyncBlocked,
                 origin: origin,
                 sourceId: sourceId,
               ),
@@ -1195,6 +1271,7 @@ class $$SleepSessionsTableTableManager
                 Value<int> healthRecordVersion = const Value.absent(),
                 Value<int?> healthSyncedAtMillis = const Value.absent(),
                 Value<bool> healthSyncSkipped = const Value.absent(),
+                Value<bool> healthSyncBlocked = const Value.absent(),
                 Value<String> origin = const Value.absent(),
                 Value<String?> sourceId = const Value.absent(),
               }) => SleepSessionsCompanion.insert(
@@ -1206,6 +1283,7 @@ class $$SleepSessionsTableTableManager
                 healthRecordVersion: healthRecordVersion,
                 healthSyncedAtMillis: healthSyncedAtMillis,
                 healthSyncSkipped: healthSyncSkipped,
+                healthSyncBlocked: healthSyncBlocked,
                 origin: origin,
                 sourceId: sourceId,
               ),

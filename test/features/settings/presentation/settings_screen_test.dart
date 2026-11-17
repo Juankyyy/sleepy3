@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ui' show Tristate;
 
 import 'package:flutter/rendering.dart';
@@ -7,6 +8,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
+import 'package:sleepy3/features/backup/application/backup_providers.dart';
+import 'package:sleepy3/features/backup/domain/sleep_history_file.dart';
 import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
 import 'package:sleepy3/features/health/application/health_sync_controller.dart';
 import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
@@ -23,15 +26,18 @@ import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/settings/domain/app_version.dart';
 import 'package:sleepy3/features/settings/presentation/settings_screen.dart';
+import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_providers.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleeping_notification_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleeping_notification_enabled_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
+import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
 import 'package:sleepy3/features/stats/application/stats_summary_controller.dart';
 import 'package:sleepy3/features/stats/domain/stats_summary_option.dart';
 import 'package:sleepy3/features/stats/presentation/stats_summary_picker.dart';
 import 'package:sleepy3/l10n/l10n.dart';
 
+import '../../backup/fakes.dart';
 import '../../health/fakes.dart';
 import '../../reminders/fakes.dart';
 import '../fakes.dart';
@@ -62,6 +68,8 @@ void main() {
     FakeSleepReminderScheduler? reminderScheduler,
     bool sleepingNotificationEnabled = true,
     FakeSleepingNotificationPresenter? sleepingNotificationPresenter,
+    FakeSleepHistoryFileGateway? historyFileGateway,
+    FakeSleepSessionStore? sleepStore,
     double textScale = 1,
     Size size = const Size(360, 800),
   }) async {
@@ -100,7 +108,12 @@ void main() {
           healthSyncStoreProvider.overrideWithValue(
             healthSyncStore ?? FakeHealthSyncStore(),
           ),
-          sleepSessionStoreProvider.overrideWithValue(FakeSleepSessionStore()),
+          sleepSessionStoreProvider.overrideWithValue(
+            sleepStore ?? FakeSleepSessionStore(),
+          ),
+          sleepHistoryFileGatewayProvider.overrideWithValue(
+            historyFileGateway ?? FakeSleepHistoryFileGateway(),
+          ),
           sleepClockProvider.overrideWithValue(
             () => DateTime(2026, 10, 21, 6, 20),
           ),
@@ -218,7 +231,7 @@ void main() {
     expect(title.style?.fontFamily, Sleepy3Theme.brandFontFamily);
     expect(title.style?.fontVariations!.single.value, 28);
     expect(
-      find.text('Theme, stats, reminders, sleep data and app info.'),
+      find.text('Theme, stats, reminders, sleep data, backup and app info.'),
       findsOneWidget,
     );
     expect(find.text('Appearance'), findsOneWidget);
@@ -1292,6 +1305,9 @@ void main() {
       'Fuente',
       'Local',
       'Importar',
+      'Datos',
+      'Exportar historial',
+      'Importar historial',
       'Google Health',
       'Estado',
       'Sincronizar',
@@ -1406,6 +1422,9 @@ void main() {
       'Source',
       'Local',
       'Import',
+      'Data',
+      'Export history',
+      'Import history',
       'Google Health',
       'Status',
       'Sync',
@@ -1434,5 +1453,393 @@ void main() {
       );
     }
     expect(tester.takeException(), isNull);
+  });
+
+  SleepHistoryFile historyFile(
+    Iterable<SleepHistoryEntry> sessions, {
+    int invalid = 0,
+  }) {
+    final ordered = [...sessions]
+      ..sort((a, b) => a.startedAt.compareTo(b.startedAt));
+    return SleepHistoryFile(
+      exportedAt: DateTime(2026, 10, 21, 6, 20),
+      sessions: List.unmodifiable(ordered),
+      invalidEntries: invalid,
+    );
+  }
+
+  SleepHistoryEntry entry(DateTime startedAt, DateTime endedAt) {
+    return SleepHistoryEntry(startedAt: startedAt, endedAt: endedAt);
+  }
+
+  testWidgets('shows the Data section with export and import rows', (
+    tester,
+  ) async {
+    await pumpSettings(tester);
+
+    await scrollToLabel(tester, 'Data');
+    expect(find.text('Data'), findsOneWidget);
+    expect(find.text('Export history'), findsOneWidget);
+    expect(
+      find.text('Save the history shown in Stats to a file.'),
+      findsOneWidget,
+    );
+    expect(find.text('Import history'), findsOneWidget);
+    expect(
+      find.text('Restore sleep history from a Sleepy3 file.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('announces the Data rows with their support text', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    try {
+      await pumpSettings(tester);
+      await scrollToLabel(tester, 'Export history');
+
+      expect(find.bySemanticsLabel('Export history'), findsOneWidget);
+      expect(find.bySemanticsLabel('Import history'), findsOneWidget);
+      final node = tester.getSemantics(find.bySemanticsLabel('Export history'));
+      expect(
+        node.getSemanticsData().hint,
+        'Save the history shown in Stats to a file.',
+      );
+    } finally {
+      handle.dispose();
+    }
+  });
+
+  testWidgets('exports the local history to a JSON file', (tester) async {
+    final gateway = FakeSleepHistoryFileGateway();
+    final sleepStore = FakeSleepSessionStore(
+      snapshot: SleepSnapshot(
+        closedSessions: [
+          SleepSession(
+            startedAt: DateTime(2026, 10, 18, 22),
+            endedAt: DateTime(2026, 10, 19, 6),
+            localId: 1,
+          ),
+          SleepSession(
+            startedAt: DateTime(2026, 10, 20, 22),
+            endedAt: DateTime(2026, 10, 21, 6),
+            localId: 2,
+          ),
+        ],
+      ),
+    );
+
+    await pumpSettings(
+      tester,
+      historyFileGateway: gateway,
+      sleepStore: sleepStore,
+    );
+    await tapLabel(tester, 'Export history');
+
+    expect(gateway.saveCalls, 1);
+    expect(gateway.savedFileName, 'sleepy3-history-2026-10-21.json');
+    expect(gateway.savedDialogTitle, 'Export sleep history');
+    final file = SleepHistoryFile.decode(gateway.savedContents!);
+    expect(file.sessions, hasLength(2));
+    expect(file.sessions.first.startedAt, DateTime(2026, 10, 18, 22));
+    expect(find.text('2 sessions exported'), findsOneWidget);
+  });
+
+  testWidgets(
+    'exports the Google Health history when the local copy is empty',
+    (tester) async {
+      final gateway = FakeHealthConnectGateway(
+        sessions: [
+          HealthSleepSession(
+            uuid: 'record-1',
+            startedAt: DateTime(2026, 10, 20, 22),
+            endedAt: DateTime(2026, 10, 21, 6),
+            sourceId: 'com.sleepy3.app',
+            sourceName: 'Sleepy3',
+          ),
+          HealthSleepSession(
+            uuid: 'record-2',
+            startedAt: DateTime(2026, 10, 19, 22),
+            endedAt: DateTime(2026, 10, 20, 6),
+            sourceId: 'com.sec.android.app.shealth',
+            sourceName: 'Samsung Health',
+          ),
+        ],
+      );
+      final historyGateway = FakeSleepHistoryFileGateway();
+
+      await pumpSettings(
+        tester,
+        source: SleepDataSource.healthConnect,
+        gateway: gateway,
+        historyFileGateway: historyGateway,
+      );
+      await tapLabel(tester, 'Export history');
+
+      expect(historyGateway.saveCalls, 1);
+      final file = SleepHistoryFile.decode(historyGateway.savedContents!);
+      expect(file.sessions, hasLength(2));
+      expect(file.sessions.every((entry) => entry.isDownloaded), isTrue);
+      expect(file.sessions.last.healthRecordId, 'record-1');
+      expect(file.sessions.last.sourceId, 'com.sleepy3.app');
+      expect(find.text('2 sessions exported'), findsOneWidget);
+    },
+  );
+
+  testWidgets('an empty history is not exported', (tester) async {
+    final gateway = FakeSleepHistoryFileGateway();
+
+    await pumpSettings(tester, historyFileGateway: gateway);
+    await tapLabel(tester, 'Export history');
+
+    expect(gateway.saveCalls, 0);
+    expect(find.text('There is no sleep history to export.'), findsOneWidget);
+  });
+
+  testWidgets('cancelling the save dialog leaves no message', (tester) async {
+    final gateway = FakeSleepHistoryFileGateway(saveResult: false);
+    final sleepStore = FakeSleepSessionStore(
+      snapshot: SleepSnapshot(
+        closedSessions: [
+          SleepSession(
+            startedAt: DateTime(2026, 10, 20, 22),
+            endedAt: DateTime(2026, 10, 21, 6),
+            localId: 1,
+          ),
+        ],
+      ),
+    );
+
+    await pumpSettings(
+      tester,
+      historyFileGateway: gateway,
+      sleepStore: sleepStore,
+    );
+    await tapLabel(tester, 'Export history');
+
+    expect(gateway.saveCalls, 1);
+    expect(find.textContaining('exported'), findsNothing);
+  });
+
+  testWidgets('an export failure shows a message', (tester) async {
+    final gateway = FakeSleepHistoryFileGateway(
+      saveError: StateError('save failed'),
+    );
+    final sleepStore = FakeSleepSessionStore(
+      snapshot: SleepSnapshot(
+        closedSessions: [
+          SleepSession(
+            startedAt: DateTime(2026, 10, 20, 22),
+            endedAt: DateTime(2026, 10, 21, 6),
+            localId: 1,
+          ),
+        ],
+      ),
+    );
+
+    await pumpSettings(
+      tester,
+      historyFileGateway: gateway,
+      sleepStore: sleepStore,
+    );
+    await tapLabel(tester, 'Export history');
+
+    expect(
+      find.text("Couldn't export your sleep history. Try again."),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('previews and imports a history file', (tester) async {
+    final existing = SleepSession(
+      startedAt: DateTime(2026, 10, 18, 22),
+      endedAt: DateTime(2026, 10, 19, 6),
+      localId: 1,
+    );
+    final newSession = SleepSession(
+      startedAt: DateTime(2026, 10, 20, 22),
+      endedAt: DateTime(2026, 10, 21, 6),
+    );
+    final file = jsonEncode({
+      'format': sleepHistoryFileFormat,
+      'version': 1,
+      'exportedAt': '2026-10-21T06:20:00.000Z',
+      'sessions': [
+        {
+          'startedAtMillis': existing.startedAt.millisecondsSinceEpoch,
+          'endedAtMillis': existing.endedAt!.millisecondsSinceEpoch,
+        },
+        {
+          'startedAtMillis': newSession.startedAt.millisecondsSinceEpoch,
+          'endedAtMillis': newSession.endedAt!.millisecondsSinceEpoch,
+        },
+        // Zero-length during an import: valid JSON, unimportable entry.
+        {
+          'startedAtMillis': newSession.startedAt.millisecondsSinceEpoch,
+          'endedAtMillis': newSession.startedAt.millisecondsSinceEpoch,
+        },
+      ],
+    });
+    final gateway = FakeSleepHistoryFileGateway(pickContents: file);
+    final sleepStore = FakeSleepSessionStore(
+      snapshot: SleepSnapshot(closedSessions: [existing]),
+    );
+
+    await pumpSettings(
+      tester,
+      historyFileGateway: gateway,
+      sleepStore: sleepStore,
+    );
+    await tapLabel(tester, 'Import history');
+
+    expect(gateway.pickCalls, 1);
+    expect(find.text('Import history?'), findsOneWidget);
+    expect(
+      find.textContaining('This file contains 2 sessions'),
+      findsOneWidget,
+    );
+    expect(find.text('1 new session will be added.'), findsOneWidget);
+    expect(
+      find.text('1 session is already in your history and will be skipped.'),
+      findsOneWidget,
+    );
+    expect(find.text('Imported sessions are stored locally.'), findsOneWidget);
+    expect(
+      find.text('Use Add in Google Health to send them later.'),
+      findsOneWidget,
+    );
+    expect(
+      find.text('Sessions from Google Health stay read-only.'),
+      findsNothing,
+    );
+    expect(
+      find.text("1 session in the file can't be imported."),
+      findsOneWidget,
+    );
+
+    await tapDialogLabel(tester, 'Import');
+
+    expect(find.text('Import complete'), findsOneWidget);
+    expect(find.text('1 session added · 2 sessions skipped'), findsOneWidget);
+    expect(sleepStore.inserted, hasLength(1));
+    expect(sleepStore.inserted.single.startedAt, newSession.startedAt);
+
+    await tapDialogLabel(tester, 'Close');
+    expect(find.text('Import complete'), findsNothing);
+  });
+
+  testWidgets('a downloaded-only import explains read-only copies', (
+    tester,
+  ) async {
+    final file = historyFile([
+      SleepHistoryEntry(
+        startedAt: DateTime(2026, 10, 20, 22),
+        endedAt: DateTime(2026, 10, 21, 6),
+        isDownloaded: true,
+        healthRecordId: 'record-1',
+        sourceId: 'com.sec.android.app.shealth',
+      ),
+    ]);
+    final gateway = FakeSleepHistoryFileGateway(pickContents: file.encode());
+
+    await pumpSettings(tester, historyFileGateway: gateway);
+    await tapLabel(tester, 'Import history');
+
+    expect(find.text('Imported sessions are stored locally.'), findsOneWidget);
+    expect(
+      find.text('Use Add in Google Health to send them later.'),
+      findsNothing,
+    );
+    expect(
+      find.text('Sessions from Google Health stay read-only.'),
+      findsOneWidget,
+    );
+
+    await tapDialogLabel(tester, 'Cancel');
+  });
+
+  testWidgets('a duplicate-only file offers nothing new', (tester) async {
+    final existing = SleepSession(
+      startedAt: DateTime(2026, 10, 20, 22),
+      endedAt: DateTime(2026, 10, 21, 6),
+      localId: 1,
+    );
+    final gateway = FakeSleepHistoryFileGateway(
+      pickContents: historyFile([entry(existing.startedAt, existing.endedAt!)])
+          .encode(),
+    );
+
+    await pumpSettings(
+      tester,
+      historyFileGateway: gateway,
+      sleepStore: FakeSleepSessionStore(
+        snapshot: SleepSnapshot(closedSessions: [existing]),
+      ),
+    );
+    await tapLabel(tester, 'Import history');
+
+    expect(find.text('Nothing new to import.'), findsOneWidget);
+    final importButton = tester.widget<M3EButton>(
+      find.descendant(
+        of: find.byType(M3EDialog),
+        matching: find.widgetWithText(M3EButton, 'Import'),
+      ),
+    );
+    expect(importButton.onPressed, isNull);
+
+    await tapDialogLabel(tester, 'Cancel');
+  });
+
+  testWidgets('an invalid file explains what to choose', (tester) async {
+    final gateway = FakeSleepHistoryFileGateway(
+      pickContents: '{"format":"other","version":1,"sessions":[]}',
+    );
+
+    await pumpSettings(tester, historyFileGateway: gateway);
+    await tapLabel(tester, 'Import history');
+
+    expect(find.text("Couldn't import this file"), findsOneWidget);
+    expect(
+      find.text('Choose a Sleepy3 sleep history file (.json).'),
+      findsOneWidget,
+    );
+
+    await tapDialogLabel(tester, 'Close');
+  });
+
+  testWidgets('a newer file asks to update the app', (tester) async {
+    final gateway = FakeSleepHistoryFileGateway(
+      pickContents:
+          '{"format":"$sleepHistoryFileFormat","version":2,'
+          '"sessions":[]}',
+    );
+
+    await pumpSettings(tester, historyFileGateway: gateway);
+    await tapLabel(tester, 'Import history');
+
+    expect(
+      find.text(
+        'This file was created by a newer version of Sleepy3. '
+        'Update the app and try again.',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('a file without sessions is not imported', (tester) async {
+    final gateway = FakeSleepHistoryFileGateway(
+      pickContents:
+          '{"format":"$sleepHistoryFileFormat","version":1,'
+          '"sessions":[]}',
+    );
+
+    await pumpSettings(tester, historyFileGateway: gateway);
+    await tapLabel(tester, 'Import history');
+
+    expect(
+      find.text('This file has no sleep sessions to import.'),
+      findsOneWidget,
+    );
   });
 }

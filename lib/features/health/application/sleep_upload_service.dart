@@ -249,9 +249,13 @@ class SleepUploadService {
     StoredSleepSession? stored,
   ) async {
     try {
-      // A row that is already synced, skipped or downloaded from Health
-      // Connect is not uploaded again.
-      if (stored != null && !stored.isPendingUpload) {
+      // A row that is already synced, skipped, downloaded from Health Connect
+      // or blocked by an import is not uploaded again by an automatic retry.
+      // The explicit Add action passes a blocked row here, which is the only
+      // path allowed to upload it.
+      if (stored != null &&
+          !stored.isPendingUpload &&
+          !stored.isBlockedUpload) {
         return const SleepUploadResult(SleepUploadStatus.skipped);
       }
 

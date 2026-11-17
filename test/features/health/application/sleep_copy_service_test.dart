@@ -181,6 +181,35 @@ void main() {
       expect(gateway.permissionRequestCalls, 0);
     });
 
+    test('add all uploads imported blocked sessions', () async {
+      create();
+      final imported = store.addLocal(
+        session(olderStart, olderEnd),
+        blocked: true,
+      );
+      final pending = store.addLocal(session(newerStart, newerEnd));
+
+      final result = await service.uploadAllPreviousSessions();
+
+      expect(result.total, 2);
+      expect(result.added, 2);
+      expect(gateway.writes, hasLength(2));
+      expect(store.markedUploaded, containsAll([imported.id, pending.id]));
+      expect(store.rows.every((row) => !row.healthSyncBlocked), isTrue);
+      expect(store.rows.every((row) => row.healthSyncedAt == now), isTrue);
+    });
+
+    test('sync last ignores imported blocked sessions', () async {
+      create();
+      store.addLocal(session(olderStart, olderEnd), blocked: true);
+
+      final result = await service.syncLastSession();
+
+      expect(result.total, 0);
+      expect(gateway.writes, isEmpty);
+      expect(gateway.permissionRequestCalls, 0);
+    });
+
     test('add all keeps going after a partial failure', () async {
       create();
       store.addLocal(session(olderStart, olderEnd));

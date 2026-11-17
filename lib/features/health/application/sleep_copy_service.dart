@@ -105,28 +105,40 @@ class SleepCopyService {
   }
 
   /// Uploads every pending local session, oldest first.
+  ///
+  /// Imported rows are included even though the automatic retry skips them:
+  /// this action is the explicit approval the import waits for. Rows the user
+  /// already added before are skipped by the upload service.
   Future<CopyResult> uploadAllPreviousSessions() async {
     List<StoredSleepSession> pending;
+    List<StoredSleepSession> blocked;
     try {
       pending = await _store.loadPendingUploads();
+      blocked = await _store.loadBlockedUploads();
     } catch (error, stackTrace) {
       debugPrint(
-        'Sleepy3: could not load the pending sessions: $error\n$stackTrace',
+        'Sleepy3: could not load the pending sessions: '
+        '$error\n$stackTrace',
       );
       return CopyResult(failure: SleepCopyFailure.failed, error: error);
     }
 
-    if (pending.isEmpty) return const CopyResult();
+    final sessions = <StoredSleepSession>[...blocked, ...pending]
+      ..sort((a, b) {
+        final byStart = a.session.startedAt.compareTo(b.session.startedAt);
+        return byStart != 0 ? byStart : a.id.compareTo(b.id);
+      });
+    if (sessions.isEmpty) return const CopyResult();
 
-    final blocked = await _ensurePermissions(write: true);
-    if (blocked != null) return blocked;
+    final blockedResult = await _ensurePermissions(write: true);
+    if (blockedResult != null) return blockedResult;
 
     var added = 0;
     var skipped = 0;
     var failed = 0;
     Object? lastError;
 
-    for (final stored in pending) {
+    for (final stored in sessions) {
       final result = await _upload.uploadStored(stored);
       switch (result.status) {
         case SleepUploadStatus.uploaded:
@@ -143,7 +155,7 @@ class SleepCopyService {
       added: added,
       skipped: skipped,
       failed: failed,
-      total: pending.length,
+      total: sessions.length,
       error: lastError,
     );
   }

@@ -13,7 +13,7 @@
   "navSettings": "Ajustes",
   "mainNavigation": "Navegación principal",
   "settingsTitle": "Ajustes",
-  "settingsSupport": "Tema, estadísticas, recordatorios, datos de sueño e información de la app.",
+  "settingsSupport": "Tema, estadísticas, recordatorios, datos de sueño, copia de seguridad e información de la app.",
   "appearance": "Apariencia",
   "reminders": "Recordatorios",
   "sleepReminder": "Aviso de sueño",
@@ -58,6 +58,11 @@
   "sleepStatusNotificationOff": "Desactivado",
   "sleepStatusNotificationPermissionNeeded": "Permite las notificaciones para mostrar el estado del sueño.",
   "sleepData": "Datos de sueño",
+  "data": "Datos",
+  "exportHistory": "Exportar historial",
+  "exportHistorySupport": "Guarda el historial que ves en Stats en un archivo.",
+  "importHistory": "Importar historial",
+  "importHistorySupport": "Restaura el historial de sueño desde un archivo de Sleepy3.",
   "googleHealth": "Google Health",
   "about": "Acerca de",
   "theme": "Tema",
@@ -919,6 +924,94 @@
       },
       "to": {
         "type": "String"
+      }
+    }
+  },
+  "historyExportDialogTitle": "Exportar historial de sueño",
+  "historyImportDialogTitle": "Importar historial de sueño",
+  "historyExportEmpty": "No hay historial de sueño para exportar.",
+  "historyExportFailed": "No se pudo exportar el historial de sueño. Inténtalo de nuevo.",
+  "historyExported": "{count, plural, =1{1 sesión exportada} other{{count} sesiones exportadas}}",
+  "@historyExported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyImportPreviewTitle": "¿Importar historial?",
+  "historyImportSummary": "Este archivo contiene {count, plural, =1{1 sesión} other{{count} sesiones}} desde {first} hasta {last}.",
+  "@historyImportSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "first": {
+        "type": "String"
+      },
+      "last": {
+        "type": "String"
+      }
+    }
+  },
+  "historyImportNew": "{count, plural, =1{Se añadirá 1 sesión nueva.} other{Se añadirán {count} sesiones nuevas.}}",
+  "@historyImportNew": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyImportDuplicates": "{count, plural, =1{1 sesión ya está en tu historial y se omitirá.} other{{count} sesiones ya están en tu historial y se omitirán.}}",
+  "@historyImportDuplicates": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyImportInvalid": "{count, plural, =1{No se puede importar 1 sesión del archivo.} other{No se pueden importar {count} sesiones del archivo.}}",
+  "@historyImportInvalid": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyImportNothingNew": "No hay nada nuevo que importar.",
+  "historyImportStaysLocal": "Las sesiones importadas se guardan en este dispositivo.",
+  "historyImportAddLater": "Usa Añadir en Google Health para enviarlas más adelante.",
+  "historyImportReadOnlyCopies": "Las sesiones de Google Health se importan como copias de solo lectura.",
+  "historyImporting": "Importando historial",
+  "historyImportCouldNotRead": "No se pudo importar este archivo",
+  "historyImportInvalidFile": "Elige un archivo de historial de sueño de Sleepy3 (.json).",
+  "historyImportNewerVersion": "Este archivo lo creó una versión más reciente de Sleepy3. Actualiza la app e inténtalo de nuevo.",
+  "historyImportNoSessions": "Este archivo no tiene sesiones de sueño para importar.",
+  "historyImportFailedTitle": "No se pudo importar el historial",
+  "historyImportFailed": "Algo falló al leer el archivo. Inténtalo de nuevo.",
+  "historyImportSomeFailed": "Algunas sesiones no se importaron",
+  "historyImportComplete": "Importación completa",
+  "historyImportAdded": "{count, plural, =1{1 sesión añadida} other{{count} sesiones añadidas}}",
+  "@historyImportAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyImportSkipped": "{count, plural, =1{1 sesión omitida} other{{count} sesiones omitidas}}",
+  "@historyImportSkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyImportFailedCount": "{count, plural, =1{1 sesión fallida} other{{count} sesiones fallidas}}",
+  "@historyImportFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
       }
     }
   },

@@ -179,7 +179,7 @@ abstract class AppLocalizations {
   /// No description provided for @settingsSupport.
   ///
   /// In en, this message translates to:
-  /// **'Theme, stats, reminders, sleep data and app info.'**
+  /// **'Theme, stats, reminders, sleep data, backup and app info.'**
   String get settingsSupport;
 
   /// No description provided for @appearance.
@@ -331,6 +331,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sleep data'**
   String get sleepData;
+
+  /// No description provided for @data.
+  ///
+  /// In en, this message translates to:
+  /// **'Data'**
+  String get data;
+
+  /// No description provided for @exportHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Export history'**
+  String get exportHistory;
+
+  /// No description provided for @exportHistorySupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Save the history shown in Stats to a file.'**
+  String get exportHistorySupport;
+
+  /// No description provided for @importHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Import history'**
+  String get importHistory;
+
+  /// No description provided for @importHistorySupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore sleep history from a Sleepy3 file.'**
+  String get importHistorySupport;
 
   /// No description provided for @googleHealth.
   ///
@@ -2107,6 +2137,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{from} to {to}'**
   String timeRangeSpoken(String from, String to);
+
+  /// No description provided for @historyExportDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Export sleep history'**
+  String get historyExportDialogTitle;
+
+  /// No description provided for @historyImportDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import sleep history'**
+  String get historyImportDialogTitle;
+
+  /// No description provided for @historyExportEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'There is no sleep history to export.'**
+  String get historyExportEmpty;
+
+  /// No description provided for @historyExportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t export your sleep history. Try again.'**
+  String get historyExportFailed;
+
+  /// No description provided for @historyExported.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 session exported} other{{count} sessions exported}}'**
+  String historyExported(int count);
+
+  /// No description provided for @historyImportPreviewTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import history?'**
+  String get historyImportPreviewTitle;
+
+  /// No description provided for @historyImportSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'This file contains {count, plural, =1{1 session} other{{count} sessions}} from {first} to {last}.'**
+  String historyImportSummary(int count, String first, String last);
+
+  /// No description provided for @historyImportNew.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 new session will be added.} other{{count} new sessions will be added.}}'**
+  String historyImportNew(int count);
+
+  /// No description provided for @historyImportDuplicates.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 session is already in your history and will be skipped.} other{{count} sessions are already in your history and will be skipped.}}'**
+  String historyImportDuplicates(int count);
+
+  /// No description provided for @historyImportInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 session in the file can\'t be imported.} other{{count} sessions in the file can\'t be imported.}}'**
+  String historyImportInvalid(int count);
+
+  /// No description provided for @historyImportNothingNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing new to import.'**
+  String get historyImportNothingNew;
+
+  /// No description provided for @historyImportStaysLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported sessions are stored locally.'**
+  String get historyImportStaysLocal;
+
+  /// No description provided for @historyImportAddLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Add in Google Health to send them later.'**
+  String get historyImportAddLater;
+
+  /// No description provided for @historyImportReadOnlyCopies.
+  ///
+  /// In en, this message translates to:
+  /// **'Sessions from Google Health stay read-only.'**
+  String get historyImportReadOnlyCopies;
+
+  /// No description provided for @historyImporting.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing history'**
+  String get historyImporting;
+
+  /// No description provided for @historyImportCouldNotRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t import this file'**
+  String get historyImportCouldNotRead;
+
+  /// No description provided for @historyImportInvalidFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a Sleepy3 sleep history file (.json).'**
+  String get historyImportInvalidFile;
+
+  /// No description provided for @historyImportNewerVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'This file was created by a newer version of Sleepy3. Update the app and try again.'**
+  String get historyImportNewerVersion;
+
+  /// No description provided for @historyImportNoSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'This file has no sleep sessions to import.'**
+  String get historyImportNoSessions;
+
+  /// No description provided for @historyImportFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t import your history'**
+  String get historyImportFailedTitle;
+
+  /// No description provided for @historyImportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong while reading the file. Try again.'**
+  String get historyImportFailed;
+
+  /// No description provided for @historyImportSomeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Some sessions weren\'t imported'**
+  String get historyImportSomeFailed;
+
+  /// No description provided for @historyImportComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Import complete'**
+  String get historyImportComplete;
+
+  /// No description provided for @historyImportAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 session added} other{{count} sessions added}}'**
+  String historyImportAdded(int count);
+
+  /// No description provided for @historyImportSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 session skipped} other{{count} sessions skipped}}'**
+  String historyImportSkipped(int count);
+
+  /// No description provided for @historyImportFailedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 session failed} other{{count} sessions failed}}'**
+  String historyImportFailedCount(int count);
 
   /// No description provided for @durationMinutes.
   ///

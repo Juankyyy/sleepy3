@@ -13,7 +13,7 @@
   "navSettings": "Settings",
   "mainNavigation": "Main navigation",
   "settingsTitle": "Settings",
-  "settingsSupport": "Theme, stats, reminders, sleep data and app info.",
+  "settingsSupport": "Theme, stats, reminders, sleep data, backup and app info.",
   "appearance": "Appearance",
   "reminders": "Reminders",
   "sleepReminder": "Sleep reminder",
@@ -58,6 +58,11 @@
   "sleepStatusNotificationOff": "Off",
   "sleepStatusNotificationPermissionNeeded": "Allow notifications to show your sleep status.",
   "sleepData": "Sleep data",
+  "data": "Data",
+  "exportHistory": "Export history",
+  "exportHistorySupport": "Save the history shown in Stats to a file.",
+  "importHistory": "Import history",
+  "importHistorySupport": "Restore sleep history from a Sleepy3 file.",
   "googleHealth": "Google Health",
   "about": "About",
   "theme": "Theme",
@@ -934,6 +939,94 @@
       },
       "to": {
         "type": "String"
+      }
+    }
+  },
+  "historyExportDialogTitle": "Export sleep history",
+  "historyImportDialogTitle": "Import sleep history",
+  "historyExportEmpty": "There is no sleep history to export.",
+  "historyExportFailed": "Couldn't export your sleep history. Try again.",
+  "historyExported": "{count, plural, =1{1 session exported} other{{count} sessions exported}}",
+  "@historyExported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyImportPreviewTitle": "Import history?",
+  "historyImportSummary": "This file contains {count, plural, =1{1 session} other{{count} sessions}} from {first} to {last}.",
+  "@historyImportSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "first": {
+        "type": "String"
+      },
+      "last": {
+        "type": "String"
+      }
+    }
+  },
+  "historyImportNew": "{count, plural, =1{1 new session will be added.} other{{count} new sessions will be added.}}",
+  "@historyImportNew": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyImportDuplicates": "{count, plural, =1{1 session is already in your history and will be skipped.} other{{count} sessions are already in your history and will be skipped.}}",
+  "@historyImportDuplicates": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyImportInvalid": "{count, plural, =1{1 session in the file can't be imported.} other{{count} sessions in the file can't be imported.}}",
+  "@historyImportInvalid": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyImportNothingNew": "Nothing new to import.",
+  "historyImportStaysLocal": "Imported sessions are stored locally.",
+  "historyImportAddLater": "Use Add in Google Health to send them later.",
+  "historyImportReadOnlyCopies": "Sessions from Google Health stay read-only.",
+  "historyImporting": "Importing history",
+  "historyImportCouldNotRead": "Couldn't import this file",
+  "historyImportInvalidFile": "Choose a Sleepy3 sleep history file (.json).",
+  "historyImportNewerVersion": "This file was created by a newer version of Sleepy3. Update the app and try again.",
+  "historyImportNoSessions": "This file has no sleep sessions to import.",
+  "historyImportFailedTitle": "Couldn't import your history",
+  "historyImportFailed": "Something went wrong while reading the file. Try again.",
+  "historyImportSomeFailed": "Some sessions weren't imported",
+  "historyImportComplete": "Import complete",
+  "historyImportAdded": "{count, plural, =1{1 session added} other{{count} sessions added}}",
+  "@historyImportAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyImportSkipped": "{count, plural, =1{1 session skipped} other{{count} sessions skipped}}",
+  "@historyImportSkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "historyImportFailedCount": "{count, plural, =1{1 session failed} other{{count} sessions failed}}",
+  "@historyImportFailedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
       }
     }
   },

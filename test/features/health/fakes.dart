@@ -424,6 +424,7 @@ class FakeHealthSyncStore implements HealthSyncStore {
     bool synced = false,
     DateTime? syncedAt,
     bool skipped = false,
+    bool blocked = false,
     String? healthRecordId,
     String? healthClientRecordId,
     int healthRecordVersion = 0,
@@ -438,6 +439,7 @@ class FakeHealthSyncStore implements HealthSyncStore {
       healthRecordVersion: healthRecordVersion,
       healthSyncedAt: synced ? (syncedAt ?? DateTime(2026, 10, 21, 7)) : null,
       healthSyncSkipped: skipped,
+      healthSyncBlocked: blocked,
     );
     rows.add(row);
     if (rowId >= _nextId) _nextId = rowId + 1;
@@ -469,6 +471,17 @@ class FakeHealthSyncStore implements HealthSyncStore {
         return byStart != 0 ? byStart : a.id.compareTo(b.id);
       });
     return pending;
+  }
+
+  @override
+  Future<List<StoredSleepSession>> loadBlockedUploads() async {
+    _throwIfFailed();
+    final blocked = rows.where((row) => row.isBlockedUpload).toList()
+      ..sort((a, b) {
+        final byStart = a.session.startedAt.compareTo(b.session.startedAt);
+        return byStart != 0 ? byStart : a.id.compareTo(b.id);
+      });
+    return blocked;
   }
 
   @override
@@ -509,6 +522,7 @@ class FakeHealthSyncStore implements HealthSyncStore {
         healthRecordVersion: version,
         healthSyncedAt: row.healthSyncedAt,
         healthSyncSkipped: row.healthSyncSkipped,
+        healthSyncBlocked: row.healthSyncBlocked,
         origin: row.origin,
       ),
     );
@@ -533,6 +547,7 @@ class FakeHealthSyncStore implements HealthSyncStore {
         healthRecordVersion: version,
         healthSyncedAt: syncedAt,
         healthSyncSkipped: false,
+        healthSyncBlocked: false,
         origin: row.origin,
       ),
     );
@@ -551,6 +566,7 @@ class FakeHealthSyncStore implements HealthSyncStore {
         healthRecordVersion: row.healthRecordVersion,
         healthSyncedAt: null,
         healthSyncSkipped: false,
+        healthSyncBlocked: row.healthSyncBlocked,
         origin: row.origin,
       ),
     );
@@ -569,6 +585,7 @@ class FakeHealthSyncStore implements HealthSyncStore {
         healthRecordVersion: row.healthRecordVersion,
         healthSyncedAt: row.healthSyncedAt,
         healthSyncSkipped: true,
+        healthSyncBlocked: row.healthSyncBlocked,
         origin: row.origin,
       ),
     );
@@ -664,6 +681,7 @@ class FakeHealthSyncStore implements HealthSyncStore {
       healthRecordVersion: row.healthRecordVersion,
       healthSyncedAt: row.healthSyncedAt,
       healthSyncSkipped: row.healthSyncSkipped,
+      healthSyncBlocked: false,
       origin: row.origin,
     );
     return true;
@@ -690,6 +708,7 @@ class FakeHealthSyncStore implements HealthSyncStore {
       healthRecordVersion: row.healthRecordVersion,
       healthSyncedAt: row.healthSyncedAt,
       healthSyncSkipped: row.healthSyncSkipped,
+      healthSyncBlocked: row.healthSyncBlocked,
       origin: row.origin,
     );
     return true;

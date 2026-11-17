@@ -21,14 +21,15 @@ local session history, and Health Connect as an optional data source.
   charts and insights), pull-to-refresh, goal marks and their animation, the session
   panel, manual session entry from the Stats FAB, session editing/deleting and
   read-only details for other apps' records, Settings (theme, 12/24-hour time, English /
-  Español language and the optional nightly reminder), the silent ongoing sleep-status
+  Español language and the optional nightly reminder), the `Data` section that exports and
+  imports the local history, the silent ongoing sleep-status
   notification with a live timer and goal time, Health Connect (Local/Google
   Health, pending uploads, copy actions,
   full history access and per-build record ownership), the glass dock, the Space Grotesk /
   Google Sans Flex type, the branded launcher icon and splash, and the manual release
   workflow (`minor`, `patch`, `exact`) work. The Glance widget is the next milestone
   (0.4.0). Sessions, preferences and Health Connect metadata live in `sleepy3.sqlite`
-  (schema v5); generated Drift and localization code is committed.
+  (schema v6); generated Drift and localization code is committed.
 
 ## Commands
 
@@ -67,6 +68,7 @@ lib/
     ├── settings/        # theme, app version, about and preferences
     ├── health/          # sources, Health Connect gateway, sync, copy, history access
     ├── reminders/       # nightly local notification, scheduler and Settings section
+    ├── backup/          # versioned history file, Android picker gateway and Data section
     └── widget/          # home_widget bridge and pending events
 ```
 
@@ -132,6 +134,18 @@ lib/
   flag in `preferences` as `sleep_notification_permission_asked`, so do not prompt again.
   It is independent from the nightly reminder. After a phone reboot it reappears when the
   app opens.
+- History backup: `lib/features/backup/` owns the versioned JSON file
+  (`format: sleepy3.sleep-history`, `version: 1`), the `file_picker` gateway and the
+  Settings `Data` section. Export uses the visible list in `SleepTrackingController`
+  (the same list Stats shows): Local rows keep their provenance and Google Health records
+  are written as read-only copies with their UUID, client id and source. The open session
+  is never included. Import previews new, duplicate and invalid entries, deduplicates by
+  exact times, Health Connect UUID and `healthClientRecordId`, and only writes local rows
+  after confirmation. Imported local rows are blocked from automatic uploads
+  (`health_sync_blocked`) and only `Add` sends and clears them; imported downloaded copies
+  keep `origin='healthConnect'`, `source_id` and their UUID and stay read-only. Import never
+  calls Health Connect. Android auto-backup includes `app_flutter/sleepy3.sqlite` and its
+  journal through `res/xml/backup_rules.xml` and `res/xml/data_extraction_rules.xml`.
 - Sleep data source: `Local` (default) reads only Drift; `Google Health` reads all
   `SLEEP_SESSION` records from Health Connect. Never mix the two lists. The open
   session and every finished session are always written locally first as a safety copy.

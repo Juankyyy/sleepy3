@@ -65,6 +65,7 @@ void main() {
       expect(row.healthRecordVersion, 0);
       expect(row.healthSyncedAtMillis, isNull);
       expect(row.healthSyncSkipped, isFalse);
+      expect(row.healthSyncBlocked, isFalse);
 
       final closed = await store.loadClosedSessions();
       expect(closed.single.localId, created.localId);
@@ -72,7 +73,23 @@ void main() {
     },
   );
 
-  test('refuses to insert an open session', () async {
+  test('marks an imported row as blocked from automatic uploads', () async {
+    final startedAt = DateTime(2026, 10, 20, 23);
+    final endedAt = DateTime(2026, 10, 21, 7);
+
+    final created = await store.insertClosedSession(
+      SleepSession(startedAt: startedAt, endedAt: endedAt),
+      blockHealthSync: true,
+    );
+
+    expect(created.localId, isNotNull);
+    final row = await database.select(database.sleepSessions).getSingle();
+    expect(row.healthSyncBlocked, isTrue);
+    expect(row.healthSyncedAtMillis, isNull);
+    expect(row.healthSyncSkipped, isFalse);
+  });
+
+  test('refuses to insert an open session', () {
     expect(
       () => store.insertClosedSession(
         SleepSession(startedAt: DateTime(2026, 10, 20, 23)),

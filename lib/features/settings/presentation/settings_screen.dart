@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../core/theme/sleepy3_theme.dart';
 import '../../../l10n/l10n.dart';
+import '../../backup/presentation/history_data_settings.dart';
 import '../../health/application/sleep_data_source_controller.dart';
 import '../../reminders/presentation/widgets/sleep_reminder_settings.dart';
 import '../../sleep_tracking/presentation/widgets/sleeping_notification_settings.dart';
@@ -86,6 +87,8 @@ class SettingsScreen extends ConsumerWidget {
           title: l10n.sleepData,
           child: SleepDataSourceSetting(source: dataSource),
         ),
+        const SizedBox(height: 24),
+        SettingsSection(title: l10n.data, child: const HistoryDataSettings()),
         const SizedBox(height: 24),
         SettingsSection(
           title: l10n.googleHealth,

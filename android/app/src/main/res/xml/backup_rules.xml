@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 11 and lower auto-backup rules.
+  Sleepy3 keeps its single SQLite database (and the Drift settings table inside
+  it) in app_flutter/, under the app data directory. Include the database and
+  its journal files explicitly so a restore never brings back a half-written
+  database without its WAL.
+-->
+<full-backup-content>
+    <include domain="root" path="app_flutter/sleepy3.sqlite" />
+    <include domain="root" path="app_flutter/sleepy3.sqlite-wal" />
+    <include domain="root" path="app_flutter/sleepy3.sqlite-shm" />
+    <include domain="root" path="app_flutter/sleepy3.sqlite-journal" />
+</full-backup-content>

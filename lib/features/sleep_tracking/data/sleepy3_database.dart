@@ -46,6 +46,11 @@ class SleepSessions extends Table {
   BoolColumn get healthSyncSkipped =>
       boolean().withDefault(const Constant(false))();
 
+  /// Set by a history import. Automatic retries skip blocked rows; only an
+  /// explicit `Add` may upload them.
+  BoolColumn get healthSyncBlocked =>
+      boolean().withDefault(const Constant(false))();
+
   /// `local` for sessions started in Sleepy3, `healthConnect` for downloads.
   TextColumn get origin => text().withDefault(const Constant('local'))();
 
@@ -75,7 +80,7 @@ class Sleepy3Database extends _$Sleepy3Database {
   Sleepy3Database.forTesting(super.e);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -117,6 +122,11 @@ class Sleepy3Database extends _$Sleepy3Database {
       // keep null and fall back to a generic label until the next import.
       if (from < 5) {
         await m.addColumn(sleepSessions, sleepSessions.sourceId);
+      }
+      // v6 adds the import block. A restored local row must not be uploaded by
+      // the automatic retry; the explicit Add action clears the flag.
+      if (from < 6) {
+        await m.addColumn(sleepSessions, sleepSessions.healthSyncBlocked);
       }
     },
   );

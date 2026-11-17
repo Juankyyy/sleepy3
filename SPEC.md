@@ -8,7 +8,8 @@ contextual), Stats (resumen configurable y dashboard avanzado de cinco rangos co
 de duración, ventana y día de la semana, insights, historial tonal con marcas de objetivo
 animadas, pull-to-refresh, alta manual, edición y borrado de sesiones y detalles de solo
 lectura para registros de otras apps), la notificación silenciosa de sueño en curso,
-Settings, la persistencia local y Health Connect (Local/Google Health) funcionan. El
+Settings (con la sección `Data` para exportar e importar el historial), la persistencia
+local y Health Connect (Local/Google Health) funcionan. El
 widget de pantalla de inicio es el siguiente bloque (0.4.0).
 
 ---
@@ -160,6 +161,8 @@ Sleepy3 es una app Android de registro de sueño con fricción cero.
   el registro en un formulario.
 - Un recordatorio diario opcional, a la hora que elija el usuario, ayuda a no olvidar
   pulsar Sleep. Es local, se puede desactivar y nunca envía datos.
+- El historial se puede exportar a un archivo JSON versionado y restaurarlo después,
+  sin cuenta ni nube propia.
 - Un widget de pantalla de inicio permitirá registrar Sleep/Wake sin abrir la app.
 
 ### Objetivo de diseño
@@ -586,8 +589,9 @@ Reglas:
 ### 3.4 Settings
 
 - La pantalla tiene cabecera `Settings` y línea de apoyo
-  `Theme, stats, reminders, sleep data and app info.`, seguida de seis secciones:
-  `Appearance`, `Stats`, `Reminders`, `Sleep data`, `Google Health` y `About`.
+  `Theme, stats, reminders, sleep data, backup and app info.`, seguida de siete
+  secciones: `Appearance`, `Stats`, `Reminders`, `Sleep data`, `Data`, `Google Health` y
+  `About`.
 - Cada sección usa un encabezado `titleMedium` emphasized y una lista agrupada
   `M3EList`/`M3EListItem` con radio exterior 16 dp, interior 4 dp y gap 2 dp.
 - `Appearance` contiene:
@@ -649,6 +653,40 @@ Reglas:
   - `Import` con apoyo `Download from Google Health to the local copy.`. Ejecuta la
     descarga de todas las sesiones de Health Connect. Pide el permiso de historial antes
     de descargar; si se deniega, baja solo los últimos 30 días y el resultado lo indica.
+- `Data` contiene:
+  - `Export history` con apoyo `Save the history shown in Stats to a file.`. Exporta la
+    lista que Stats tiene cargada para la fuente elegida, no una lectura aparte de la base
+    local. En `Local` son las sesiones cerradas de Drift, incluidas las copias descargadas,
+    que conservan su origen. En `Google Health` son los registros de Health Connect que
+    muestra Stats; todos se escriben como copias de solo lectura (`origin:
+    healthConnect`) y conservan su UUID, `healthClientRecordId` y `source_id`, porque son
+    instantáneas de la plataforma. El archivo JSON versionado se escribe con el selector de
+    documentos de Android (`ACTION_CREATE_DOCUMENT`). No exporta la sesión abierta. Si el
+    historial aún se está cargando, el export espera a que termine; si la carga falla, un
+    snackbar lo explica. En Google Health se aplica el mismo límite de 30 días que Stats
+    cuando falta el permiso de historial; el archivo coincide con lo que hay en pantalla.
+    El nombre propuesto es `sleepy3-history-YYYY-MM-DD.json`. Si no hay sesiones, un
+    snackbar explica que no hay historial; cancelar el selector no deja mensaje. Un fallo
+    muestra `Couldn't export your sleep history. Try again.`.
+  - `Import history` con apoyo `Restore sleep history from a Sleepy3 file.`. Abre un
+    `.json` con el selector de archivos, valida el formato y muestra una vista previa
+    antes de escribir: número de sesiones, rango de fechas, sesiones nuevas, duplicadas y
+    no importables. Solo escribe al confirmar; cancelar no toca la base. Deduplica por
+    inicio y fin exactos, por UUID de Health Connect y por `healthClientRecordId`, tanto
+    contra la base como dentro del archivo. Nunca sobrescribe ni actualiza filas
+    existentes. Las sesiones locales se insertan como filas locales bloqueadas
+    (`health_sync_blocked`), sin heredar los ids de Health Connect del dispositivo de
+    origen; el reintento automático las ignora y solo `Add` las envía, momento en el que se
+    desbloquean. Las copias descargadas conservan su origen de solo lectura, su `source_id`
+    y su UUID. La vista previa avisa de que las sesiones importadas se guardan en local,
+    que `Add` puede enviar las filas locales más adelante y que las sesiones de Google
+    Health quedan como copias de solo lectura. La importación no llama a Health Connect ni
+    sube nada. El resultado muestra añadidas, omitidas y fallidas. Un archivo inválido,
+    vacío o de una versión más reciente se explica con un diálogo y no escribe.
+- Las filas de `Data` usan `SettingsActionRow`, la misma superficie rellena que
+  `SettingsToggleRow`: `M3EListItem` recorta el titular a una línea y `Exportar
+  historial` no cabe al 200 % de texto. El titular y el apoyo envuelven y la fila
+  conserva un objetivo táctil de 72 dp.
 - La sección `Google Health` se muestra en ambos modos: el estado de conexión y las
   acciones de copia no dependen de la fuente activa.
 - `Google Health` contiene:
@@ -770,6 +808,10 @@ Reglas:
 - Las acciones de copia son explícitas y no cambian la fuente: `Sync` sube la sesión local
   pendiente más reciente, `Add` sube todas las pendientes de la más antigua a la más
   reciente e `Import` descarga todas las sesiones de Health Connect a la copia local.
+- La importación de un archivo de historial (`Settings > Data`) es independiente de la
+  fuente: solo escribe en la base local y no llama a Health Connect. Las sesiones locales
+  importadas quedan bloqueadas para el reintento automático; `Add` es la acción explícita
+  que las envía y las desbloquea.
 - La descarga deduplica por UUID y, si falta, por inicio y fin exactos. Inserta las nuevas
   con `origin='healthConnect'`, guarda el paquete de origen en `source_id`, actualiza las
   descargadas que cambiaron y nunca sobrescribe ni borra filas `origin='local'`. Las
@@ -1246,6 +1288,18 @@ Reglas:
 | Fuentes de datos | `Local`, `Google Health` |
 | Diálogo de fuente | `Sleep data source`, `Cancel`, `Apply` |
 | Fila de descarga | `Import` / `Download from Google Health to the local copy.` |
+| Sección de datos | `Data` |
+| Exportar historial | `Export history` / `Save the history shown in Stats to a file.` |
+| Importar historial | `Import history` / `Restore sleep history from a Sleepy3 file.` |
+| Selectores de archivo | `Export sleep history`, `Import sleep history` |
+| Exportación sin datos | `There is no sleep history to export.` |
+| Exportación completada | `{count} sessions exported` |
+| Error al exportar | `Couldn't export your sleep history. Try again.` |
+| Vista previa de importación | `Import history?`, `This file contains {count} sessions from {first} to {last}.`, `1 new session will be added.`, `1 session is already in your history and will be skipped.`, `1 session in the file can't be imported.`, `Nothing new to import.` |
+| Aviso de importación local | `Imported sessions are stored locally.`, `Use Add in Google Health to send them later.`, `Sessions from Google Health stay read-only.` |
+| Progreso de importación | `Importing history` |
+| Resultado de importación | `Import complete`, `1 session added`, `1 session skipped`, `1 session failed` |
+| Error de archivo | `Couldn't import this file`, `Couldn't import your history`, `Choose a Sleepy3 sleep history file (.json).`, `This file was created by a newer version of Sleepy3. Update the app and try again.`, `This file has no sleep sessions to import.` |
 | Estado de Google Health | `Status` |
 | Estados de conexión | `Checking…`, `Connected`, `Permission needed`, `Not available`, `Update required` |
 | Acciones de conexión | `Connect`, `Install` |
@@ -1310,6 +1364,7 @@ Reglas:
 | Estado | Riverpod |
 | Persistencia | Drift + SQLite (`drift_flutter`, `sqlite3`) |
 | Info de la app | `package_info_plus` 10.x |
+| Archivos | `file_picker` 13.x (selector SAF de Android) |
 | Widget | `home_widget` + Jetpack Glance nativo |
 | Salud | `health` 13.x sobre Health Connect `SleepSessionRecord` |
 | Recordatorios | `flutter_local_notifications` 22.3.3, `timezone` 0.11, `flutter_timezone` 5.x |
@@ -1364,6 +1419,11 @@ lib/
     │   ├── data/           # Drift-backed settings store
     │   ├── application/    # theme, time format and language controllers, providers
     │   └── presentation/   # settings screen, appearance dialogs and about list
+    ├── backup/
+    │   ├── domain/         # versioned sleep history file
+    │   ├── data/           # Android document picker gateway
+    │   ├── application/    # export/import service and providers
+    │   └── presentation/   # Data section and preview/result dialogs
     ├── health/
     │   ├── domain/         # gateway, source, history access, sync store, stored session and own-source helper
     │   ├── data/           # Health Connect gateway and Drift sync store
@@ -1521,6 +1581,11 @@ splash.
 - `SettingsStore` es la interfaz de preferencias y `DriftSettingsStore` su implementación.
   Usa la tabla `preferences` de la misma base; no hay `shared_preferences`. Guarda
   `theme_mode`, `time_format`, `language` y `sleep_data_source`.
+- `SleepHistoryTransferService` compone el archivo versionado con
+  `SleepSessionStore.loadClosedSessions()`, calcula la vista previa de importación y
+  escribe las filas locales o descargadas. `FilePickerHistoryFileGateway` aísla el
+  selector SAF de Android. `HistoryDataSettings` vive en `features/backup` y usa
+  `SettingsActionRow` en la sección `Data`.
 - Los tests usan `FakeSleepSessionStore`, `FakeSettingsStore`, `FakeHealthConnectGateway`,
   `FakeHealthSyncStore` o una base Drift en memoria.
 
@@ -1547,10 +1612,11 @@ splash.
 | `health_record_version` | INTEGER | Última versión enviada a Health Connect; por defecto 0 |
 | `health_synced_at_millis` | INTEGER | Última subida o descarga correcta |
 | `health_sync_skipped` | INTEGER | 0/1; sesión no elegible (por ejemplo, duración cero) |
+| `health_sync_blocked` | INTEGER | 0/1; importada y bloqueada para el reintento automático |
 | `origin` | TEXT | `local` o `healthConnect`; por defecto `local` |
 | `source_id` | TEXT | Paquete de la app que escribió una copia descargada; null en filas locales |
 
-- `schemaVersion = 5`.
+- `schemaVersion = 6`.
 - Base: `sleepy3.sqlite` en el directorio de documentos de la app.
 - La migración v2 → v3 añade `health_record_id`, `health_synced_at_millis`,
   `health_sync_skipped` y `origin`, con defaults y el índice único de `health_record_id`;
@@ -1562,6 +1628,9 @@ splash.
 - La migración v4 → v5 añade `source_id` para el paquete de origen de una copia
   descargada. Las filas existentes quedan con `source_id` nulo y se rellenan en la
   siguiente importación.
+- La migración v5 → v6 añade `health_sync_blocked` con valor 0. Las filas existentes
+  siguen pendientes o sincronizadas como antes; solo una importación de historial marca
+  filas bloqueadas.
 - `health_client_record_id` es estable aunque cambien las horas: permite actualizar el
   mismo registro de Health Connect sin duplicarlo. `health_record_version` solo crece; un
   reintento usa la versión siguiente y `markUploadAttempt` la persiste antes de escribir.
@@ -1600,6 +1669,43 @@ dart run build_runner build
 - La migración de v1 a v2 crea `preferences`; las sesiones existentes no se tocan.
 - El modo de tema y la fuente se guardan en la misma base para no abrir un segundo
   almacén.
+
+### Exportación e importación del historial
+
+- Formato JSON versionado `sleepy3.sleep-history` (`version: 1`). Cada archivo incluye
+  `format`, `version`, `exportedAt` en UTC y una lista `sessions` ordenada por inicio.
+  Cada sesión lleva `startedAtMillis`, `endedAtMillis`, `origin` (`local` o
+  `healthConnect`) y, cuando existen, `healthRecordId`, `healthClientRecordId` y
+  `sourceId`. Los timestamps son milisegundos Unix para conservar el instante exacto.
+- La exportación parte de la lista que `SleepTrackingController.closedSessions` tiene
+  cargada para la fuente elegida; es la misma lista que muestra Stats. En `Local` son las
+  filas de Drift y conservan su origen. En `Google Health` son los registros de Health
+  Connect y se escriben todos como copias de solo lectura (`origin: healthConnect`), con su
+  UUID, `healthClientRecordId` y `source_id`. La sesión abierta no entra. Si el historial
+  todavía se está cargando, el export espera a `historyLoad`; en Google Health se aplica el
+  mismo límite de 30 días que Stats cuando falta el permiso de historial.
+- La importación valida el formato antes de escribir. Una sesión local debe estar cerrada
+  y durar al menos 10 minutos y menos de 24 horas; una copia descargada se acepta con
+  cualquier duración positiva porque puede venir de otra app y el límite no se aplica a
+  una copia de solo lectura. Las entradas inválidas se cuentan y no se escriben.
+- La deduplicación usa inicio y fin exactos, el UUID de Health Connect y el
+  `healthClientRecordId`, tanto contra las filas guardadas como contra las demás entradas
+  del archivo. Una sesión que ya existe se omite; nunca se actualiza ni se borra una fila
+  existente.
+- Las sesiones locales importadas se insertan con `origin='local'`, sin UUID ni client id
+  de Health Connect, `health_sync_blocked = 1` y `health_synced_at_millis` nulo. El
+  reintento automático de Google Health las ignora; `Add` las carga, las envía y limpia el
+  bloqueo. Las copias descargadas se insertan con `origin='healthConnect'`, `source_id` y
+  su UUID, y quedan de solo lectura. La importación no invoca el gateway de Health Connect.
+- Tras una importación con altas, `SleepTrackingController.reloadAfterHistoryImport`
+  relee la fuente elegida y actualiza el contador de pendientes. En `Local` el historial y
+  el resumen se actualizan; en `Google Health` las filas importadas aún no aparecen hasta
+  que el usuario las envíe con `Add`.
+- Auto-backup de Android: el manifiesto declara `fullBackupContent` (API 30 y anteriores)
+  y `dataExtractionRules` (API 31+) con la base `app_flutter/sleepy3.sqlite` y sus
+  archivos `-wal`, `-shm` y `-journal` en el dominio `root`. Las reglas se prueban con
+  `adb shell bmgr backupnow com.sleepy3.app` y una reinstalación; el comando no forma
+  parte de `flutter test`.
 
 ### Invariantes
 
@@ -1703,7 +1809,9 @@ dart run build_runner build
   puede corregirse con el editor y el reintento la vuelve a subir con la duración válida.
 - Acciones de copia:
   - `Sync`: sube la sesión `origin='local'` pendiente más reciente.
-  - `Add`: sube todas las `origin='local'` pendientes, de la más antigua a la más reciente.
+  - `Add`: sube todas las `origin='local'` pendientes, de la más antigua a la más reciente,
+    e incluye las bloqueadas por una importación de historial. Al confirmar la escritura,
+    el bloqueo se limpia. Es la única acción que envía filas importadas.
   - `Import`: lee las sesiones de Health Connect y las añade o actualiza en local.
   - La descarga deduplica por `health_record_id` y, si falta, por inicio y fin exactos.
   - Inserta las nuevas con `origin='healthConnect'` y `health_synced_at_millis`.
@@ -1790,8 +1898,8 @@ dart run tool/generate_brand_assets.dart
 - Edición y borrado: `updateSession`/`deleteSession` de Drift, rechazo de descargadas,
   permisos por fuente, actualización del mismo registro de Health Connect, lectura del
   token de escritura nativo, reintentos pendientes, resultados explícitos, filas propias
-  de Google Health con y sin copia local, registros de otras apps de solo lectura y
-  migración v5 con `source_id`.
+  de Google Health con y sin copia local, registros de otras apps de solo lectura,
+  migración v5 con `source_id` y v6 con `health_sync_blocked`.
 - Solo lectura: app label por `AppInfoBridge`, fallback a `another app`, campos sin
   pickers ni iconos, sin `Save`/`Delete`, cierre con X o `Close` y copias descargadas
   con y sin `source_id`.
@@ -1809,8 +1917,8 @@ dart run tool/generate_brand_assets.dart
   del teléfono), su aplicación a reloj, historial y selectores de hora, fuente
   `Local`/`Google Health`, diálogo de fuente, estado de conexión, `Connect`/`Install`,
   `Import`/`Sync`/`Add`, primer cambio con aviso de copia, permiso denegado, versión
-  oculta si no está disponible, página de licencias, semántica, migraciones v1→v2, v2→v3 y
-  v3→v4, y layout a 360 dp con texto al 200 %.
+  oculta si no está disponible, página de licencias, semántica, migraciones v1→v2, v2→v3,
+  v3→v4, v4→v5 y v5→v6, y layout a 360 dp con texto al 200 %.
 - Recordatorios: valor por defecto desactivado a las 22:00, ida y vuelta en `preferences`,
   hora malformada, permiso concedido/denegado, programación/cancelación, cambio de hora,
   pausa mientras se duerme, notificaciones bloqueadas, copy en inglés/español, próxima
@@ -1826,6 +1934,17 @@ dart run tool/generate_brand_assets.dart
   cola de pendientes, reintento idempotente, banner, sesiones omitidas, acciones de copia,
   deduplicación por UUID y horas exactas, fallo parcial, protección de filas locales,
   límite de 30 días y recarga al conceder el historial.
+- Exportación e importación: ida y vuelta JSON con milisegundos e ids exactos, exportación
+  de la lista visible en Local y en Google Health (incluida una copia local vacía),
+  preservación del origen de cada entrada, archivo inválido, vacío o de versión futura,
+  sesiones locales fuera de rango, copias descargadas fuera de rango, deduplicación por
+  horas exactas, UUID y client id, duplicados dentro del archivo, segunda importación sin
+  altas, importación de copias descargadas de solo lectura, aviso de solo lectura cuando el
+  archivo no trae filas locales, filas locales bloqueadas que el reintento automático
+  ignora, `Add` que las envía y desbloquea, ausencia de llamadas a Health Connect durante la
+  importación, resultado con añadidas/omitidas/fallidas, actualización de la lista tras
+  importar, filas apiladas al 200 % de texto, español y las reglas de auto-backup del
+  manifiesto.
 - Localización: paridad de claves ARB, resolución del idioma del sistema, cambio desde
   `Settings`, pantallas y editor en español, fechas, horas y duraciones localizadas, y
   layout a 360 dp con texto al 200 %.
@@ -1876,6 +1995,9 @@ dart run tool/generate_brand_assets.dart
   persistido (resuelto del sistema en el primer arranque, sin opción `System`), fuente de
   datos `Local`/`Google Health`, estado de Google Health, acciones de copia y `About` con
   privacidad, versión y licencias.
+- Sección `Data` en `Settings` para exportar el historial visible de la fuente elegida a
+  un JSON versionado y volver a importarlo con vista previa, deduplicación y sin escrituras
+  en Health Connect. Las reglas de auto-backup de Android incluyen la base y sus journals.
 - Recordatorio nocturno opcional, desactivado por defecto a las 22:00, con hora elegida,
   permiso de notificaciones contextual, pausa mientras hay una sesión abierta, retorno a
   `Home` al tocar la notificación y aviso cuando Android bloquea las notificaciones.
