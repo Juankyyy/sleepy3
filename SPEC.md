@@ -3,12 +3,13 @@
 **Proyecto:** Sleepy3
 **Plataforma:** Android
 **Stack principal:** Flutter + Material 3 Expressive
-**Estado:** v0.3.0, última release estable (sin widget). Home (con una sola acción
+**Estado:** v0.3.1, última release estable (sin widget). Home (con una sola acción
 contextual), Stats (resumen configurable y dashboard avanzado de cinco rangos con gráficos
 de duración, ventana y día de la semana, insights, historial tonal con marcas de objetivo
 animadas, pull-to-refresh, alta manual, edición y borrado de sesiones y detalles de solo
-lectura para registros de otras apps), la notificación silenciosa de sueño en curso,
-Settings (con la sección `Data` para exportar e importar el historial), la persistencia
+lectura para registros de otras apps), la notificación silenciosa de sueño en curso con la
+acción `Wake` y el recordatorio con `Start sleep`, Settings (con el objetivo de sueño
+configurable y la sección `Data` para exportar e importar el historial), la persistencia
 local y Health Connect (Local/Google Health) funcionan. El
 widget de pantalla de inicio es el siguiente bloque (0.4.0).
 
@@ -117,7 +118,7 @@ ci(release): publish the APK
 - Después de publicar, aplicar notas y título con:
 
 ```bash
-dart run tool/apply_release_notes.dart v0.3.0
+dart run tool/apply_release_notes.dart v0.3.1
 ```
 
   El script lee el título de la primera línea y ejecuta `gh release edit`; no toca el APK.
@@ -2059,7 +2060,9 @@ dart run tool/generate_brand_assets.dart
   Connect; la 0.2.1 añade la interfaz en inglés y español y el formato de hora 12/24; la
   0.2.2 añade el recordatorio nocturno, el deslizamiento para despertar y la duración en
   vivo; la 0.3.0 añade las Stats avanzadas con resumen configurable, gráficos, insights y
-  `Night context`, y la notificación de sueño en curso. Ninguna incluye el widget.
+  `Night context`, y la notificación de sueño en curso; la 0.3.1 añade la exportación e
+  importación del historial, el objetivo de sueño configurable y las acciones `Start
+  sleep`/`Wake`. Ninguna incluye el widget.
 - Tests de estado, persistencia y UI.
 
 ### Siguiente

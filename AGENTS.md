@@ -14,17 +14,17 @@ local session history, and Health Connect as an optional data source.
 - Platform features that cannot run in Flutter (the widget, Health Connect manifest
   entries, app labels and the custom sleep notification card) stay in the Android layer
   behind small, documented bridges.
-- Current state: v0.3.0 is the latest stable release (without the home-screen widget). The
+- Current state: v0.3.1 is the latest stable release (without the home-screen widget). The
   single contextual Sleep/Wake action on Home, the live sleeping duration and its
   entrance cue, the sleep state machine, Drift persistence,
   Stats summary with tonal cards, a draggable advanced sheet with a 70 % snap (metrics,
   charts and insights), pull-to-refresh, goal marks and their animation, the session
   panel, manual session entry from the Stats FAB, session editing/deleting and
   read-only details for other apps' records, Settings (theme, 12/24-hour time, English /
-  Español language and the optional nightly reminder), the `Data` section that exports and
-  imports the local history, the silent ongoing sleep-status
-  notification with a live timer and goal time, Health Connect (Local/Google
-  Health, pending uploads, copy actions,
+  Español language, the optional nightly reminder and the configurable sleep goal), the
+  `Data` section that exports and imports the local history, the silent ongoing sleep-status
+  notification with a live timer, goal time and Wake action, the reminder's Start sleep
+  action, Health Connect (Local/Google Health, pending uploads, copy actions,
   full history access and per-build record ownership), the glass dock, the Space Grotesk /
   Google Sans Flex type, the branded launcher icon and splash, and the manual release
   workflow (`minor`, `patch`, `exact`) work. The Glance widget is the next milestone
