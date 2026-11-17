@@ -150,7 +150,7 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get exportHistorySupport =>
-      'Guarda el historial que ves en Stats en un archivo.';
+      'Guarda el historial que ves en Estadísticas en un archivo.';
 
   @override
   String get importHistory => 'Importar historial';

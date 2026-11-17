@@ -61,7 +61,7 @@
   "sleepData": "Datos de sueño",
   "data": "Datos",
   "exportHistory": "Exportar historial",
-  "exportHistorySupport": "Guarda el historial que ves en Stats en un archivo.",
+  "exportHistorySupport": "Guarda el historial que ves en Estadísticas en un archivo.",
   "importHistory": "Importar historial",
   "importHistorySupport": "Restaura el historial de sueño desde un archivo de Sleepy3.",
   "googleHealth": "Google Health",
