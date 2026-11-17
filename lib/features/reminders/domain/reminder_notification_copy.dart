@@ -6,12 +6,17 @@ class ReminderNotificationCopy {
   const ReminderNotificationCopy({
     required this.title,
     required this.body,
+    required this.startActionLabel,
     required this.channelName,
     required this.channelDescription,
   });
 
   final String title;
   final String body;
+
+  /// The button that opens the app and starts a sleep session.
+  final String startActionLabel;
+
   final String channelName;
   final String channelDescription;
 }

@@ -63,6 +63,11 @@ void main() {
         'Time to record your sleep',
       );
       expect(
+        scheduler.scheduled.single.copy.body,
+        'Tap Start sleep when you turn off the lights.',
+      );
+      expect(scheduler.scheduled.single.copy.startActionLabel, 'Start sleep');
+      expect(
         container
             .read(sleepReminderControllerProvider)
             .systemNotificationsEnabled,
@@ -278,8 +283,9 @@ void main() {
       );
       expect(
         scheduler.scheduled.single.copy.body,
-        'Abre Sleepy3 y toca Dormir cuando apagues la luz.',
+        'Toca Iniciar sueño cuando apagues la luz.',
       );
+      expect(scheduler.scheduled.single.copy.startActionLabel, 'Iniciar sueño');
       expect(
         scheduler.scheduled.single.copy.channelName,
         'Recordatorio de sueño',

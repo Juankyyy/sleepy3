@@ -1,9 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../core/notifications/local_notifications.dart';
+import '../core/notifications/notification_providers.dart';
+import '../core/startup/startup_providers.dart';
 import '../core/theme/sleepy3_theme.dart';
 import '../features/health/application/health_history_permission_controller.dart';
 import '../features/health/application/health_sync_controller.dart';
@@ -40,12 +44,54 @@ class Sleepy3App extends ConsumerStatefulWidget {
 
 class _Sleepy3AppState extends ConsumerState<Sleepy3App>
     with WidgetsBindingObserver {
+  StreamSubscription<NotificationResponse>? _notificationResponses;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _notificationResponses = ref
+        .read(localNotificationsProvider)
+        .responses
+        .listen((response) => unawaited(_handleNotificationResponse(response)));
+    // Initialize eagerly so a cold-start action is delivered even when the
+    // reminder and the sleep card are both turned off.
+    unawaited(_initializeNotifications());
     unawaited(_syncSleepReminder());
     unawaited(_syncSleepingNotification());
+  }
+
+  Future<void> _initializeNotifications() async {
+    try {
+      await ref.read(localNotificationsProvider).ensureInitialized();
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Sleepy3: could not initialize notifications: $error\n$stackTrace',
+      );
+    }
+  }
+
+  /// Applies a tap or action from the shared notification plugin.
+  ///
+  /// Every response selects Home, as before. The reminder's Start sleep action
+  /// then follows the normal Sleep path, including the open session, the
+  /// ongoing card and the reminder pause.
+  Future<void> _handleNotificationResponse(
+    NotificationResponse response,
+  ) async {
+    if (!mounted) return;
+    ref.read(notificationHomeRequestProvider.notifier).requestHome();
+    if (response.actionId != startSleepNotificationActionId) return;
+    if (!mounted) return;
+
+    final state = ref.read(sleepTrackingControllerProvider);
+    if (state.isSleeping) return;
+    await ref.read(sleepTrackingControllerProvider.notifier).sleep();
+    if (!mounted) return;
+    // The action can arrive before the first build installs the state
+    // listeners, so update both notifications explicitly as well.
+    await _syncSleepReminder(isSleeping: true);
+    await _syncSleepingNotification(allowPermissionPrompt: true);
   }
 
   @override
@@ -140,6 +186,7 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
 
   @override
   void dispose() {
+    unawaited(_notificationResponses?.cancel());
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -213,7 +260,11 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
         supportedLocales: AppLocalizations.supportedLocales,
         home: SplashGate(
           startSignal: widget.splashStartSignal,
-          onFinished: () => unawaited(_retryPendingUploads()),
+          onFinished: () {
+            if (!mounted) return;
+            ref.read(splashCompletedProvider.notifier).complete();
+            unawaited(_retryPendingUploads());
+          },
           child: const Sleepy3Shell(),
         ),
       ),

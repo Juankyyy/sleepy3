@@ -15,5 +15,11 @@ final sleepingNotificationPresenterProvider =
         onOpened: () {
           ref.read(notificationHomeRequestProvider.notifier).requestHome();
         },
+        onWake: () {
+          // The card's Wake action opens Home and runs the same confirmation
+          // flow as the large action.
+          ref.read(notificationHomeRequestProvider.notifier).requestHome();
+          ref.read(notificationWakeRequestProvider.notifier).requestWake();
+        },
       );
     });

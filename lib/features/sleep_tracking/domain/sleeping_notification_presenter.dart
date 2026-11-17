@@ -7,6 +7,7 @@ class SleepingNotificationCopy {
     required this.title,
     required this.body,
     required this.ongoingLabel,
+    required this.wakeActionLabel,
     required this.channelName,
     required this.channelDescription,
   });
@@ -16,6 +17,9 @@ class SleepingNotificationCopy {
 
   /// A short header label such as `En curso` that explains why the card stays.
   final String ongoingLabel;
+
+  /// The action that opens the app and closes the open session.
+  final String wakeActionLabel;
 
   final String channelName;
   final String channelDescription;

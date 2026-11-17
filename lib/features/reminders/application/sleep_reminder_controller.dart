@@ -250,6 +250,7 @@ class SleepReminderController extends Notifier<SleepReminderState> {
     return ReminderNotificationCopy(
       title: l10n.sleepReminderNotificationTitle,
       body: l10n.sleepReminderNotificationBody,
+      startActionLabel: l10n.sleepReminderStartAction,
       channelName: l10n.sleepReminderChannelName,
       channelDescription: l10n.sleepReminderChannelDescription,
     );

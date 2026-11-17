@@ -257,8 +257,14 @@ abstract class AppLocalizations {
   /// No description provided for @sleepReminderNotificationBody.
   ///
   /// In en, this message translates to:
-  /// **'Open Sleepy3 and tap Sleep when you turn off the lights.'**
+  /// **'Tap Start sleep when you turn off the lights.'**
   String get sleepReminderNotificationBody;
+
+  /// No description provided for @sleepReminderStartAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Start sleep'**
+  String get sleepReminderStartAction;
 
   /// No description provided for @sleepReminderChannelName.
   ///

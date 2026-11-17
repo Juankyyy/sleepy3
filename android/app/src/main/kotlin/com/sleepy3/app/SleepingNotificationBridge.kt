@@ -22,6 +22,8 @@ import io.flutter.plugin.common.MethodChannel
  */
 class SleepingNotificationBridge(private val context: Context) {
     private var channel: MethodChannel? = null
+    private var dartReady = false
+    private var pendingWake = false
 
     fun register(messenger: BinaryMessenger) {
         channel = MethodChannel(messenger, METHOD_CHANNEL).also { methodChannel ->
@@ -46,6 +48,18 @@ class SleepingNotificationBridge(private val context: Context) {
                         result.success(null)
                     }
 
+                    "ready" -> {
+                        // Dart is listening now. A Wake tapped during a cold
+                        // start was kept until this point so it is not lost.
+                        dartReady = true
+                        if (pendingWake) {
+                            pendingWake = false
+                            result.success("wake")
+                        } else {
+                            result.success(null)
+                        }
+                    }
+
                     else -> result.notImplemented()
                 }
             }
@@ -53,11 +67,25 @@ class SleepingNotificationBridge(private val context: Context) {
     }
 
     /**
-     * Routes a tap on the custom card back to Flutter when MainActivity is
-     * reused. A cold start already opens Home, so there is nothing to do there.
+     * Routes a tap or the Wake action back to Flutter.
+     *
+     * A tap on the card reopens Home. A cold-start Wake is kept until Dart
+     * calls `ready`, because the method channel handler is not attached yet.
      */
     fun handleIntent(intent: Intent?) {
-        if (intent?.getBooleanExtra(EXTRA_OPEN_HOME, false) != true) return
+        if (intent == null) return
+
+        if (intent.getBooleanExtra(EXTRA_WAKE, false)) {
+            intent.removeExtra(EXTRA_WAKE)
+            if (dartReady) {
+                channel?.invokeMethod("wake", null)
+            } else {
+                pendingWake = true
+            }
+            return
+        }
+
+        if (intent.getBooleanExtra(EXTRA_OPEN_HOME, false) != true) return
         channel?.invokeMethod("opened", null)
         intent.removeExtra(EXTRA_OPEN_HOME)
     }
@@ -68,6 +96,7 @@ class SleepingNotificationBridge(private val context: Context) {
         val title = call.argument<String>("title").orEmpty()
         val body = call.argument<String>("body").orEmpty()
         val ongoingLabel = call.argument<String>("ongoingLabel").orEmpty()
+        val wakeActionLabel = call.argument<String>("wakeActionLabel").orEmpty()
         val channelName = call.argument<String>("channelName") ?: "Sleep status"
         val channelDescription = call.argument<String>("channelDescription").orEmpty()
 
@@ -87,6 +116,18 @@ class SleepingNotificationBridge(private val context: Context) {
 
         if (ongoingLabel.isNotBlank()) {
             builder.setSubText(ongoingLabel)
+        }
+
+        // DecoratedCustomViewStyle keeps the standard action row, so the Wake
+        // button works with both the custom card and the fallback layout.
+        if (wakeActionLabel.isNotBlank()) {
+            builder.addAction(
+                Notification.Action.Builder(
+                    R.drawable.ic_notification,
+                    wakeActionLabel,
+                    wakeIntent(),
+                ).build(),
+            )
         }
 
         val fontScale = context.resources.configuration.fontScale
@@ -170,6 +211,20 @@ class SleepingNotificationBridge(private val context: Context) {
         )
     }
 
+    private fun wakeIntent(): PendingIntent {
+        val intent = Intent(context, MainActivity::class.java).apply {
+            action = ACTION_WAKE
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            putExtra(EXTRA_WAKE, true)
+        }
+        return PendingIntent.getActivity(
+            context,
+            WAKE_REQUEST_CODE,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
     /**
      * Converts the wall-clock session start to the elapsed-realtime base that
      * Chronometer expects, so reopening the app mid-session does not reset it.
@@ -184,6 +239,9 @@ class SleepingNotificationBridge(private val context: Context) {
         private const val METHOD_CHANNEL = "com.sleepy3.app/sleeping_notification"
         private const val EXTRA_OPEN_HOME = "com.sleepy3.app.extra.OPEN_HOME"
         private const val ACTION_OPEN_HOME = "com.sleepy3.app.action.OPEN_HOME"
+        private const val EXTRA_WAKE = "com.sleepy3.app.extra.WAKE"
+        private const val ACTION_WAKE = "com.sleepy3.app.action.WAKE"
+        private const val WAKE_REQUEST_CODE = 1
         private const val CHANNEL_ID = "sleep_status"
         private const val NOTIFICATION_ID = 1002
         private const val MAX_CUSTOM_FONT_SCALE = 1.2f

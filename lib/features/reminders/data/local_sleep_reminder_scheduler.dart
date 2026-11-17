@@ -61,6 +61,17 @@ class LocalSleepReminderScheduler implements SleepReminderScheduler {
         importance: Importance.high,
         priority: Priority.high,
         category: AndroidNotificationCategory.reminder,
+        actions: [
+          // A foreground action opens the app, which applies the normal Sleep
+          // path and then swaps this notification for the ongoing card. The
+          // action cancels the delivered reminder so it does not stay behind.
+          AndroidNotificationAction(
+            startSleepNotificationActionId,
+            copy.startActionLabel,
+            showsUserInterface: true,
+            cancelNotification: true,
+          ),
+        ],
       ),
     );
 

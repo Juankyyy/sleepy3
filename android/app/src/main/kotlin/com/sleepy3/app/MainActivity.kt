@@ -33,6 +33,9 @@ class MainActivity : FlutterFragmentActivity() {
         )
         sleepingNotificationBridge = SleepingNotificationBridge(applicationContext)
         sleepingNotificationBridge.register(flutterEngine.dartExecutor.binaryMessenger)
+        // A cold start from the card's Wake action carries the command in the
+        // launch intent. Dart asks for it once its handler is attached.
+        sleepingNotificationBridge.handleIntent(intent)
     }
 
     override fun onNewIntent(intent: Intent) {

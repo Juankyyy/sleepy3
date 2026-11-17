@@ -95,7 +95,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sleepReminderNotificationBody =>
-      'Open Sleepy3 and tap Sleep when you turn off the lights.';
+      'Tap Start sleep when you turn off the lights.';
+
+  @override
+  String get sleepReminderStartAction => 'Start sleep';
 
   @override
   String get sleepReminderChannelName => 'Sleep reminder';

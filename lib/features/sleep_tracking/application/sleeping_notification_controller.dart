@@ -160,6 +160,7 @@ class SleepingNotificationController {
         ),
       ),
       ongoingLabel: l10n.sleepingNotificationOngoing,
+      wakeActionLabel: l10n.wakeAction,
       channelName: l10n.sleepingNotificationChannelName,
       channelDescription: l10n.sleepingNotificationChannelDescription,
     );

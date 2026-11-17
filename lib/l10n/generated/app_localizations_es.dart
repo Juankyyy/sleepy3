@@ -95,7 +95,10 @@ class AppLocalizationsEs extends AppLocalizations {
 
   @override
   String get sleepReminderNotificationBody =>
-      'Abre Sleepy3 y toca Dormir cuando apagues la luz.';
+      'Toca Iniciar sueño cuando apagues la luz.';
+
+  @override
+  String get sleepReminderStartAction => 'Iniciar sueño';
 
   @override
   String get sleepReminderChannelName => 'Recordatorio de sueño';

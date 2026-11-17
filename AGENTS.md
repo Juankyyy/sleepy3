@@ -115,7 +115,9 @@ lib/
   `SleepReminderController` serializes permission, scheduling and cancellation;
   `Sleepy3App` syncs it on launch, resume, Sleep/Wake changes and language changes.
   A sleeping session pauses the reminder, waking re-arms it, and tapping the notification
-  returns to Home. `flutter_local_notifications` is pinned to 22.3.3 (23 needs
+  returns to Home. The notification also carries a **Start sleep** action that opens Home
+  and applies the normal Sleep path; the notification layer never writes a session by
+  itself. `flutter_local_notifications` is pinned to 22.3.3 (23 needs
   `compileSdk` 37); it uses `inexactAllowWhileIdle`, so do not add exact-alarm permissions
   without a product decision. The reminder preference lives in `preferences` as
   `sleep_reminder_enabled` and `sleep_reminder_time`; no schema migration is needed.
@@ -123,17 +125,21 @@ lib/
   posts an ongoing, silent, low-importance notification (id 1002, channel `sleep_status`)
   with a big `RemoteViews` chronometer based on `startedAt` and a `Goal 8h · until …` line.
   `NativeSleepingNotificationPresenter` calls the Kotlin `SleepingNotificationBridge`; the
-  shared `LocalNotifications` still owns permission and the reminder. The native card falls
-  back to the standard layout at large system font scales or if inflation fails, so do not
-  remove that path. It is not a foreground service, so the chronometer keeps running when
-  the app process dies. `Sleepy3App` syncs it on launch, resume, open-session changes,
-  language changes and time-format changes. `SleepingNotificationEnabledController` owns
-  the `Sleep in progress` switch in Settings; the preference is
-  `sleep_status_notification_enabled`, missing means enabled. Turning it off cancels the
-  card immediately; enabling it requests permission first and keeps the one-time prompt
-  flag in `preferences` as `sleep_notification_permission_asked`, so do not prompt again.
-  It is independent from the nightly reminder. After a phone reboot it reappears when the
-  app opens.
+  shared `LocalNotifications` still owns permission and the reminder. The card includes a
+  **Wake** action that opens Home and runs the same Wake flow as the large action; a normal
+  session closes and an out-of-range one shows the short/long confirmation, so it is never
+  discarded silently. A Wake tapped during a cold start is kept by the bridge until Dart
+  calls `ready`, and Home waits for the splash before showing the dialog. Tapping the card
+  body only opens Home. The native card falls back to the standard layout at large system
+  font scales or if inflation fails, so do not remove that path. It is not a foreground
+  service, so the chronometer keeps running when the app process dies. `Sleepy3App` syncs
+  it on launch, resume, open-session changes, language changes and time-format changes.
+  `SleepingNotificationEnabledController` owns the `Sleep in progress` switch in Settings;
+  the preference is `sleep_status_notification_enabled`, missing means enabled. Turning it
+  off cancels the card immediately; enabling it requests permission first and keeps the
+  one-time prompt flag in `preferences` as `sleep_notification_permission_asked`, so do not
+  prompt again. It is independent from the nightly reminder. After a phone reboot it
+  reappears when the app opens.
 - History backup: `lib/features/backup/` owns the versioned JSON file
   (`format: sleepy3.sleep-history`, `version: 1`), the `file_picker` gateway and the
   Settings `Data` section. Export uses the visible list in `SleepTrackingController`

@@ -3,12 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'local_notifications.dart';
 
 /// The plugin shared by every local notification in the app.
+///
+/// Taps and action taps are delivered as a stream; [Sleepy3App] listens and
+/// routes them, so this core provider stays independent from the features.
 final localNotificationsProvider = Provider<LocalNotifications>((ref) {
-  return LocalNotifications(
-    onTap: () {
-      ref.read(notificationHomeRequestProvider.notifier).requestHome();
-    },
-  );
+  return LocalNotifications();
 });
 
 /// Increments whenever a local notification is tapped.
@@ -25,4 +24,29 @@ class NotificationHomeRequestController extends Notifier<int> {
   int build() => 0;
 
   void requestHome() => state++;
+}
+
+/// Set when the ongoing sleep card's Wake action is tapped.
+///
+/// `SleepHomeScreen` listens and runs the same Wake flow as the large action,
+/// including the short and long sleep confirmations. The request is consumed
+/// with [NotificationWakeRequestController.take] so a rebuilt Home cannot
+/// close a newer session by replaying an old tap.
+final notificationWakeRequestProvider =
+    NotifierProvider<NotificationWakeRequestController, bool>(
+      NotificationWakeRequestController.new,
+    );
+
+class NotificationWakeRequestController extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void requestWake() => state = true;
+
+  /// Returns whether a Wake was pending and clears it.
+  bool take() {
+    if (!state) return false;
+    state = false;
+    return true;
+  }
 }

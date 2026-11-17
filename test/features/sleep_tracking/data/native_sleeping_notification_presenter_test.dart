@@ -11,12 +11,15 @@ void main() {
     NativeSleepingNotificationPresenter.channelName,
   );
   final calls = <MethodCall>[];
+  String? readyAction;
 
   setUp(() {
     calls.clear();
+    readyAction = null;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
           calls.add(call);
+          if (call.method == 'ready') return readyAction;
           return null;
         });
   });
@@ -28,17 +31,24 @@ void main() {
 
   NativeSleepingNotificationPresenter createPresenter({
     VoidCallback? onOpened,
+    VoidCallback? onWake,
   }) {
     return NativeSleepingNotificationPresenter(
       LocalNotifications(),
       onOpened: onOpened ?? () {},
+      onWake: onWake ?? () {},
     );
+  }
+
+  List<MethodCall> callsTo(String method) {
+    return calls.where((call) => call.method == method).toList();
   }
 
   const copy = SleepingNotificationCopy(
     title: 'Durmiendo',
     body: 'Objetivo 8 h · hasta las 07:30',
     ongoingLabel: 'En curso',
+    wakeActionLabel: 'Despertar',
     channelName: 'Estado del sueño',
     channelDescription: 'Un temporizador discreto mientras duermes.',
   );
@@ -49,13 +59,16 @@ void main() {
 
     await presenter.show(startedAt: startedAt, copy: copy);
 
-    expect(calls, hasLength(1));
-    expect(calls.single.method, 'show');
-    final arguments = Map<String, Object?>.from(calls.single.arguments as Map);
+    final showCalls = callsTo('show');
+    expect(showCalls, hasLength(1));
+    final arguments = Map<String, Object?>.from(
+      showCalls.single.arguments as Map,
+    );
     expect(arguments['startedAtMillis'], startedAt.millisecondsSinceEpoch);
     expect(arguments['title'], 'Durmiendo');
     expect(arguments['body'], 'Objetivo 8 h · hasta las 07:30');
     expect(arguments['ongoingLabel'], 'En curso');
+    expect(arguments['wakeActionLabel'], 'Despertar');
     expect(arguments['channelName'], 'Estado del sueño');
     expect(
       arguments['channelDescription'],
@@ -68,8 +81,7 @@ void main() {
 
     await presenter.cancel();
 
-    expect(calls, hasLength(1));
-    expect(calls.single.method, 'cancel');
+    expect(callsTo('cancel'), hasLength(1));
   });
 
   test('routes a notification tap to the opened callback', () async {
@@ -86,5 +98,32 @@ void main() {
         );
 
     expect(opened, 1);
+  });
+
+  test('routes the card Wake action to the wake callback', () async {
+    var woke = 0;
+    createPresenter(onWake: () => woke++);
+
+    await TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .handlePlatformMessage(
+          NativeSleepingNotificationPresenter.channelName,
+          const StandardMethodCodec().encodeMethodCall(
+            const MethodCall('wake'),
+          ),
+          (_) {},
+        );
+
+    expect(woke, 1);
+  });
+
+  test('applies a Wake tapped while the app was starting', () async {
+    readyAction = 'wake';
+    var woke = 0;
+    createPresenter(onWake: () => woke++);
+
+    await Future<void>.delayed(Duration.zero);
+
+    expect(callsTo('ready'), hasLength(1));
+    expect(woke, 1);
   });
 }

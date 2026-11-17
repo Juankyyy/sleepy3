@@ -730,7 +730,7 @@ Reglas:
 #### 3.4.1 Recordatorios de sueño
 
 - Es un recordatorio local diario, no una notificación push. No hay servidor ni se envía
-  ningún dato de sueño; el texto solo invita a abrir Sleepy3.
+  ningún dato de sueño; el texto invita a iniciar el sueño.
 - Se guarda en `preferences` con `sleep_reminder_enabled` y `sleep_reminder_time`
   (`HH:mm`). Sin preferencia, el valor por defecto es desactivado a las 22:00.
 - El permiso `POST_NOTIFICATIONS` se pide solo al activar el interruptor (Android 13+),
@@ -744,8 +744,11 @@ Reglas:
   programación se cancela; al despertar se vuelve a programar. La app sincroniza el
   recordatorio al arrancar, al volver al primer plano, al cambiar Sleep/Wake y al cambiar
   el idioma, de modo que el texto de la notificación queda en el idioma actual.
-- Tocar la notificación abre Sleepy3 en `Home`, incluso si la app estaba en `Stats` o
-  `Settings`. No inicia ni cierra una sesión por sí sola.
+- La notificación incluye una acción `Start sleep` / `Iniciar sueño`. Al tocarla se abre
+  Sleepy3 en `Home` y se aplica el camino normal de Sleep: la sesión se abre, el recordatorio
+  se pausa y la tarjeta de sueño en curso sustituye al aviso. La acción cancela la
+  notificación entregada. El toque en el cuerpo abre `Home` sin iniciar nada. La capa de
+  notificación nunca escribe una sesión por sí sola.
 - Si el usuario revoca las notificaciones después de activarlo, la preferencia sigue
   activa pero Settings muestra la fila de aviso.
 - El canal de Android se llama `Sleep reminder` y usa importancia alta para que el aviso
@@ -764,6 +767,15 @@ Reglas:
 - La tarjeta usa `Notification.DecoratedCustomViewStyle` con una vista colapsada de 64 dp y
   una expandida: marca de Sleepy3 en un círculo claro, `Durmiendo`, un `Chronometer` grande
   y el objetivo. La cabecera del sistema muestra `En curso` y oculta el timestamp duplicado.
+- La tarjeta incluye una acción `Wake` / `Despertar` con su etiqueta localizada. Al tocarla
+  se abre `Home` y se ejecuta el mismo flujo de Wake que el botón grande: una sesión normal
+  se cierra con `SleepTrackingController`, con la copia local y la subida a Google Health
+  del camino normal; una sesión fuera del rango registrable muestra el diálogo de sesión
+  corta o larga del botón grande. Si el usuario elige seguir durmiendo o cierra el diálogo,
+  no se guarda nada y la tarjeta sigue publicada. El diálogo espera a que termine el splash
+  en un arranque en frío. Un `Wake` pulsado durante un arranque en frío se guarda en el
+  puente nativo hasta que Dart llama a `ready`, para no perderlo. Tocar el cuerpo de la
+  tarjeta solo abre `Home`.
 - El cronómetro es un `Chronometer` de `RemoteViews` con base convertida desde `startedAt`
   a `SystemClock.elapsedRealtime()`; no hay un `Timer` de Dart ni un foreground service.
   Por eso sigue contando aunque el proceso de la app muera y no consume batería.
@@ -789,10 +801,10 @@ Reglas:
   denegación deja la notificación oculta y no rompe el seguimiento. El usuario puede
   habilitar después las notificaciones o el canal en Android y la notificación vuelve en
   la siguiente sincronización.
-- Tocar la notificación abre `Home` mediante un `PendingIntent` a `MainActivity`; si la app
-  ya estaba abierta en otra pestaña, `onNewIntent` avisa a Dart y `Sleepy3Shell` selecciona
-  `Home`. El canal es independiente del recordatorio, así que se puede desactivar solo este
-  aviso sin perder el recordatorio nocturno.
+- Tocar el cuerpo de la notificación abre `Home` mediante un `PendingIntent` a
+  `MainActivity`; si la app ya estaba abierta en otra pestaña, `onNewIntent` avisa a Dart y
+  `Sleepy3Shell` selecciona `Home`. El canal es independiente del recordatorio, así que se
+  puede desactivar solo este aviso sin perder el recordatorio nocturno.
 - Tras reiniciar el teléfono la notificación no se restaura por sí sola: vuelve a aparecer
   al abrir Sleepy3 si la sesión sigue abierta. No se añade un receiver nativo ni un
   foreground service en esta iteración.
@@ -1291,7 +1303,9 @@ Reglas:
 | Aviso de notificaciones | `Notifications are off` / `Allow Sleepy3 to send the notification.` |
 | Permiso denegado | `Allow notifications to get the sleep reminder.` / `Open settings` |
 | Error al programar | `Couldn't set the sleep reminder. Try again.` |
-| Notificación | `Time to record your sleep` / `Open Sleepy3 and tap Sleep when you turn off the lights.` |
+| Notificación | `Time to record your sleep` / `Tap Start sleep when you turn off the lights.` |
+| Acción del recordatorio | `Start sleep` |
+| Acción de la tarjeta de sueño | `Wake` |
 | Fila de tema | `Theme` |
 | Modos de tema | `System`, `Light`, `Dark` |
 | Fila de hora | `Time format` / `12-hour`, `24-hour` |

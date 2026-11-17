@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/app/sleepy3_app.dart';
+import 'package:sleepy3/core/notifications/notification_providers.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
 import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
 import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
@@ -24,6 +25,7 @@ import 'package:sleepy3/features/sleep_tracking/presentation/widgets/sleep_histo
 import 'package:sleepy3/features/sleep_tracking/presentation/widgets/track_action_button.dart';
 
 import '../../health/fakes.dart';
+import '../../../core/notifications/fakes.dart';
 import '../fakes.dart';
 
 void main() {
@@ -47,6 +49,9 @@ void main() {
           sleepSessionStoreProvider.overrideWithValue(sleepStore),
           sleepingNotificationPresenterProvider.overrideWithValue(
             FakeSleepingNotificationPresenter(),
+          ),
+          localNotificationsProvider.overrideWithValue(
+            FakeNotificationPlatform().build(),
           ),
           initialSleepSnapshotProvider.overrideWithValue(
             SleepSnapshot(openSession: initial.openSession),

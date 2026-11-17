@@ -4,6 +4,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/app/navigation/pill_navigation_bar.dart';
 import 'package:sleepy3/app/sleepy3_app.dart';
+import 'package:sleepy3/core/notifications/notification_providers.dart';
 import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
 import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
 import 'package:sleepy3/features/health/application/sleep_data_source_controller.dart';
@@ -15,6 +16,7 @@ import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart'
 
 import '../../health/fakes.dart';
 import '../../sleep_tracking/fakes.dart';
+import '../../../core/notifications/fakes.dart';
 
 void main() {
   final now = DateTime(2026, 10, 20, 22, 30);
@@ -50,6 +52,9 @@ void main() {
           sleepSessionStoreProvider.overrideWithValue(sleepStore),
           sleepingNotificationPresenterProvider.overrideWithValue(
             FakeSleepingNotificationPresenter(),
+          ),
+          localNotificationsProvider.overrideWithValue(
+            FakeNotificationPlatform().build(),
           ),
           initialSleepDataSourceProvider.overrideWithValue(source),
           healthConnectGatewayProvider.overrideWithValue(

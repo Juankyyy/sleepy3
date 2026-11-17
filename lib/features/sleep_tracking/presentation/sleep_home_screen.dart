@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../../core/notifications/notification_providers.dart';
+import '../../../core/startup/startup_providers.dart';
 import '../../../core/time/clock_format.dart';
 import '../../../core/time/day_phase.dart';
 import '../../../l10n/l10n.dart';
@@ -23,11 +25,43 @@ import 'widgets/sleep_history_status.dart';
 import 'widgets/track_action_button.dart';
 
 /// The Home destination: brand, live clock, session line, action and summary.
-class SleepHomeScreen extends ConsumerWidget {
+class SleepHomeScreen extends ConsumerStatefulWidget {
   const SleepHomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SleepHomeScreen> createState() => _SleepHomeScreenState();
+}
+
+class _SleepHomeScreenState extends ConsumerState<SleepHomeScreen> {
+  bool _pendingWake = false;
+  bool _handlingWake = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // A Wake tapped across a cold start can arrive before this screen listens.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (ref.read(notificationWakeRequestProvider.notifier).take()) {
+        _pendingWake = true;
+      }
+      unawaited(_handlePendingWake());
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(notificationWakeRequestProvider, (previous, pending) {
+      if (!pending) return;
+      if (!ref.read(notificationWakeRequestProvider.notifier).take()) return;
+      _pendingWake = true;
+      unawaited(_handlePendingWake());
+    });
+    ref.listen(splashCompletedProvider, (previous, completed) {
+      if (!completed) return;
+      unawaited(_handlePendingWake());
+    });
+
     final state = ref.watch(sleepTrackingControllerProvider);
     final controller = ref.read(sleepTrackingControllerProvider.notifier);
     final goal = ref.watch(sleepGoalProvider);
@@ -104,13 +138,45 @@ class SleepHomeScreen extends ConsumerWidget {
     );
   }
 
+  /// Runs the notification Wake when the splash is gone and a session is open.
+  ///
+  /// The request is consumed before the dialog opens, so rebuilding Home
+  /// cannot close a newer session. A pending request waits for the splash and
+  /// for any dialog that is already handling an earlier tap.
+  Future<void> _handlePendingWake() async {
+    if (!mounted || !_pendingWake || _handlingWake) return;
+    if (!ref.read(splashCompletedProvider)) return;
+
+    final state = ref.read(sleepTrackingControllerProvider);
+    if (state.openSession == null) {
+      _pendingWake = false;
+      return;
+    }
+
+    _pendingWake = false;
+    _handlingWake = true;
+    final now = ref.read(sleepClockProvider)();
+    try {
+      await _wake(context, ref, state, now, () {});
+    } catch (error, stackTrace) {
+      debugPrint(
+        'Sleepy3: could not wake from the sleep notification: '
+        '$error\n$stackTrace',
+      );
+    } finally {
+      _handlingWake = false;
+      if (mounted) unawaited(_handlePendingWake());
+    }
+  }
+
   /// Confirms or fixes an out-of-range sleep, then closes it.
   ///
   /// The controller still rules: it re-checks the clock when the user confirms,
   /// so a sleep that crossed a limit while a dialog was open is handled with
-  /// the fresh times, and it discards without a dialog when Wake reaches it
-  /// through another path. [onSaving] runs only when a write will happen, after
-  /// the dialogs, so the slide never shows "Saving session" behind one. A null
+  /// the fresh times. A non-UI Wake that reaches the controller directly is
+  /// still discarded without a dialog; Home and the notification action ask
+  /// here first. [onSaving] runs only when a write will happen, after the
+  /// dialogs, so the slide never shows "Saving session" behind one. A null
   /// result means the user chose to keep sleeping.
   Future<SleepWakeOutcome?> _wake(
     BuildContext context,
