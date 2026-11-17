@@ -716,38 +716,73 @@
       }
     }
   },
-  "goalDefault": "Your 8h goal",
+  "sleepGoal": "Sleep goal",
+  "sleepGoalValue": "{goal} a night",
+  "@sleepGoalValue": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "goalDefault": "Your {goal} goal",
+  "@goalDefault": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
   "goalMet": "Goal met",
-  "goalOver": "Goal met · {delta} over the 8h goal",
+  "goalOver": "Goal met · {delta} over the {goal} goal",
   "@goalOver": {
     "placeholders": {
       "delta": {
         "type": "String"
+      },
+      "goal": {
+        "type": "String"
       }
     }
   },
-  "goalUnder": "{delta} short of the 8h goal",
+  "goalUnder": "{delta} short of the {goal} goal",
   "@goalUnder": {
     "placeholders": {
       "delta": {
         "type": "String"
-      }
-    }
-  },
-  "spokenGoalDefault": "8-hour goal",
-  "spokenGoalMet": "goal met",
-  "spokenGoalOver": "goal met, {delta} over the 8-hour goal",
-  "@spokenGoalOver": {
-    "placeholders": {
-      "delta": {
+      },
+      "goal": {
         "type": "String"
       }
     }
   },
-  "spokenGoalUnder": "{delta} short of the 8-hour goal",
+  "spokenGoalDefault": "goal of {goal}",
+  "@spokenGoalDefault": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "spokenGoalMet": "goal met",
+  "spokenGoalOver": "goal met, {delta} over the goal of {goal}",
+  "@spokenGoalOver": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "spokenGoalUnder": "{delta} short of the goal of {goal}",
   "@spokenGoalUnder": {
     "placeholders": {
       "delta": {
+        "type": "String"
+      },
+      "goal": {
         "type": "String"
       }
     }
@@ -1053,6 +1088,14 @@
         "type": "int"
       },
       "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "spokenDurationHours": "{hours, plural, =1{1 hour} other{{hours} hours}}",
+  "@spokenDurationHours": {
+    "placeholders": {
+      "hours": {
         "type": "int"
       }
     }

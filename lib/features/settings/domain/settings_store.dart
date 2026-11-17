@@ -1,5 +1,6 @@
 import '../../health/domain/sleep_data_source.dart';
 import '../../reminders/domain/sleep_reminder.dart';
+import '../../sleep_tracking/domain/sleep_goal.dart';
 import '../../stats/domain/stats_summary_option.dart';
 import 'app_language.dart';
 import 'app_theme_mode.dart';
@@ -49,4 +50,10 @@ abstract interface class SettingsStore {
   Future<StatsSummaryOption> loadStatsSummaryOption();
 
   Future<void> saveStatsSummaryOption(StatsSummaryOption option);
+
+  /// The nightly goal used by Home and Stats, defaulting to
+  /// [defaultSleepGoal].
+  Future<Duration> loadSleepGoal();
+
+  Future<void> saveSleepGoal(Duration goal);
 }

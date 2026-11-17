@@ -1021,35 +1021,47 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get goalDefault => 'Your 8h goal';
+  String get sleepGoal => 'Sleep goal';
+
+  @override
+  String sleepGoalValue(String goal) {
+    return '$goal a night';
+  }
+
+  @override
+  String goalDefault(String goal) {
+    return 'Your $goal goal';
+  }
 
   @override
   String get goalMet => 'Goal met';
 
   @override
-  String goalOver(String delta) {
-    return 'Goal met · $delta over the 8h goal';
+  String goalOver(String delta, String goal) {
+    return 'Goal met · $delta over the $goal goal';
   }
 
   @override
-  String goalUnder(String delta) {
-    return '$delta short of the 8h goal';
+  String goalUnder(String delta, String goal) {
+    return '$delta short of the $goal goal';
   }
 
   @override
-  String get spokenGoalDefault => '8-hour goal';
+  String spokenGoalDefault(String goal) {
+    return 'goal of $goal';
+  }
 
   @override
   String get spokenGoalMet => 'goal met';
 
   @override
-  String spokenGoalOver(String delta) {
-    return 'goal met, $delta over the 8-hour goal';
+  String spokenGoalOver(String delta, String goal) {
+    return 'goal met, $delta over the goal of $goal';
   }
 
   @override
-  String spokenGoalUnder(String delta) {
-    return '$delta short of the 8-hour goal';
+  String spokenGoalUnder(String delta, String goal) {
+    return '$delta short of the goal of $goal';
   }
 
   @override
@@ -1548,6 +1560,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String durationHoursMinutes(int hours, int minutes) {
     return '${hours}h ${minutes}m';
+  }
+
+  @override
+  String spokenDurationHours(int hours) {
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours hours',
+      one: '1 hour',
+    );
+    return '$_temp0';
   }
 
   @override

@@ -7,7 +7,6 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../../l10n/l10n.dart';
-import '../../../sleep_tracking/domain/sleep_goal.dart';
 import '../../../sleep_tracking/domain/sleep_history.dart';
 import '../../../sleep_tracking/domain/sleep_insights.dart';
 import 'chart_axis.dart';
@@ -28,16 +27,20 @@ import 'chart_tooltip.dart';
 /// My design decisions (not in M3): the 180dp canvas, 4dp bar radius, 4h grid
 /// step, 16ms entry stagger, 2% selected-bar scale, the canvas sitting 4dp
 /// from the card edge and the muted/emphasis split for bars under and over the
-/// goal. M3 publishes no chart component and no stagger value.
+/// nightly goal. M3 publishes no chart component and no stagger value.
 class SleepDurationChart extends StatelessWidget {
   const SleepDurationChart({
     super.key,
     required this.insights,
+    required this.goal,
     this.historyLimited = false,
     this.showHeader = true,
   });
 
   final SleepInsights insights;
+
+  /// The nightly goal chosen in Settings.
+  final Duration goal;
 
   /// Whether the selected range is wider than the Health Connect history
   /// permission allows. The card then names the 30 available days instead of
@@ -50,7 +53,7 @@ class SleepDurationChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final goal = l10n.formatGoalDelta(dailySleepGoal);
+    final goalLabel = l10n.formatGoalDelta(goal);
     final range = chartRangeLabel(l10n, insights.range);
     final supportRange = historyLimited
         ? l10n.historyLast30DaysAvailable
@@ -62,12 +65,12 @@ class SleepDurationChart extends StatelessWidget {
       support: l10n.chartSleepDurationSupport(
         supportRange,
         insights.recordedDays,
-        goal,
+        goalLabel,
       ),
-      semanticSummary: _spokenSummary(context, spokenRange, goal),
+      semanticSummary: _spokenSummary(context, spokenRange, goalLabel),
       showHeader: showHeader,
       child: insights.hasData
-          ? _SleepDurationChartBody(insights: insights)
+          ? _SleepDurationChartBody(insights: insights, goal: goal)
           : ChartEmptyState(message: l10n.noNightsInRange),
     );
   }
@@ -95,9 +98,10 @@ class SleepDurationChart extends StatelessWidget {
 }
 
 class _SleepDurationChartBody extends StatefulWidget {
-  const _SleepDurationChartBody({required this.insights});
+  const _SleepDurationChartBody({required this.insights, required this.goal});
 
   final SleepInsights insights;
+  final Duration goal;
 
   @override
   State<_SleepDurationChartBody> createState() =>
@@ -293,7 +297,7 @@ class _SleepDurationChartBodyState extends State<_SleepDurationChartBody>
   @override
   Widget build(BuildContext context) {
     final palette = ChartPalette.of(context);
-    final goal = dailySleepGoal;
+    final goal = widget.goal;
     final axis = _buildAxis(context);
     final count = math.max(_fromBuckets.length, _toBuckets.length);
     final barProgress = [
@@ -359,7 +363,7 @@ class _SleepDurationChartBodyState extends State<_SleepDurationChartBody>
 
   ChartAxis _buildAxis(BuildContext context) {
     final l10n = context.l10n;
-    var maxMinutes = dailySleepGoal.inMinutes.toDouble();
+    var maxMinutes = widget.goal.inMinutes.toDouble();
     for (final value in [..._fromValues, ..._toValues]) {
       if (value != null && value > maxMinutes) maxMinutes = value;
     }

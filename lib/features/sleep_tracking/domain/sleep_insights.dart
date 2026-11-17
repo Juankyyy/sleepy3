@@ -1,5 +1,4 @@
 import 'sleep_clock.dart';
-import 'sleep_goal.dart';
 import 'sleep_history.dart';
 import 'sleep_session.dart';
 
@@ -132,7 +131,7 @@ class SleepChartBucket {
   /// Mean sleep per recorded night, or null when the bucket is empty.
   ///
   /// Weekly and monthly buckets average the nights instead of summing them,
-  /// so every bucket is comparable with the 8-hour goal.
+  /// so every bucket is comparable with the nightly goal.
   final Duration? averageDuration;
 
   /// Circular mean of the bedtimes, as time since local midnight.
@@ -230,11 +229,11 @@ class SleepInsights {
   /// empty. Ties keep the most recent day.
   final SleepInsightsDay? worstDay;
 
-  /// Recorded nights that reached the 8-hour goal, divided by
-  /// [recordedDays]. Null when the window is empty.
+  /// Recorded nights that reached the goal, divided by [recordedDays]. Null
+  /// when the window is empty.
   final double? goalHitRate;
 
-  /// Recorded nights whose total is at least the 8-hour goal.
+  /// Recorded nights whose total is at least the goal.
   final int goalNights;
 
   /// Recorded nights below the goal.
@@ -243,8 +242,8 @@ class SleepInsights {
   /// Recorded nights above the goal.
   final int longNights;
 
-  /// [total] minus eight hours for every recorded night. Positive is a
-  /// surplus; negative is a debt. Null when the window is empty.
+  /// [total] minus the goal for every recorded night. Positive is a surplus;
+  /// negative is a debt. Null when the window is empty.
   final Duration? sleepBalance;
 
   /// Consecutive goal nights ending today or yesterday.
@@ -294,11 +293,14 @@ class SleepInsights {
 /// Builds the advanced Stats metrics for [range].
 ///
 /// [now] is injected by [LocalDayBuilder]; this function never reads the clock
-/// itself. The open session is ignored because it has no known duration.
+/// itself. [goal] is the nightly goal chosen in Settings; the goal-dependent
+/// figures are recalculated with it, so the history is always read with the
+/// current goal. The open session is ignored because it has no known duration.
 SleepInsights buildSleepInsights({
   required DateTime now,
   required Iterable<SleepSession> sessions,
   required SleepHistoryRange range,
+  required Duration goal,
 }) {
   final sessionList = sessions.toList(growable: false);
   final localNow = now.toLocal();
@@ -326,13 +328,13 @@ SleepInsights buildSleepInsights({
 
   final recordedDays = history.nights;
   final goalNights = days
-      .where((day) => day.hasData && day.total >= dailySleepGoal)
+      .where((day) => day.hasData && day.total >= goal)
       .length;
   final shortNights = days
-      .where((day) => day.hasData && day.total < dailySleepGoal)
+      .where((day) => day.hasData && day.total < goal)
       .length;
   final longNights = days
-      .where((day) => day.hasData && day.total > dailySleepGoal)
+      .where((day) => day.hasData && day.total > goal)
       .length;
 
   final bedtimes = <DateTime>[];
@@ -350,7 +352,7 @@ SleepInsights buildSleepInsights({
 
   final bedtimeSummary = summarizeSleepClockTimes(bedtimes);
   final wakeSummary = summarizeSleepClockTimes(wakes);
-  final streaks = _goalStreaks(days);
+  final streaks = _goalStreaks(days, goal);
   final bestAndWorst = _bestAndWorst(days);
 
   return SleepInsights(
@@ -371,7 +373,7 @@ SleepInsights buildSleepInsights({
     longNights: longNights,
     sleepBalance: recordedDays == 0
         ? null
-        : history.total - dailySleepGoal * recordedDays,
+        : history.total - goal * recordedDays,
     currentGoalStreak: streaks.current,
     longestGoalStreak: streaks.longest,
     averageBedtime: bedtimeSummary.average,
@@ -451,11 +453,14 @@ Duration? _median(List<SleepInsightsDay> days) {
   return (best: best, worst: worst);
 }
 
-({int current, int longest}) _goalStreaks(List<SleepInsightsDay> days) {
+({int current, int longest}) _goalStreaks(
+  List<SleepInsightsDay> days,
+  Duration goal,
+) {
   var longest = 0;
   var run = 0;
   for (final day in days.reversed) {
-    if (day.hasData && day.total >= dailySleepGoal) {
+    if (day.hasData && day.total >= goal) {
       run++;
       if (run > longest) longest = run;
     } else {
@@ -474,7 +479,7 @@ Duration? _median(List<SleepInsightsDay> days) {
 
     for (var index = start; index >= 0 && index < days.length; index++) {
       final day = days[index];
-      if (!day.hasData || day.total < dailySleepGoal) break;
+      if (!day.hasData || day.total < goal) break;
       current++;
     }
   }

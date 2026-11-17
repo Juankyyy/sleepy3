@@ -4,7 +4,6 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../../l10n/l10n.dart';
-import '../../../sleep_tracking/domain/sleep_goal.dart';
 import '../../../sleep_tracking/domain/sleep_insights.dart';
 import 'chart_axis.dart';
 import 'chart_empty_state.dart';
@@ -21,18 +20,22 @@ import 'chart_tooltip.dart';
 /// From M3: outlined card, 12dp corners, 16dp header padding, `titleMedium`
 /// emphasized, `bodySmall` support and `labelSmall` axes.
 /// My design decisions (not in M3): the 180dp canvas, the 4dp bar radius, the
-/// small `Best` label above the longest day, the 8h goal line, the
+/// small `Best` label above the longest day, the nightly goal line, the
 /// muted/emphasis split for bars under and over the goal and the canvas sitting
 /// 4dp from the card edge. M3 has no chart component.
 class WeekdayChart extends StatelessWidget {
   const WeekdayChart({
     super.key,
     required this.insights,
+    required this.goal,
     this.historyLimited = false,
     this.showHeader = true,
   });
 
   final SleepInsights insights;
+
+  /// The nightly goal chosen in Settings.
+  final Duration goal;
 
   /// Whether the selected range is wider than the Health Connect history
   /// permission allows. The card then names the 30 available days instead of
@@ -58,7 +61,7 @@ class WeekdayChart extends StatelessWidget {
       semanticSummary: _spokenSummary(context, spokenRange),
       showHeader: showHeader,
       child: hasData
-          ? _WeekdayChartBody(insights: insights)
+          ? _WeekdayChartBody(insights: insights, goal: goal)
           : ChartEmptyState(message: l10n.noNightsInRange),
     );
   }
@@ -88,9 +91,10 @@ SleepWeekdayStat? _bestWeekday(SleepInsights insights) {
 }
 
 class _WeekdayChartBody extends StatefulWidget {
-  const _WeekdayChartBody({required this.insights});
+  const _WeekdayChartBody({required this.insights, required this.goal});
 
   final SleepInsights insights;
+  final Duration goal;
 
   @override
   State<_WeekdayChartBody> createState() => _WeekdayChartBodyState();
@@ -257,6 +261,7 @@ class _WeekdayChartBodyState extends State<_WeekdayChartBody>
               progress: _progress.value,
               selectionProgress: _selectionController.value,
               selectedIndex: _selectedIndex,
+              goal: widget.goal,
               labels: labels,
               bestIndex: bestIndex,
               bestLabel: l10n.chartWeekdayBest,
@@ -299,7 +304,7 @@ class _WeekdayChartBodyState extends State<_WeekdayChartBody>
 
   ChartAxis _buildAxis(BuildContext context) {
     final l10n = context.l10n;
-    var maxMinutes = dailySleepGoal.inMinutes.toDouble();
+    var maxMinutes = widget.goal.inMinutes.toDouble();
     for (final value in [..._fromValues, ..._toValues]) {
       if (value != null && value > maxMinutes) maxMinutes = value;
     }
@@ -363,6 +368,7 @@ class _WeekdayChartPainter extends ChartPainter {
     required this.progress,
     required this.selectionProgress,
     required this.selectedIndex,
+    required this.goal,
     required this.labels,
     required this.bestIndex,
     required this.bestLabel,
@@ -373,6 +379,7 @@ class _WeekdayChartPainter extends ChartPainter {
   final double progress;
   final double selectionProgress;
   final int? selectedIndex;
+  final Duration goal;
   final List<String> labels;
   final int? bestIndex;
   final String bestLabel;
@@ -381,7 +388,7 @@ class _WeekdayChartPainter extends ChartPainter {
   void paintChart(Canvas canvas, Rect plot) {
     final t = progress;
     final fade = t.clamp(0.0, 1.0).toDouble();
-    final goalMinutes = dailySleepGoal.inMinutes.toDouble();
+    final goalMinutes = goal.inMinutes.toDouble();
     final count = math.max(fromValues.length, toValues.length);
     final fromSlotWidth = fromValues.isEmpty
         ? 0.0

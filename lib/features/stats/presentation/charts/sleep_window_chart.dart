@@ -5,7 +5,6 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../../l10n/l10n.dart';
-import '../../../sleep_tracking/domain/sleep_goal.dart';
 import '../../../sleep_tracking/domain/sleep_history.dart';
 import '../../../sleep_tracking/domain/sleep_insights.dart';
 import 'chart_axis.dart';
@@ -41,11 +40,15 @@ class SleepWindowChart extends StatelessWidget {
   const SleepWindowChart({
     super.key,
     required this.insights,
+    required this.goal,
     this.historyLimited = false,
     this.showHeader = true,
   });
 
   final SleepInsights insights;
+
+  /// The nightly goal chosen in Settings.
+  final Duration goal;
 
   /// Whether the selected range is wider than the Health Connect history
   /// permission allows. The card then names the 30 available days instead of
@@ -85,7 +88,7 @@ class SleepWindowChart extends StatelessWidget {
       canvasHeight: canvasHeight,
       showHeader: showHeader,
       child: hasData
-          ? _SleepWindowChartBody(insights: insights)
+          ? _SleepWindowChartBody(insights: insights, goal: goal)
           : ChartEmptyState(message: l10n.noNightsInRange),
     );
   }
@@ -118,9 +121,10 @@ class SleepWindowChart extends StatelessWidget {
 }
 
 class _SleepWindowChartBody extends StatefulWidget {
-  const _SleepWindowChartBody({required this.insights});
+  const _SleepWindowChartBody({required this.insights, required this.goal});
 
   final SleepInsights insights;
+  final Duration goal;
 
   @override
   State<_SleepWindowChartBody> createState() => _SleepWindowChartBodyState();
@@ -316,6 +320,7 @@ class _SleepWindowChartBodyState extends State<_SleepWindowChartBody>
               progress: _progress.value,
               selectionProgress: _selectionController.value,
               selectedIndex: _selectedIndex,
+              goal: widget.goal,
               ticks: ticks,
             );
             final plot = painter.plotRect(size);
@@ -550,6 +555,7 @@ class _WindowChartPainter extends ChartPainter {
     required this.progress,
     required this.selectionProgress,
     required this.selectedIndex,
+    required this.goal,
     required this.ticks,
   });
 
@@ -558,6 +564,7 @@ class _WindowChartPainter extends ChartPainter {
   final double progress;
   final double selectionProgress;
   final int? selectedIndex;
+  final Duration goal;
   final List<_WindowTick> ticks;
 
   @override
@@ -776,8 +783,7 @@ class _WindowChartPainter extends ChartPainter {
 
     final left = _xFor(math.min(bedtime, wake), plot);
     final right = _xFor(math.max(bedtime, wake), plot);
-    final goalMet =
-        (wake - bedtime).abs() >= dailySleepGoal.inMinutes.toDouble();
+    final goalMet = (wake - bedtime).abs() >= goal.inMinutes.toDouble();
     final height = _capsuleHeight + (_selectedCapsuleGrowth * selection);
     final rect = Rect.fromLTRB(
       left,

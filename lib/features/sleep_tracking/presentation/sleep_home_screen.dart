@@ -9,9 +9,11 @@ import '../../../core/time/clock_format.dart';
 import '../../../core/time/day_phase.dart';
 import '../../../l10n/l10n.dart';
 import '../../health/presentation/health_sync_banner.dart';
+import '../../settings/application/sleep_goal_controller.dart';
 import '../../stats/presentation/session_edit_error_text.dart';
 import '../application/sleep_tracking_controller.dart';
 import '../domain/recent_sleep_summary.dart';
+import '../domain/sleep_goal.dart';
 import '../domain/sleep_session.dart';
 import 'widgets/home_clock.dart';
 import 'widgets/home_header.dart';
@@ -28,6 +30,7 @@ class SleepHomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(sleepTrackingControllerProvider);
     final controller = ref.read(sleepTrackingControllerProvider.notifier);
+    final goal = ref.watch(sleepGoalProvider);
     final open = state.openSession;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
@@ -83,6 +86,7 @@ class SleepHomeScreen extends ConsumerWidget {
                             _HistorySummary(
                               state: state,
                               now: now,
+                              goal: goal,
                               onRetry: () =>
                                   unawaited(controller.reloadHistory()),
                             ),
@@ -309,6 +313,7 @@ class _HistorySummary extends StatelessWidget {
   const _HistorySummary({
     required this.state,
     required this.now,
+    required this.goal,
     required this.onRetry,
   });
 
@@ -328,6 +333,7 @@ class _HistorySummary extends StatelessWidget {
 
   final SleepTrackingState state;
   final DateTime now;
+  final Duration goal;
   final VoidCallback onRetry;
 
   @override
@@ -341,6 +347,7 @@ class _HistorySummary extends StatelessWidget {
           now: now,
           sessions: state.closedSessions,
         ),
+        goal: goal,
       ),
       SleepHistoryStatus.error => null,
     };
@@ -353,6 +360,7 @@ class _HistorySummary extends StatelessWidget {
       reference: RecentSleepSummaryCard(
         key: const Key('home-history-sizer'),
         summary: _heightReference,
+        goal: defaultSleepGoal,
       ),
       child: content,
     );

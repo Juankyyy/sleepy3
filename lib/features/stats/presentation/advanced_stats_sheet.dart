@@ -9,6 +9,7 @@ import '../../../core/theme/sleepy3_theme.dart';
 import '../../../core/time/local_day_builder.dart';
 import '../../../l10n/l10n.dart';
 import '../../health/presentation/health_history_banner.dart';
+import '../../settings/application/sleep_goal_controller.dart';
 import '../../sleep_tracking/application/sleep_tracking_controller.dart';
 import '../../sleep_tracking/domain/sleep_history.dart';
 import '../../sleep_tracking/domain/sleep_insights.dart';
@@ -92,6 +93,7 @@ class AdvancedStatsSheet extends ConsumerWidget {
     final clock = ref.watch(sleepClockProvider);
     final historyLimited = ref.watch(statsHistoryLimitedProvider);
     final summaryOption = ref.watch(statsSummaryControllerProvider);
+    final goal = ref.watch(sleepGoalProvider);
     final screenWidth = MediaQuery.sizeOf(context).width;
     final screenHeight = MediaQuery.sizeOf(context).height;
     final wide = screenWidth > 640;
@@ -136,26 +138,30 @@ class AdvancedStatsSheet extends ConsumerWidget {
                     now: today,
                     sessions: state.closedSessions,
                     range: range,
+                    goal: goal,
                   );
                   // The block in the summary is not repeated in the sheet.
                   // Average sleep never lived in the sheet, so selecting it
                   // keeps all five advanced blocks.
                   final blocks = <Widget>[
                     if (summaryOption != StatsSummaryOption.keyMetrics)
-                      StatsMetricsCard(insights: insights),
+                      StatsMetricsCard(insights: insights, goal: goal),
                     if (summaryOption != StatsSummaryOption.sleepDuration)
                       SleepDurationChart(
                         insights: insights,
+                        goal: goal,
                         historyLimited: historyLimited,
                       ),
                     if (summaryOption != StatsSummaryOption.sleepWindow)
                       SleepWindowChart(
                         insights: insights,
+                        goal: goal,
                         historyLimited: historyLimited,
                       ),
                     if (summaryOption != StatsSummaryOption.weekday)
                       WeekdayChart(
                         insights: insights,
+                        goal: goal,
                         historyLimited: historyLimited,
                       ),
                     if (summaryOption != StatsSummaryOption.keyData)

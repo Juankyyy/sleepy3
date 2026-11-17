@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sleepy3/features/sleep_tracking/domain/sleep_goal.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_history.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_insights.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
@@ -21,8 +22,14 @@ void main() {
     List<SleepSession> sessions, {
     SleepHistoryRange range = SleepHistoryRange.week,
     DateTime? at,
+    Duration goal = defaultSleepGoal,
   }) {
-    return buildSleepInsights(now: at ?? now, sessions: sessions, range: range);
+    return buildSleepInsights(
+      now: at ?? now,
+      sessions: sessions,
+      range: range,
+      goal: goal,
+    );
   }
 
   test('builds an empty week with every day and no invented metrics', () {
@@ -113,6 +120,51 @@ void main() {
     expect(lastBucket.averageDuration, const Duration(hours: 8));
     expect(lastBucket.averageBedtime, const Duration(hours: 23));
     expect(lastBucket.averageWake, const Duration(hours: 7));
+  });
+
+  test('uses a six-hour goal for the goal figures', () {
+    final insights = insightsFor([
+      nightEnding(daysAgo(0), const Duration(hours: 7)),
+      nightEnding(daysAgo(1), const Duration(hours: 6)),
+    ], goal: const Duration(hours: 6));
+
+    expect(insights.goalHitRate, 1);
+    expect(insights.goalNights, 2);
+    expect(insights.shortNights, 0);
+    expect(insights.longNights, 1);
+    expect(insights.sleepBalance, const Duration(hours: 1));
+    expect(insights.currentGoalStreak, 2);
+    expect(insights.longestGoalStreak, 2);
+  });
+
+  test('a night exactly at a ten-hour goal counts as met', () {
+    final insights = insightsFor([
+      nightEnding(daysAgo(0), const Duration(hours: 10)),
+    ], goal: const Duration(hours: 10));
+
+    expect(insights.goalHitRate, 1);
+    expect(insights.goalNights, 1);
+    expect(insights.shortNights, 0);
+    expect(insights.longNights, 0);
+    expect(insights.sleepBalance, Duration.zero);
+    expect(insights.currentGoalStreak, 1);
+    expect(insights.longestGoalStreak, 1);
+  });
+
+  test('one minute short of a ten-hour goal counts as short', () {
+    final insights = insightsFor([
+      nightEnding(
+        daysAgo(0),
+        const Duration(hours: 10) - const Duration(minutes: 1),
+      ),
+    ], goal: const Duration(hours: 10));
+
+    expect(insights.goalHitRate, 0);
+    expect(insights.goalNights, 0);
+    expect(insights.shortNights, 1);
+    expect(insights.longNights, 0);
+    expect(insights.sleepBalance, const Duration(minutes: -1));
+    expect(insights.currentGoalStreak, 0);
   });
 
   test('averages recorded days, takes the median and reports the balance', () {

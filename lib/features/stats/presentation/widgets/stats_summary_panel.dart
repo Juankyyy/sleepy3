@@ -18,11 +18,16 @@ class StatsSummaryPanel extends StatelessWidget {
     super.key,
     required this.option,
     required this.insights,
+    required this.goal,
     required this.historyLimited,
   });
 
   final StatsSummaryOption option;
   final SleepInsights insights;
+
+  /// The nightly goal chosen in Settings.
+  final Duration goal;
+
   final bool historyLimited;
 
   @override
@@ -31,17 +36,23 @@ class StatsSummaryPanel extends StatelessWidget {
       key: Key('stats-summary-${option.name}'),
       child: switch (option) {
         StatsSummaryOption.averageSleep => StatsHeroCard(insights: insights),
-        StatsSummaryOption.keyMetrics => StatsMetricsCard(insights: insights),
+        StatsSummaryOption.keyMetrics => StatsMetricsCard(
+          insights: insights,
+          goal: goal,
+        ),
         StatsSummaryOption.sleepDuration => SleepDurationChart(
           insights: insights,
+          goal: goal,
           historyLimited: historyLimited,
         ),
         StatsSummaryOption.sleepWindow => SleepWindowChart(
           insights: insights,
+          goal: goal,
           historyLimited: historyLimited,
         ),
         StatsSummaryOption.weekday => WeekdayChart(
           insights: insights,
+          goal: goal,
           historyLimited: historyLimited,
         ),
         StatsSummaryOption.keyData => StatsInsightsCard(

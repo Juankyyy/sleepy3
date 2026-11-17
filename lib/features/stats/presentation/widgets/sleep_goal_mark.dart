@@ -1,9 +1,7 @@
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../../sleep_tracking/domain/sleep_goal.dart';
-
-/// The leading mark that compares a night with [dailySleepGoal].
+/// The leading mark that compares a night with the nightly goal.
 ///
 /// At or above the goal it is the eight-leaf clover from the Material shape
 /// library, filled with [color] and carrying an [onColor] crescent. Below the
@@ -28,6 +26,7 @@ class SleepGoalMark extends StatelessWidget {
   const SleepGoalMark({
     super.key,
     required this.duration,
+    required this.goal,
     required this.size,
     required this.strokeWidth,
     required this.color,
@@ -38,6 +37,10 @@ class SleepGoalMark extends StatelessWidget {
   });
 
   final Duration duration;
+
+  /// The nightly goal chosen in Settings.
+  final Duration goal;
+
   final double size;
   final double strokeWidth;
   final Color color;
@@ -52,12 +55,12 @@ class SleepGoalMark extends StatelessWidget {
   /// Whether a below-goal ring reveals itself from zero.
   final bool animateProgress;
 
-  bool get _met => duration >= dailySleepGoal;
+  bool get _met => duration >= goal;
 
   @override
   Widget build(BuildContext context) {
     final iconSize = size * 0.41;
-    final fraction = _goalFraction(duration);
+    final fraction = _goalFraction(duration, goal);
 
     Widget clover() {
       final shape = M3EShapeContainer(
@@ -131,8 +134,8 @@ class SleepGoalMark extends StatelessWidget {
   }
 }
 
-double _goalFraction(Duration duration) {
-  if (duration <= Duration.zero) return 0;
-  final ratio = duration.inMicroseconds / dailySleepGoal.inMicroseconds;
+double _goalFraction(Duration duration, Duration goal) {
+  if (duration <= Duration.zero || goal <= Duration.zero) return 0;
+  final ratio = duration.inMicroseconds / goal.inMicroseconds;
   return ratio >= 1 ? 1 : ratio;
 }

@@ -17,6 +17,7 @@ import '../../health/domain/sleep_data_source.dart';
 import '../../health/domain/sleepy3_health_source.dart';
 import '../../health/presentation/health_history_banner.dart';
 import '../../health/presentation/health_sync_banner.dart';
+import '../../settings/application/sleep_goal_controller.dart';
 import '../../sleep_tracking/application/sleep_session_edit_service.dart';
 import '../../sleep_tracking/application/sleep_tracking_controller.dart';
 import '../../sleep_tracking/domain/session_edit.dart';
@@ -106,6 +107,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
     final source = ref.watch(sleepDataSourceProvider);
     final range = ref.watch(statsRangeProvider);
     final summaryOption = ref.watch(statsSummaryControllerProvider);
+    final goal = ref.watch(sleepGoalProvider);
     final historyLimited = ref.watch(statsHistoryLimitedProvider);
     final l10n = context.l10n;
     final theme = M3ETheme.of(context);
@@ -146,6 +148,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
           now: today,
           sessions: state.closedSessions,
           range: range,
+          goal: goal,
         );
         // Only offer the shortcut when there is something older to show. A
         // range can be empty because every session is in the future (clock
@@ -220,6 +223,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen>
                                   StatsSummaryPanel(
                                     option: summaryOption,
                                     insights: insights,
+                                    goal: goal,
                                     historyLimited: historyLimited,
                                   ),
                                   if (showAll) ...[

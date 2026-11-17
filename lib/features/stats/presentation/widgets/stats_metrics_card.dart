@@ -2,7 +2,6 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../../l10n/l10n.dart';
-import '../../../sleep_tracking/domain/sleep_goal.dart';
 import '../../../sleep_tracking/domain/sleep_insights.dart';
 
 /// The metric tiles shown by [StatsMetricsCard].
@@ -27,11 +26,15 @@ class StatsMetricsCard extends StatelessWidget {
   const StatsMetricsCard({
     super.key,
     required this.insights,
+    required this.goal,
     this.metrics = StatsMetricType.values,
     this.columns,
   });
 
   final SleepInsights insights;
+
+  /// The nightly goal chosen in Settings.
+  final Duration goal;
 
   /// Which metrics to render, in order.
   final List<StatsMetricType> metrics;
@@ -90,7 +93,7 @@ class StatsMetricsCard extends StatelessWidget {
 
   List<_Metric> _buildMetrics(AppLocalizations l10n) {
     final recorded = insights.recordedDays;
-    final goal = l10n.formatGoalDelta(dailySleepGoal);
+    final goalLabel = l10n.formatGoalDelta(goal);
 
     final hitRate = insights.goalHitRate;
     final goalValue = hitRate == null
@@ -117,10 +120,10 @@ class StatsMetricsCard extends StatelessWidget {
     final balanceSupport = balance == null
         ? l10n.noNightsInRange
         : balance > Duration.zero
-        ? l10n.metricBalanceSurplus(goal)
+        ? l10n.metricBalanceSurplus(goalLabel)
         : balance < Duration.zero
-        ? l10n.metricBalanceDebt(goal)
-        : l10n.metricBalanceEven(goal);
+        ? l10n.metricBalanceDebt(goalLabel)
+        : l10n.metricBalanceEven(goalLabel);
 
     final bestValue = recorded == 0
         ? '—'

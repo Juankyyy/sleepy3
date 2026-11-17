@@ -5,7 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../../l10n/l10n.dart';
 import '../../../health/application/app_info_provider.dart';
 import '../../../health/domain/sleep_data_source.dart';
-import '../../../sleep_tracking/domain/sleep_goal.dart';
+import '../../../settings/application/sleep_goal_controller.dart';
 import '../../../sleep_tracking/domain/sleep_history.dart';
 import '../../../sleep_tracking/domain/sleep_session.dart';
 import '../history_labels.dart';
@@ -91,7 +91,7 @@ double _historyEmphasis(int index) {
 /// on uses the base with `onSurface`. Only the highlighted card uses the accent
 /// on-color; the faded cards keep the neutral text. Sessions written by another
 /// app add an external-app arrow and the app's label next to the day. The 44 dp
-/// (or 36 dp compact) leading mark compares the night with [dailySleepGoal]:
+/// (or 36 dp compact) leading mark compares the night with the nightly goal:
 /// below the goal it is a ring, and at or above it becomes the eight-leaf
 /// clover from the M3 shape library. Both are decorative because the spoken
 /// label already carries the duration and the goal state. The whole card is
@@ -138,6 +138,7 @@ class _HistoryCard extends ConsumerWidget {
         : scheme.onSurface;
     final end = entry.session.endedAt!;
     final badgeSize = compact ? 36.0 : 44.0;
+    final goal = ref.watch(sleepGoalProvider);
     final sourceId = entry.session.sourceId;
     // Resolve the writer app only for rows that show it. The family caches one
     // lookup per package, so several sessions from the same app share it.
@@ -148,7 +149,7 @@ class _HistoryCard extends ConsumerWidget {
     return Semantics(
       container: true,
       button: true,
-      label: _spokenLabel(l10n, appLabel: appLabel),
+      label: _spokenLabel(l10n, goal: goal, appLabel: appLabel),
       hint: l10n.opensSession,
       onTap: onTap,
       child: ExcludeSemantics(
@@ -163,6 +164,7 @@ class _HistoryCard extends ConsumerWidget {
             children: [
               SleepGoalMark(
                 duration: entry.session.duration,
+                goal: goal,
                 size: badgeSize,
                 strokeWidth: compact ? 3 : 4,
                 color: scheme.primary,
@@ -201,13 +203,15 @@ class _HistoryCard extends ConsumerWidget {
     );
   }
 
-  String _spokenLabel(AppLocalizations l10n, {required String? appLabel}) {
+  String _spokenLabel(
+    AppLocalizations l10n, {
+    required Duration goal,
+    required String? appLabel,
+  }) {
     final session = entry.session;
     final day = l10n.formatHistoryDaySpoken(entry.date, today);
     final duration = l10n.formatSpokenSleepDuration(session.duration);
-    final goal = session.duration >= dailySleepGoal
-        ? ', ${l10n.goalMetLower}'
-        : '';
+    final goalLabel = session.duration >= goal ? ', ${l10n.goalMetLower}' : '';
     final range = l10n.formatHistoryTimeRangeSpoken(
       session.startedAt,
       session.endedAt!,
@@ -216,7 +220,7 @@ class _HistoryCard extends ConsumerWidget {
     final prefix = external
         ? '${l10n.formatExternalSessionSpokenLabel(appLabel)}, '
         : '';
-    return '$prefix$day, $duration$goal, $range';
+    return '$prefix$day, $duration$goalLabel, $range';
   }
 }
 

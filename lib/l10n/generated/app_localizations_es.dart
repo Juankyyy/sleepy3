@@ -1026,35 +1026,47 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get goalDefault => 'Tu objetivo de 8 h';
+  String get sleepGoal => 'Objetivo de sueño';
+
+  @override
+  String sleepGoalValue(String goal) {
+    return '$goal por noche';
+  }
+
+  @override
+  String goalDefault(String goal) {
+    return 'Tu objetivo de $goal';
+  }
 
   @override
   String get goalMet => 'Objetivo cumplido';
 
   @override
-  String goalOver(String delta) {
-    return 'Objetivo cumplido · $delta por encima del objetivo de 8 h';
+  String goalOver(String delta, String goal) {
+    return 'Objetivo cumplido · $delta por encima del objetivo de $goal';
   }
 
   @override
-  String goalUnder(String delta) {
-    return 'A $delta del objetivo de 8 h';
+  String goalUnder(String delta, String goal) {
+    return 'A $delta del objetivo de $goal';
   }
 
   @override
-  String get spokenGoalDefault => 'objetivo de 8 horas';
+  String spokenGoalDefault(String goal) {
+    return 'objetivo de $goal';
+  }
 
   @override
   String get spokenGoalMet => 'objetivo cumplido';
 
   @override
-  String spokenGoalOver(String delta) {
-    return 'objetivo cumplido, $delta por encima del objetivo de 8 horas';
+  String spokenGoalOver(String delta, String goal) {
+    return 'objetivo cumplido, $delta por encima del objetivo de $goal';
   }
 
   @override
-  String spokenGoalUnder(String delta) {
-    return '$delta por debajo del objetivo de 8 horas';
+  String spokenGoalUnder(String delta, String goal) {
+    return '$delta por debajo del objetivo de $goal';
   }
 
   @override
@@ -1560,6 +1572,17 @@ class AppLocalizationsEs extends AppLocalizations {
   @override
   String durationHoursMinutes(int hours, int minutes) {
     return '$hours h $minutes min';
+  }
+
+  @override
+  String spokenDurationHours(int hours) {
+    String _temp0 = intl.Intl.pluralLogic(
+      hours,
+      locale: localeName,
+      other: '$hours horas',
+      one: '1 hora',
+    );
+    return '$_temp0';
   }
 
   @override

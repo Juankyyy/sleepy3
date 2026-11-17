@@ -7,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../../core/time/clock_format.dart';
 import '../../../../l10n/l10n.dart';
 import '../../../health/domain/sleep_data_source.dart';
+import '../../../settings/application/sleep_goal_controller.dart';
 import '../../../sleep_tracking/application/sleep_session_edit_service.dart';
 import '../../../sleep_tracking/application/sleep_tracking_controller.dart';
 import '../../../sleep_tracking/domain/new_session_window.dart';
@@ -266,7 +267,11 @@ class NewSessionEditorState extends ConsumerState<NewSessionEditor> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SessionHero(duration: duration, endedAt: _endedAt),
+        SessionHero(
+          duration: duration,
+          endedAt: _endedAt,
+          goal: ref.watch(sleepGoalProvider),
+        ),
         const SizedBox(height: 24),
         SessionTimeSection(
           title: l10n.fellAsleep,

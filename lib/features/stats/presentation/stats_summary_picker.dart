@@ -7,6 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../core/theme/sleepy3_theme.dart';
 import '../../../core/time/local_day_builder.dart';
 import '../../../l10n/l10n.dart';
+import '../../settings/application/sleep_goal_controller.dart';
 import '../../sleep_tracking/application/sleep_tracking_controller.dart';
 import '../../sleep_tracking/domain/sleep_insights.dart';
 import '../application/stats_history_limited_provider.dart';
@@ -83,6 +84,7 @@ class StatsSummaryPickerSheet extends ConsumerWidget {
     final state = ref.watch(sleepTrackingControllerProvider);
     final range = ref.watch(statsRangeProvider);
     final clock = ref.watch(sleepClockProvider);
+    final goal = ref.watch(sleepGoalProvider);
     final historyLimited = ref.watch(statsHistoryLimitedProvider);
     final screenWidth = MediaQuery.sizeOf(context).width;
     final screenHeight = MediaQuery.sizeOf(context).height;
@@ -118,6 +120,7 @@ class StatsSummaryPickerSheet extends ConsumerWidget {
           now: today,
           sessions: state.closedSessions,
           range: range,
+          goal: goal,
         );
         final support = insights.hasData
             ? '$rangeLabel · ${l10n.metricNights(insights.recordedDays)}'
@@ -226,6 +229,7 @@ class StatsSummaryPickerSheet extends ConsumerWidget {
                                 option: option,
                                 selected: option == selected,
                                 insights: insights,
+                                goal: goal,
                                 historyLimited: historyLimited,
                               ),
                             );
@@ -254,12 +258,14 @@ class _StatsSummaryOptionCard extends StatelessWidget {
     required this.option,
     required this.selected,
     required this.insights,
+    required this.goal,
     required this.historyLimited,
   });
 
   final StatsSummaryOption option;
   final bool selected;
   final SleepInsights insights;
+  final Duration goal;
   final bool historyLimited;
 
   @override
@@ -334,10 +340,14 @@ class _StatsSummaryOptionCard extends StatelessWidget {
         insights: insights,
         showLabel: false,
       ),
-      StatsSummaryOption.keyMetrics => StatsMetricsCard(insights: insights),
+      StatsSummaryOption.keyMetrics => StatsMetricsCard(
+        insights: insights,
+        goal: goal,
+      ),
       StatsSummaryOption.sleepDuration => _chartPreview(
         SleepDurationChart(
           insights: insights,
+          goal: goal,
           historyLimited: historyLimited,
           showHeader: false,
         ),
@@ -345,6 +355,7 @@ class _StatsSummaryOptionCard extends StatelessWidget {
       StatsSummaryOption.sleepWindow => _chartPreview(
         SleepWindowChart(
           insights: insights,
+          goal: goal,
           historyLimited: historyLimited,
           showHeader: false,
         ),
@@ -352,6 +363,7 @@ class _StatsSummaryOptionCard extends StatelessWidget {
       StatsSummaryOption.weekday => _chartPreview(
         WeekdayChart(
           insights: insights,
+          goal: goal,
           historyLimited: historyLimited,
           showHeader: false,
         ),

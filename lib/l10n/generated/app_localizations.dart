@@ -1616,11 +1616,23 @@ abstract class AppLocalizations {
   /// **'One of {count, plural, =1{1 session} other{{count} sessions}} that night'**
   String nightContextSplitNight(int count);
 
+  /// No description provided for @sleepGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep goal'**
+  String get sleepGoal;
+
+  /// No description provided for @sleepGoalValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{goal} a night'**
+  String sleepGoalValue(String goal);
+
   /// No description provided for @goalDefault.
   ///
   /// In en, this message translates to:
-  /// **'Your 8h goal'**
-  String get goalDefault;
+  /// **'Your {goal} goal'**
+  String goalDefault(String goal);
 
   /// No description provided for @goalMet.
   ///
@@ -1631,20 +1643,20 @@ abstract class AppLocalizations {
   /// No description provided for @goalOver.
   ///
   /// In en, this message translates to:
-  /// **'Goal met · {delta} over the 8h goal'**
-  String goalOver(String delta);
+  /// **'Goal met · {delta} over the {goal} goal'**
+  String goalOver(String delta, String goal);
 
   /// No description provided for @goalUnder.
   ///
   /// In en, this message translates to:
-  /// **'{delta} short of the 8h goal'**
-  String goalUnder(String delta);
+  /// **'{delta} short of the {goal} goal'**
+  String goalUnder(String delta, String goal);
 
   /// No description provided for @spokenGoalDefault.
   ///
   /// In en, this message translates to:
-  /// **'8-hour goal'**
-  String get spokenGoalDefault;
+  /// **'goal of {goal}'**
+  String spokenGoalDefault(String goal);
 
   /// No description provided for @spokenGoalMet.
   ///
@@ -1655,14 +1667,14 @@ abstract class AppLocalizations {
   /// No description provided for @spokenGoalOver.
   ///
   /// In en, this message translates to:
-  /// **'goal met, {delta} over the 8-hour goal'**
-  String spokenGoalOver(String delta);
+  /// **'goal met, {delta} over the goal of {goal}'**
+  String spokenGoalOver(String delta, String goal);
 
   /// No description provided for @spokenGoalUnder.
   ///
   /// In en, this message translates to:
-  /// **'{delta} short of the 8-hour goal'**
-  String spokenGoalUnder(String delta);
+  /// **'{delta} short of the goal of {goal}'**
+  String spokenGoalUnder(String delta, String goal);
 
   /// No description provided for @sessionDateTimeSemantics.
   ///
@@ -2311,6 +2323,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{hours}h {minutes}m'**
   String durationHoursMinutes(int hours, int minutes);
+
+  /// No description provided for @spokenDurationHours.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours, plural, =1{1 hour} other{{hours} hours}}'**
+  String spokenDurationHours(int hours);
 
   /// No description provided for @spokenDurationMinutes.
   ///

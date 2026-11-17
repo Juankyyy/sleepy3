@@ -14,6 +14,7 @@ import 'features/reminders/application/sleep_reminder_controller.dart';
 import 'features/reminders/domain/sleep_reminder.dart';
 import 'features/settings/application/app_version_provider.dart';
 import 'features/settings/application/language_controller.dart';
+import 'features/settings/application/sleep_goal_controller.dart';
 import 'features/settings/application/theme_mode_controller.dart';
 import 'features/settings/application/time_format_controller.dart';
 import 'features/settings/data/android_app_night_mode.dart';
@@ -27,6 +28,7 @@ import 'features/sleep_tracking/application/sleep_tracking_controller.dart';
 import 'features/sleep_tracking/application/sleeping_notification_enabled_controller.dart';
 import 'features/sleep_tracking/data/drift_sleep_session_store.dart';
 import 'features/sleep_tracking/data/sleepy3_database.dart';
+import 'features/sleep_tracking/domain/sleep_goal.dart';
 import 'features/sleep_tracking/domain/sleep_session.dart';
 import 'features/sleep_tracking/domain/sleep_session_store.dart';
 import 'features/stats/application/stats_summary_controller.dart';
@@ -52,6 +54,7 @@ Future<void> main() async {
     settingsStore,
   );
   final statsSummaryOption = await _loadStatsSummaryOption(settingsStore);
+  final sleepGoal = await _loadSleepGoal(settingsStore);
   final packageInfo = await _loadPackageInfo();
   final appVersion = _appVersionFrom(packageInfo);
 
@@ -74,6 +77,7 @@ Future<void> main() async {
           sleepingNotificationEnabled,
         ),
         initialStatsSummaryOptionProvider.overrideWithValue(statsSummaryOption),
+        initialSleepGoalProvider.overrideWithValue(sleepGoal),
         appVersionProvider.overrideWithValue(appVersion),
         currentAppPackageProvider.overrideWithValue(
           packageInfo?.packageName ?? 'com.sleepy3.app',
@@ -214,6 +218,15 @@ Future<StatsSummaryOption> _loadStatsSummaryOption(SettingsStore store) async {
       'Sleepy3: could not load the stats summary block: $error\n$stackTrace',
     );
     return StatsSummaryOption.defaultOption;
+  }
+}
+
+Future<Duration> _loadSleepGoal(SettingsStore store) async {
+  try {
+    return await store.loadSleepGoal();
+  } catch (error, stackTrace) {
+    debugPrint('Sleepy3: could not load the sleep goal: $error\n$stackTrace');
+    return defaultSleepGoal;
   }
 }
 

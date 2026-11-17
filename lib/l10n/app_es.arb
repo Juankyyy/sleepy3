@@ -701,38 +701,73 @@
       }
     }
   },
-  "goalDefault": "Tu objetivo de 8 h",
+  "sleepGoal": "Objetivo de sueño",
+  "sleepGoalValue": "{goal} por noche",
+  "@sleepGoalValue": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "goalDefault": "Tu objetivo de {goal}",
+  "@goalDefault": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
   "goalMet": "Objetivo cumplido",
-  "goalOver": "Objetivo cumplido · {delta} por encima del objetivo de 8 h",
+  "goalOver": "Objetivo cumplido · {delta} por encima del objetivo de {goal}",
   "@goalOver": {
     "placeholders": {
       "delta": {
         "type": "String"
+      },
+      "goal": {
+        "type": "String"
       }
     }
   },
-  "goalUnder": "A {delta} del objetivo de 8 h",
+  "goalUnder": "A {delta} del objetivo de {goal}",
   "@goalUnder": {
     "placeholders": {
       "delta": {
         "type": "String"
-      }
-    }
-  },
-  "spokenGoalDefault": "objetivo de 8 horas",
-  "spokenGoalMet": "objetivo cumplido",
-  "spokenGoalOver": "objetivo cumplido, {delta} por encima del objetivo de 8 horas",
-  "@spokenGoalOver": {
-    "placeholders": {
-      "delta": {
+      },
+      "goal": {
         "type": "String"
       }
     }
   },
-  "spokenGoalUnder": "{delta} por debajo del objetivo de 8 horas",
+  "spokenGoalDefault": "objetivo de {goal}",
+  "@spokenGoalDefault": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "spokenGoalMet": "objetivo cumplido",
+  "spokenGoalOver": "objetivo cumplido, {delta} por encima del objetivo de {goal}",
+  "@spokenGoalOver": {
+    "placeholders": {
+      "delta": {
+        "type": "String"
+      },
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "spokenGoalUnder": "{delta} por debajo del objetivo de {goal}",
   "@spokenGoalUnder": {
     "placeholders": {
       "delta": {
+        "type": "String"
+      },
+      "goal": {
         "type": "String"
       }
     }
@@ -1038,6 +1073,14 @@
         "type": "int"
       },
       "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "spokenDurationHours": "{hours, plural, =1{1 hora} other{{hours} horas}}",
+  "@spokenDurationHours": {
+    "placeholders": {
+      "hours": {
         "type": "int"
       }
     }

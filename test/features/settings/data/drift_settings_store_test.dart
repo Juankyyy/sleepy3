@@ -9,6 +9,7 @@ import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/stats/domain/stats_summary_option.dart';
 import 'package:sleepy3/features/sleep_tracking/data/drift_sleep_session_store.dart';
 import 'package:sleepy3/features/sleep_tracking/data/sleepy3_database.dart';
+import 'package:sleepy3/features/sleep_tracking/domain/sleep_goal.dart';
 
 void main() {
   group('DriftSettingsStore', () {
@@ -279,6 +280,61 @@ void main() {
         StatsSummaryOption.sleepDuration,
       );
     });
+
+    test('defaults to an eight-hour sleep goal', () async {
+      expect(await store.loadSleepGoal(), defaultSleepGoal);
+    });
+
+    test('round-trips six, eight and ten hours', () async {
+      for (final goal in [
+        const Duration(hours: 6),
+        const Duration(hours: 8),
+        const Duration(hours: 10),
+      ]) {
+        await store.saveSleepGoal(goal);
+        expect(await store.loadSleepGoal(), goal);
+      }
+    });
+
+    test('stores the goal as minutes under sleep_goal_minutes', () async {
+      await store.saveSleepGoal(const Duration(hours: 6, minutes: 30));
+
+      final rows = await database.select(database.preferences).get();
+      expect(rows, hasLength(1));
+      expect(rows.single.settingKey, 'sleep_goal_minutes');
+      expect(rows.single.settingValue, '390');
+    });
+
+    test('falls back to eight hours for a malformed stored goal', () async {
+      await database
+          .into(database.preferences)
+          .insert(
+            PreferencesCompanion.insert(
+              settingKey: 'sleep_goal_minutes',
+              settingValue: 'late',
+            ),
+          );
+
+      expect(await store.loadSleepGoal(), defaultSleepGoal);
+    });
+
+    test(
+      'falls back to eight hours for out-of-range and off-step values',
+      () async {
+        for (final value in ['300', '470', '720']) {
+          await database
+              .into(database.preferences)
+              .insertOnConflictUpdate(
+                PreferencesCompanion.insert(
+                  settingKey: 'sleep_goal_minutes',
+                  settingValue: value,
+                ),
+              );
+
+          expect(await store.loadSleepGoal(), defaultSleepGoal);
+        }
+      },
+    );
 
     test('stores the theme and the source side by side', () async {
       await store.saveThemeMode(AppThemeMode.dark);

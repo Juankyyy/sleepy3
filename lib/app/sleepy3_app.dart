@@ -11,6 +11,7 @@ import '../features/health/application/sleep_data_source_controller.dart';
 import '../features/health/domain/sleep_data_source.dart';
 import '../features/reminders/application/sleep_reminder_controller.dart';
 import '../features/settings/application/language_controller.dart';
+import '../features/settings/application/sleep_goal_controller.dart';
 import '../features/settings/application/theme_mode_controller.dart';
 import '../features/settings/application/time_format_controller.dart';
 import '../features/settings/domain/app_theme_mode.dart';
@@ -184,6 +185,11 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
       unawaited(_syncSleepingNotification());
     });
     ref.listen(timeFormatControllerProvider, (previous, next) {
+      if (previous == next) return;
+      unawaited(_syncSleepingNotification());
+    });
+    // The open notification repeats the goal and its end time.
+    ref.listen(sleepGoalProvider, (previous, next) {
       if (previous == next) return;
       unawaited(_syncSleepingNotification());
     });

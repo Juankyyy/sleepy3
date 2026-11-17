@@ -279,8 +279,9 @@ Reglas:
 - Home recibe todo el historial cerrado y descarta en memoria las sesiones fuera de la
   ventana antes de agrupar.
 - La media divide por los días con datos, no por 3. Un día sin sesión no baja la media.
-- Cada barra compara el día con una meta de 8 h y se recorta al 100 %. Sin datos, la barra
-  queda a cero. La meta de 8 h es una decisión de producto, no un token M3.
+- Cada barra compara el día con el objetivo de sueño elegido en `Settings` (8 h por
+  defecto) y se recorta al 100 %. Sin datos, la barra queda a cero. El objetivo
+  configurable es una decisión de producto, no un token M3.
 - Sin datos se muestra `—` en la media y en cada día.
 - El resumen se recalcula con el reloj inyectado: al cambiar la fecha local, hoy pasa a
   ayer sin reiniciar la app.
@@ -361,7 +362,7 @@ Reglas:
 - Bloque `Key metrics`: card de 2 columnas en compacto (4 desde 600 dp) con las cuatro
   métricas: `Goal hit rate` (porcentaje y noches que cumplen en el apoyo), `Schedule
   consistency` (desviación circular del bedtime, `±32 min`), `Sleep balance`
-  (`total − 8 h × noches registradas`, con `surplus`, `debt` o `even` en el apoyo) y
+  (`total − objetivo × noches registradas`, con `surplus`, `debt` o `even` en el apoyo) y
   `Best streak` (mejor racha del rango y racha actual). Sin datos suficientes, el valor
   es `—` y el apoyo explica por qué; nunca se inventa un 0 %.
 - `Sleep duration`, `Sleep window` y `By weekday` pueden ser el bloque del resumen; usan
@@ -376,24 +377,24 @@ Reglas:
   muestra su propio estado vacío y la acción se oculta, igual que antes.
 - Gráfico `Sleep duration` (en la hoja o como bloque del resumen): barras por bucket (día
   en `Week`/`Month`, semana en `3 months`, mes en `Year`, semanal o mensual en `All`
-  según 180 días), línea de objetivo de 8 h sin etiqueta ni leyenda y huecos para noches
+  según 180 días), línea del objetivo vigente sin etiqueta ni leyenda y huecos para noches
   sin datos. Las barras que alcanzan el objetivo usan un tono más oscuro; las demás se
   atenúan. El tooltip da fecha, duración y número de sesiones; en buckets largos usa el
   tooltip rico con el rango y la media por noche.
 - Gráfico `Sleep window` (en la hoja o como bloque del resumen): una fila por bucket con
   una cápsula desde el bedtime hasta el wake, banda de mínimos/máximos y sin leyenda
-  inferior. La cápsula usa el tono oscuro cuando la ventana alcanza las 8 h y se atenúa
+  inferior. La cápsula usa el tono oscuro cuando la ventana alcanza el objetivo y se atenúa
   cuando no. El eje va de 18:00 a 12:00.
 - Gráfico `By weekday` (en la hoja o como bloque del resumen): media por día de
   despertar, de lunes a domingo; los días sin datos son huecos, el mejor día se marca
-  con la etiqueta `Best`, hay una línea de objetivo de 8 h y las barras que lo alcanzan
+  con la etiqueta `Best`, hay una línea del objetivo vigente y las barras que lo alcanzan
   usan el mismo tono oscuro/atenuado que `Sleep duration`.
 - Card `Insights` (en la hoja, y en su variante compacta como bloque del resumen): mejor
   noche, noche más corta, hora media de acostarse y de despertarse, variación del
   bedtime, noches con más de una sesión y distribución (`<6 h`, `6–7 h`, `7–8 h`,
   `8–9 h`, `9 h+`). Texto factual, sin consejos ni lenguaje médico.
 - Reglas de cálculo: media y mediana solo sobre días con datos; una noche cumple el
-  objetivo si su total es ≥ 8 h (8 h exactas cuentan); la racha actual solo cuenta si la
+  objetivo si su total es ≥ el objetivo vigente (la igualdad cuenta); la racha actual solo cuenta si la
   última noche es hoy o ayer; las horas de acostarse y levantarse usan media y
   desviación circulares en minutos desde medianoche, nunca media aritmética; los días se
   agrupan con aritmética de calendario para que el DST no desplace buckets; las
@@ -422,7 +423,7 @@ Reglas:
   degradado por recencia; los extremos son roles estándar. La píldora del día usa el
   `on*` de la tarjeta al 10 % y el texto `on*`
   (decisión de diseño: M3 no tiene un rol de container “on-color al 10 %”). La marca
-  inicial compara la duración con el objetivo de 8 h de Home: por debajo es un anillo de
+  inicial compara la duración con el objetivo vigente de Home: por debajo es un anillo de
   progreso con un icono `bedtime`; al llegar o superarlo se sustituye por un
   `clover8Leaf` de la librería de formas M3, relleno `primary` y con el icono en
   `onPrimary`. Mide 44 dp en `Week` y 36 dp en los demás rangos. La forma es un refuerzo
@@ -484,10 +485,11 @@ Reglas:
 - El panel de sesión es un diálogo adaptativo M3: pantalla completa en ventanas
   compactas y diálogo básico en medianas y grandes. Título `Session`, acción
   `Save` y cierre con `Cancel` o la X. Arriba, una card `primaryContainer` con la
-  duración en vivo en `headlineMedium`, el día de despertar y el objetivo de 8 h: una
+  duración en vivo en `headlineMedium`, el día de despertar y el objetivo vigente: una
   marca de 56 dp (el `clover8Leaf` si se cumple, el anillo si no) y una línea
   `Goal met · 13m over the 8h goal`, `Goal met` o `58m short of the 8h goal`; con un
-  borrador sin duración dice `Your 8h goal`. La marca cobra vida solo aquí: si el objetivo
+  borrador sin duración dice `Your 8h goal`. El texto usa el objetivo elegido en
+  `Settings`, así que con 6 h dice `6h goal`. La marca cobra vida solo aquí: si el objetivo
   se cumple, el `clover8Leaf` gira continuamente en sentido horario, una vuelta cada 8 s,
   y la luna queda erguida; si no, el anillo espera 400 ms y se dibuja de 0 al porcentaje
   real en 600 ms (`long4` + `emphasizedDecelerate`, sin rebote) y después se queda quieto.
@@ -607,7 +609,16 @@ Reglas:
     ofrece esos dos idiomas, sin `System`. Si no hay preferencia guardada, el primer
     arranque resuelve el idioma del teléfono (`es` → Español; cualquier otro → English),
     lo persiste en `preferences` (`language`) y lo aplica a toda la app.
-- `Stats` contiene la fila `Stats summary`, cuyo supporting text muestra el bloque
+- `Stats` incluye la fila `Sleep goal`, cuyo supporting text muestra `{objetivo} a night`
+  (`8h a night`). Al tocarla se abre un diálogo M3 de selección con las nueve opciones de
+  6 a 10 h en pasos de 30 min y `Cancel` / `Apply`. El valor por defecto es 8 h. `Apply`
+  guarda la preferencia y el objetivo se aplica de inmediato a Home, Stats (métricas,
+  gráficos y marcas), al panel de sesión y a la notificación de sueño en curso. El
+  historial se recalcula con el objetivo actual: no se guarda un objetivo por noche, así
+  que cambiar el objetivo puede cambiar qué noches cuentan como cumplidas y el balance.
+  Es una decisión de producto. Si hay una sesión abierta, la notificación se vuelve a
+  publicar con la nueva hora meta.
+- La fila `Stats summary`, cuyo supporting text muestra el bloque
   actual. Al tocarla se abre una modal sheet M3 de altura completa, con esquinas
   superiores de 28 dp, ancho máximo de 640 dp, márgenes de 72/56 dp arriba y 56 dp a los
   lados, scrim y aspa de cierre. Abrir a altura completa es una decisión Sleepy3, como el
@@ -712,8 +723,9 @@ Reglas:
   con `{version} ({build})` cuando el plugin de información de la app responde (la fila se
   oculta si no hay dato) y `Licenses`, que abre la página de licencias de Flutter con el
   nombre, la versión y la leyenda GPLv3.
-- El modo de tema, la fuente de datos y el bloque del resumen de Stats se guardan en la
-  tabla `preferences` de la misma base Drift; no se usa `shared_preferences`.
+- El modo de tema, la fuente de datos, el objetivo de sueño y el bloque del resumen de
+  Stats se guardan en la tabla `preferences` de la misma base Drift; no se usa
+  `shared_preferences`.
 
 #### 3.4.1 Recordatorios de sueño
 
@@ -755,9 +767,10 @@ Reglas:
 - El cronómetro es un `Chronometer` de `RemoteViews` con base convertida desde `startedAt`
   a `SystemClock.elapsedRealtime()`; no hay un `Timer` de Dart ni un foreground service.
   Por eso sigue contando aunque el proceso de la app muera y no consume batería.
-- El título es `Sleeping`/`Durmiendo` y el cuerpo combina `dailySleepGoal` con la hora a la
-  que se cumple: `Goal 8h · until 7:30 AM` / `Objetivo 8 h · hasta las 7:30`. La hora
-  respeta el formato 12/24 y el idioma actuales.
+- El título es `Sleeping`/`Durmiendo` y el cuerpo combina el objetivo vigente con la hora
+  a la que se cumple: `Goal 8h · until 7:30 AM` / `Objetivo 8 h · hasta las 7:30`. La hora
+  respeta el formato 12/24 y el idioma actuales. Si el objetivo cambia mientras hay una
+  sesión abierta, la tarjeta se vuelve a publicar con el nuevo objetivo y su hora meta.
 - Si el `fontScale` del sistema supera 1.2 o el layout personalizado no se puede inflar, el
   puente publica la notificación estándar con título y cuerpo; el estado nunca se pierde y
   el texto sigue siendo legible.
@@ -1034,8 +1047,8 @@ Reglas:
       `labelMedium` y valores `titleMedium` con cifras tabulares;
     - barras de 4 dp con `primary` sobre `surfaceContainerHighest` y forma full.
       No son un componente M3: son una visualización de datos construida con roles y
-      formas M3. La altura de 4 dp y la meta de 8 h son decisiones de producto/layout,
-      no tokens M3;
+      formas M3. La altura de 4 dp y el objetivo configurable son decisiones de
+      producto/layout, no tokens M3;
     - sin datos, la media y los días muestran `—` y las barras quedan a cero.
 - Pantalla Stats:
   - Título `Stats` en `headlineMedium` emphasized y línea de apoyo en `bodyMedium`;
@@ -1256,7 +1269,7 @@ Reglas:
 | Copia descargada de Sleepy3 | `This session was downloaded from Google Health. Switch to Google Health to edit it.` |
 | Copia descargada de otra app | `This session was created in {app}. Downloaded copies can't be edited in Local.` |
 | Secciones del panel de sesión | `Fell asleep`, `Woke up` |
-| Objetivo en el panel | `Goal met · {delta} over the 8h goal`, `Goal met`, `{delta} short of the 8h goal`, `Your 8h goal` |
+| Objetivo en el panel | `Goal met · {delta} over the {goal} goal`, `Goal met`, `{delta} short of the {goal} goal`, `Your {goal} goal` |
 | Día de despertar en el hero | `Woke {date}` |
 | Acciones del panel de sesión | `Save`, `Cancel`, `Close`, `Delete session` |
 | Aviso de Google Health | `This night is also in Google Health. Saving updates both copies.` / `This night is stored in Google Health. Saving updates the Health Connect record.` |
@@ -1666,6 +1679,11 @@ dart run build_runner build
   `false`. Solo evita repetir el diálogo de permiso del primer Sleep.
 - Clave `sleep_status_notification_enabled` con `true` o `false`; ausente equivale a
   `true`. Controla el interruptor `Sleep in progress` de Ajustes.
+- Clave `sleep_goal_minutes` con los minutos del objetivo de sueño, entre `360` y `600`
+  y múltiplo de `30`; ausente, mal formada, fuera de rango o fuera de paso equivale a
+  `480` (8 h). No requiere migración de esquema.
+- Clave `stats_summary_option` con el nombre de la opción del resumen de Stats; ausente o
+  desconocida equivale a `sleepDuration`. No requiere migración de esquema.
 - La migración de v1 a v2 crea `preferences`; las sesiones existentes no se tocan.
 - El modo de tema y la fuente se guardan en la misma base para no abrir un segundo
   almacén.
@@ -1881,7 +1899,7 @@ dart run tool/generate_brand_assets.dart
   200 %, claro/oscuro, español, densidad compacta en `Month`/`3 months`/`Year`/`All` y
   `LocalDayBuilder` al pasar medianoche o volver del segundo plano.
 - Insights: media, mediana, cobertura, balance, rachas actual y mejor, objetivo exacto a
-  8 h, media y desviación circulares, weekday sin datos, bandas de duración, comparación
+  6, 8 y 10 h, media y desviación circulares, weekday sin datos, bandas de duración, comparación
   con el periodo anterior y su caso de cobertura insuficiente, buckets diarios, semanales
   y mensuales, `All` adaptativo, DST en Europe/Madrid y duraciones negativas.
 - Gráficos: duración, ventana de sueño y día de la semana en los cinco rangos, huecos sin
@@ -1913,6 +1931,9 @@ dart run tool/generate_brand_assets.dart
   el 200 % de texto.
 - Settings: tema por defecto y persistido, diálogo de selección con `Cancel`/`Apply`,
   resolución `System`/`Light`/`Dark`, formato `12-hour`/`24-hour` por defecto y persistido,
+  objetivo de sueño por defecto, 6/8/10 h persistidas, diálogo de nueve opciones,
+  valores fuera de rango o de paso, recálculo de Home, Stats, panel y notificación, y
+  layout del selector a 200 % de texto en español,
   idioma `English`/`Español` sin opción `System` (el primer arranque resuelve y guarda el
   del teléfono), su aplicación a reloj, historial y selectores de hora, fuente
   `Local`/`Google Health`, diálogo de fuente, estado de conexión, `Connect`/`Install`,
@@ -1982,7 +2003,8 @@ dart run tool/generate_brand_assets.dart
   en Google Sans Flex instanciada.
 - Persistencia Drift y restauración de sesión abierta.
 - Cabecera con chip día/noche, reloj en vivo con segundos y línea de sesión.
-- Resumen de los últimos 3 días con datos reales, media y barras contra una meta de 8 h.
+- Resumen de los últimos 3 días con datos reales, media y barras contra el objetivo de
+  sueño configurable (8 h por defecto).
 - Pantalla `Stats` con dashboard de cinco rangos (`Week`, `Month`, `3 months`, `Year`,
   `All`), hero con media, total, comparación y cobertura, card de métricas, gráficos de
   duración, ventana de sueño y día de la semana, card de insights y una fila por sesión.
@@ -2002,7 +2024,7 @@ dart run tool/generate_brand_assets.dart
   permiso de notificaciones contextual, pausa mientras hay una sesión abierta, retorno a
   `Home` al tocar la notificación y aviso cuando Android bloquea las notificaciones.
 - Notificación de sueño en curso silenciosa y no descartable, con tarjeta nativa y
-  cronómetro grande, objetivo de 8 h y hora meta, fallback al layout estándar con texto
+  cronómetro grande, objetivo vigente y hora meta, fallback al layout estándar con texto
   grande, que se publica al dormir y se cancela al despertar. Se puede desactivar desde
   Ajustes con el interruptor `Sleep in progress`, activado por defecto.
 - Health Connect: permisos de sueño e historial, lectura y escritura, cola de pendientes,

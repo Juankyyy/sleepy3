@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
+import 'package:sleepy3/features/sleep_tracking/domain/sleep_goal.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_history.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_insights.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
@@ -26,11 +27,13 @@ void main() {
     now: now,
     sessions: sessions,
     range: SleepHistoryRange.week,
+    goal: defaultSleepGoal,
   );
   final month = buildSleepInsights(
     now: now,
     sessions: sessions,
     range: SleepHistoryRange.month,
+    goal: defaultSleepGoal,
   );
 
   Future<void> pumpChart(
@@ -42,6 +45,7 @@ void main() {
     Locale locale = const Locale('en'),
     bool disableAnimations = false,
     bool historyLimited = false,
+    Duration goal = defaultSleepGoal,
   }) async {
     tester.view.physicalSize = size * 3;
     tester.view.devicePixelRatio = 3;
@@ -74,6 +78,7 @@ void main() {
               valueListenable: value,
               builder: (context, value, _) => SleepDurationChart(
                 insights: value,
+                goal: goal,
                 historyLimited: historyLimited,
               ),
             ),
@@ -100,6 +105,14 @@ void main() {
     expect(find.text('Goal 8h'), findsNothing);
     expect(find.text('Average'), findsNothing);
     expect(find.byType(SleepDurationChart), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('uses the configured goal in the header', (tester) async {
+    await pumpChart(tester, week, goal: const Duration(hours: 6));
+
+    expect(find.text('Week · 3 nights recorded · Goal 6h'), findsOneWidget);
+    expect(find.text('Week · 3 nights recorded · Goal 8h'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -130,6 +143,7 @@ void main() {
       now: now,
       sessions: sessions,
       range: SleepHistoryRange.threeMonths,
+      goal: defaultSleepGoal,
     );
     await pumpChart(tester, threeMonths, historyLimited: true);
 
@@ -185,6 +199,7 @@ void main() {
         closed(DateTime(2026, 10, 21, 13), DateTime(2026, 10, 21, 14)),
       ],
       range: SleepHistoryRange.week,
+      goal: defaultSleepGoal,
     );
     await pumpChart(tester, insights);
 
@@ -237,6 +252,7 @@ void main() {
       now: now,
       sessions: sessions,
       range: SleepHistoryRange.threeMonths,
+      goal: defaultSleepGoal,
     );
     await pumpChart(tester, insights);
 
@@ -272,6 +288,7 @@ void main() {
       now: now,
       sessions: [closed(DateTime(2026, 9, 1, 22), DateTime(2026, 9, 2, 6))],
       range: SleepHistoryRange.week,
+      goal: defaultSleepGoal,
     );
 
     await pumpChart(tester, empty);
@@ -302,6 +319,7 @@ void main() {
         now: now,
         sessions: sessions,
         range: range,
+        goal: defaultSleepGoal,
       );
       await pumpChart(tester, insights);
 

@@ -3,20 +3,26 @@ import 'package:material_ui/material_ui.dart';
 
 import '../../../../l10n/l10n.dart';
 import '../../domain/recent_sleep_summary.dart';
-import '../../domain/sleep_goal.dart';
 
 /// The Home summary of closed sleep for the last three local days.
 ///
 /// From M3: outlined card (12dp corner radius, 16dp padding), `titleMedium`
 /// for the header, `labelMedium` for day labels, `titleMedium` for durations,
 /// and `surfaceContainerHighest` / `primary` for the bars.
-/// My design decisions (not in M3): the 8h reference goal ([dailySleepGoal],
-/// shared with Stats), the 4dp bar height, the 2dp and 4dp gaps inside each
-/// day, and the 8dp gap between days.
+/// My design decisions (not in M3): the nightly goal ([goal], shared with
+/// Stats), the 4dp bar height, the 2dp and 4dp gaps inside each day, and the
+/// 8dp gap between days.
 class RecentSleepSummaryCard extends StatelessWidget {
-  const RecentSleepSummaryCard({super.key, required this.summary});
+  const RecentSleepSummaryCard({
+    super.key,
+    required this.summary,
+    required this.goal,
+  });
 
   final RecentSleepSummary summary;
+
+  /// The goal chosen in Settings, used as the full width of each bar.
+  final Duration goal;
 
   @override
   Widget build(BuildContext context) {
@@ -88,6 +94,7 @@ class RecentSleepSummaryCard extends StatelessWidget {
                       key: ValueKey('sleep-summary-bar-$daysAgo'),
                       fraction: _barFraction(
                         summary.dayBefore(daysAgo).duration,
+                        goal,
                       ),
                     ),
                 ],
@@ -163,9 +170,11 @@ String _dayLabel(AppLocalizations l10n, int daysAgo) {
   };
 }
 
-double _barFraction(Duration? duration) {
-  if (duration == null || duration <= Duration.zero) return 0;
-  final ratio = duration.inMicroseconds / dailySleepGoal.inMicroseconds;
+double _barFraction(Duration? duration, Duration goal) {
+  if (duration == null || duration <= Duration.zero || goal <= Duration.zero) {
+    return 0;
+  }
+  final ratio = duration.inMicroseconds / goal.inMicroseconds;
   return ratio >= 1 ? 1 : ratio;
 }
 

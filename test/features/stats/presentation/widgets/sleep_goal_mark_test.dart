@@ -24,12 +24,14 @@ void main() {
 
   SleepGoalMark mark({
     required Duration duration,
+    Duration goal = defaultSleepGoal,
     Animation<double>? rotation,
     bool animateProgress = false,
   }) {
     final scheme = Sleepy3Theme.light().colorScheme;
     return SleepGoalMark(
       duration: duration,
+      goal: goal,
       size: 56,
       strokeWidth: 5,
       color: scheme.primary,
@@ -57,7 +59,7 @@ void main() {
     await tester.pumpWidget(
       host(
         mark(
-          duration: dailySleepGoal + const Duration(minutes: 13),
+          duration: defaultSleepGoal + const Duration(minutes: 13),
           rotation: turn,
         ),
       ),
@@ -93,7 +95,7 @@ void main() {
     await tester.pumpWidget(
       host(
         mark(
-          duration: dailySleepGoal + const Duration(minutes: 13),
+          duration: defaultSleepGoal + const Duration(minutes: 13),
           rotation: turn,
         ),
       ),

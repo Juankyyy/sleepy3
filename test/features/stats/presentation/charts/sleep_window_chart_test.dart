@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
+import 'package:sleepy3/features/sleep_tracking/domain/sleep_goal.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_history.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_insights.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
@@ -32,16 +33,19 @@ void main() {
     now: now,
     sessions: [session],
     range: SleepHistoryRange.week,
+    goal: defaultSleepGoal,
   );
   final month = buildSleepInsights(
     now: now,
     sessions: [session],
     range: SleepHistoryRange.month,
+    goal: defaultSleepGoal,
   );
   final threeMonths = buildSleepInsights(
     now: now,
     sessions: [session],
     range: SleepHistoryRange.threeMonths,
+    goal: defaultSleepGoal,
   );
 
   Future<void> pumpChart(
@@ -82,7 +86,8 @@ void main() {
             padding: const EdgeInsets.all(16),
             child: ValueListenableBuilder<SleepInsights>(
               valueListenable: value,
-              builder: (context, value, _) => SleepWindowChart(insights: value),
+              builder: (context, value, _) =>
+                  SleepWindowChart(insights: value, goal: defaultSleepGoal),
             ),
           ),
         ),
@@ -194,6 +199,7 @@ void main() {
       now: now,
       sessions: [closed(DateTime(2026, 9, 1, 22), DateTime(2026, 9, 2, 6))],
       range: SleepHistoryRange.week,
+      goal: defaultSleepGoal,
     );
     await pumpChart(tester, empty);
 
@@ -224,6 +230,7 @@ void main() {
         now: now,
         sessions: [session],
         range: range,
+        goal: defaultSleepGoal,
       );
       await pumpChart(tester, insights);
 

@@ -21,6 +21,7 @@ import 'package:sleepy3/features/reminders/application/sleep_reminder_controller
 import 'package:sleepy3/features/reminders/domain/sleep_reminder.dart';
 import 'package:sleepy3/features/settings/application/app_version_provider.dart';
 import 'package:sleepy3/features/settings/application/language_controller.dart';
+import 'package:sleepy3/features/settings/application/sleep_goal_controller.dart';
 import 'package:sleepy3/features/settings/domain/app_language.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_time_format.dart';
@@ -30,6 +31,7 @@ import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_contr
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_providers.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleeping_notification_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleeping_notification_enabled_controller.dart';
+import 'package:sleepy3/features/sleep_tracking/domain/sleep_goal.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
 import 'package:sleepy3/features/stats/application/stats_summary_controller.dart';
@@ -70,6 +72,7 @@ void main() {
     FakeSleepingNotificationPresenter? sleepingNotificationPresenter,
     FakeSleepHistoryFileGateway? historyFileGateway,
     FakeSleepSessionStore? sleepStore,
+    Duration initialSleepGoal = defaultSleepGoal,
     double textScale = 1,
     Size size = const Size(360, 800),
   }) async {
@@ -90,6 +93,7 @@ void main() {
           initialThemeModeProvider.overrideWithValue(initial),
           initialTimeFormatProvider.overrideWithValue(initialTimeFormat),
           initialLanguageProvider.overrideWithValue(initialLanguage),
+          initialSleepGoalProvider.overrideWithValue(initialSleepGoal),
           initialSleepDataSourceProvider.overrideWithValue(source),
           initialSleepReminderProvider.overrideWithValue(initialReminder),
           sleepReminderSchedulerProvider.overrideWithValue(
@@ -235,6 +239,8 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Appearance'), findsOneWidget);
+    expect(find.text('Sleep goal'), findsOneWidget);
+    expect(find.text('8h a night'), findsOneWidget);
     expect(find.text('Stats summary'), findsOneWidget);
     expect(find.text('Sleep duration'), findsOneWidget);
     expect(find.text('Reminders'), findsOneWidget);
@@ -246,6 +252,8 @@ void main() {
     expect(find.text('12-hour'), findsOneWidget);
     expect(find.text('Language'), findsOneWidget);
     expect(find.text('English'), findsOneWidget);
+
+    await scrollToLabel(tester, 'Sleep data');
     expect(find.text('Sleep data'), findsOneWidget);
     expect(find.text('Source'), findsOneWidget);
     expect(find.text('Local'), findsOneWidget);
@@ -1169,6 +1177,52 @@ void main() {
     expect(find.byType(StatsSummaryPickerSheet), findsOneWidget);
   });
 
+  testWidgets('the sleep goal row opens the picker and saves a goal', (
+    tester,
+  ) async {
+    final store = await pumpSettings(tester);
+
+    await tapLabel(tester, 'Sleep goal');
+    expect(find.text('6h'), findsOneWidget);
+    expect(find.text('8h'), findsOneWidget);
+
+    await tapDialogLabel(tester, '6h 30m');
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+
+    expect(store.sleepGoalSaves, [const Duration(hours: 6, minutes: 30)]);
+    expect(find.text('6h 30m a night'), findsOneWidget);
+  });
+
+  testWidgets('closing the sleep goal picker changes nothing', (tester) async {
+    final store = await pumpSettings(tester);
+
+    await tapLabel(tester, 'Sleep goal');
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(store.sleepGoalSaves, isEmpty);
+    expect(find.text('8h a night'), findsOneWidget);
+  });
+
+  testWidgets('the sleep goal picker fits at 200% text in Spanish', (
+    tester,
+  ) async {
+    await pumpSettings(
+      tester,
+      initialLanguage: AppLanguage.spanish,
+      textScale: 2,
+    );
+
+    await tapLabel(tester, 'Objetivo de sueño');
+
+    expect(find.text('Aplicar'), findsOneWidget);
+    expect(find.text('6 h'), findsOneWidget);
+    expect(find.text('10 h'), findsOneWidget);
+    expect(find.text('8 h'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('applying a theme updates the row and saves it', (tester) async {
     final store = await pumpSettings(tester);
 
@@ -1292,6 +1346,8 @@ void main() {
     for (final label in [
       'Ajustes',
       'Apariencia',
+      'Objetivo de sueño',
+      '8 h por noche',
       'Tema',
       'Sistema',
       'Formato de hora',

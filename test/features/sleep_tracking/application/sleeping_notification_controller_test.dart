@@ -2,11 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sleepy3/features/settings/application/language_controller.dart';
 import 'package:sleepy3/features/settings/application/settings_providers.dart';
+import 'package:sleepy3/features/settings/application/sleep_goal_controller.dart';
 import 'package:sleepy3/features/settings/application/time_format_controller.dart';
 import 'package:sleepy3/features/settings/domain/app_language.dart';
 import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleeping_notification_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleeping_notification_enabled_controller.dart';
+import 'package:sleepy3/features/sleep_tracking/domain/sleep_goal.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 
 import '../../settings/fakes.dart';
@@ -21,6 +23,7 @@ void main() {
     ProviderContainer createContainer({
       AppLanguage language = AppLanguage.english,
       AppTimeFormat timeFormat = AppTimeFormat.twentyFourHour,
+      Duration goal = defaultSleepGoal,
       bool permissionAsked = false,
       bool enabled = true,
     }) {
@@ -36,6 +39,7 @@ void main() {
           initialSleepingNotificationEnabledProvider.overrideWithValue(enabled),
           initialLanguageProvider.overrideWithValue(language),
           initialTimeFormatProvider.overrideWithValue(timeFormat),
+          initialSleepGoalProvider.overrideWithValue(goal),
         ],
       );
       addTearDown(container.dispose);
@@ -86,6 +90,18 @@ void main() {
       );
       expect(presenter.shown.single.copy.ongoingLabel, 'En curso');
       expect(presenter.shown.single.copy.channelName, 'Estado del sueño');
+    });
+
+    test('uses the configured goal and its end time', () async {
+      final container = createContainer(
+        goal: const Duration(hours: 6, minutes: 30),
+      );
+
+      await container
+          .read(sleepingNotificationControllerProvider)
+          .sync(openSession: session);
+
+      expect(presenter.shown.single.copy.body, 'Goal 6h 30m · until 05:30');
     });
 
     test('updates the notification when the start changes', () async {

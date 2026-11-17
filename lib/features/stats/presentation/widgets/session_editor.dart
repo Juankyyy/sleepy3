@@ -11,6 +11,7 @@ import '../../../health/application/current_app_package_provider.dart';
 import '../../../health/application/health_connect_gateway_provider.dart';
 import '../../../health/domain/sleep_data_source.dart';
 import '../../../health/domain/sleepy3_health_source.dart';
+import '../../../settings/application/sleep_goal_controller.dart';
 import '../../../sleep_tracking/application/sleep_session_edit_service.dart';
 import '../../../sleep_tracking/application/sleep_tracking_controller.dart';
 import '../../../sleep_tracking/domain/session_edit.dart';
@@ -487,7 +488,11 @@ class SessionEditorState extends ConsumerState<SessionEditor> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SessionHero(duration: duration, endedAt: _endedAt),
+        SessionHero(
+          duration: duration,
+          endedAt: _endedAt,
+          goal: ref.watch(sleepGoalProvider),
+        ),
         if (!canEdit) ...[
           const SizedBox(height: 24),
           _ReadOnlyCard(message: _readOnlyMessage(l10n)),

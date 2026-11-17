@@ -6,8 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/time/clock_format.dart';
 import '../../../l10n/l10n.dart';
 import '../../settings/application/language_controller.dart';
+import '../../settings/application/sleep_goal_controller.dart';
 import '../../settings/application/time_format_controller.dart';
-import '../domain/sleep_goal.dart';
 import '../domain/sleep_session.dart';
 import '../domain/sleeping_notification_presenter.dart';
 import 'sleeping_notification_enabled_controller.dart';
@@ -147,11 +147,12 @@ class SleepingNotificationController {
       _ref.read(languageControllerProvider).locale,
     );
     final timeFormat = _ref.read(timeFormatControllerProvider);
-    final goalEnd = startedAt.add(dailySleepGoal);
+    final goal = _ref.read(sleepGoalProvider);
+    final goalEnd = startedAt.add(goal);
     return SleepingNotificationCopy(
       title: l10n.sleepingNotificationTitle,
       body: l10n.sleepingNotificationBody(
-        l10n.formatGoalDelta(dailySleepGoal),
+        l10n.formatGoalDelta(goal),
         formatSessionTime(
           goalEnd,
           use24HourFormat: timeFormat.uses24HourFormat,

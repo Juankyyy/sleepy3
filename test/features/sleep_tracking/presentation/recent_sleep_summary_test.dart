@@ -4,6 +4,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/recent_sleep_summary.dart';
+import 'package:sleepy3/features/sleep_tracking/domain/sleep_goal.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/presentation/widgets/recent_sleep_summary.dart';
 import 'package:sleepy3/l10n/l10n.dart';
@@ -33,6 +34,7 @@ void main() {
   Future<void> pumpSummary(
     WidgetTester tester,
     RecentSleepSummary summary, {
+    Duration goal = defaultSleepGoal,
     double textScale = 1,
   }) async {
     tester.view.physicalSize = const Size(360, 800) * 3;
@@ -54,7 +56,7 @@ void main() {
         home: Scaffold(
           body: Padding(
             padding: const EdgeInsets.all(16),
-            child: RecentSleepSummaryCard(summary: summary),
+            child: RecentSleepSummaryCard(summary: summary, goal: goal),
           ),
         ),
       ),
@@ -105,6 +107,20 @@ void main() {
 
     expect(barValue(tester, 0), 1);
     expect(find.text('10h 0m'), findsOneWidget);
+  });
+
+  testWidgets('uses the configured goal for the bars', (tester) async {
+    await pumpSummary(
+      tester,
+      summaryWith(
+        today: const Duration(hours: 6),
+        yesterday: const Duration(hours: 3),
+      ),
+      goal: const Duration(hours: 6),
+    );
+
+    expect(barValue(tester, 0), 1);
+    expect(barValue(tester, 1), 0.5);
   });
 
   testWidgets('shows em dashes and empty bars without data', (tester) async {

@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sleepy3/core/theme/sleepy3_theme.dart';
+import 'package:sleepy3/features/sleep_tracking/domain/sleep_goal.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_history.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_insights.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
@@ -17,6 +18,7 @@ void main() {
     now: now,
     sessions: [closed(DateTime(2026, 10, 20, 23), DateTime(2026, 10, 21, 7))],
     range: SleepHistoryRange.week,
+    goal: defaultSleepGoal,
   );
   final twoNights = buildSleepInsights(
     now: now,
@@ -25,11 +27,13 @@ void main() {
       closed(DateTime(2026, 10, 20, 23), DateTime(2026, 10, 21, 5)),
     ],
     range: SleepHistoryRange.week,
+    goal: defaultSleepGoal,
   );
   final empty = buildSleepInsights(
     now: now,
     sessions: const [],
     range: SleepHistoryRange.week,
+    goal: defaultSleepGoal,
   );
 
   Future<void> pumpCard(

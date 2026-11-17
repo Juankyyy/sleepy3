@@ -4,6 +4,7 @@ import 'package:sleepy3/features/settings/domain/app_language.dart';
 import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/settings/domain/settings_store.dart';
+import 'package:sleepy3/features/sleep_tracking/domain/sleep_goal.dart';
 import 'package:sleepy3/features/stats/domain/stats_summary_option.dart';
 
 class FakeSettingsStore implements SettingsStore {
@@ -16,6 +17,7 @@ class FakeSettingsStore implements SettingsStore {
     this.sleepNotificationPermissionAsked = false,
     this.sleepingNotificationEnabled = true,
     this.statsSummaryOption = StatsSummaryOption.defaultOption,
+    this.sleepGoal = defaultSleepGoal,
     this.failWrites = false,
   });
 
@@ -27,6 +29,7 @@ class FakeSettingsStore implements SettingsStore {
   bool sleepNotificationPermissionAsked;
   bool sleepingNotificationEnabled;
   StatsSummaryOption statsSummaryOption;
+  Duration sleepGoal;
   bool failWrites;
   int loads = 0;
   int timeFormatLoads = 0;
@@ -36,6 +39,7 @@ class FakeSettingsStore implements SettingsStore {
   int sleepNotificationPermissionAskedLoads = 0;
   int sleepingNotificationEnabledLoads = 0;
   int statsSummaryLoads = 0;
+  int sleepGoalLoads = 0;
   final saves = <AppThemeMode>[];
   final timeFormatSaves = <AppTimeFormat>[];
   final languageSaves = <AppLanguage>[];
@@ -44,6 +48,7 @@ class FakeSettingsStore implements SettingsStore {
   final sleepNotificationPermissionAskedSaves = <bool>[];
   final sleepingNotificationEnabledSaves = <bool>[];
   final statsSummarySaves = <StatsSummaryOption>[];
+  final sleepGoalSaves = <Duration>[];
 
   @override
   Future<AppThemeMode> loadThemeMode() async {
@@ -147,5 +152,18 @@ class FakeSettingsStore implements SettingsStore {
     if (failWrites) throw StateError('write failed');
     statsSummaryOption = value;
     statsSummarySaves.add(value);
+  }
+
+  @override
+  Future<Duration> loadSleepGoal() async {
+    sleepGoalLoads++;
+    return sleepGoal;
+  }
+
+  @override
+  Future<void> saveSleepGoal(Duration value) async {
+    if (failWrites) throw StateError('write failed');
+    sleepGoal = value;
+    sleepGoalSaves.add(value);
   }
 }

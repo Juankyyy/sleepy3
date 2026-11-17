@@ -11,7 +11,9 @@ import 'package:sleepy3/features/health/application/sleep_data_source_controller
 import 'package:sleepy3/features/health/domain/health_connect_gateway.dart';
 import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
+import 'package:sleepy3/features/settings/application/sleep_goal_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
+import 'package:sleepy3/features/sleep_tracking/domain/sleep_goal.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
 import 'package:sleepy3/features/stats/application/stats_summary_controller.dart';
@@ -64,6 +66,7 @@ void main() {
     Size size = const Size(360, 800),
     double textScale = 1,
     Locale locale = const Locale('en'),
+    Duration goal = defaultSleepGoal,
     bool disableAnimations = true,
   }) async {
     tester.view.physicalSize = size * 3;
@@ -102,6 +105,7 @@ void main() {
                 initialStatsSummaryOptionProvider.overrideWithValue(
                   StatsSummaryOption.averageSleep,
                 ),
+                initialSleepGoalProvider.overrideWithValue(goal),
                 initialSleepSnapshotProvider.overrideWithValue(
                   SleepSnapshot.empty,
                 ),
@@ -553,6 +557,25 @@ void main() {
     );
   });
 
+  testWidgets('uses a ten-hour goal in the details', (tester) async {
+    await pumpStats(
+      tester,
+      sessions: [localSession()],
+      goal: const Duration(hours: 10),
+    );
+
+    await openLocalEditor(tester);
+
+    expect(find.text('1h 47m short of the 10h goal'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(SessionEditor),
+        matching: find.byType(M3EShapeContainer),
+      ),
+      findsNothing,
+    );
+  });
+
   testWidgets('updates the goal while the draft crosses it', (tester) async {
     await pumpStats(tester, sessions: [localSession()]);
 
@@ -607,7 +630,7 @@ void main() {
     expect(
       find.bySemanticsLabel(
         RegExp(
-          '8 hours 13 minutes, goal met, 13 minutes over the 8-hour goal, '
+          '8 hours 13 minutes, goal met, 13 minutes over the goal of 8 hours, '
           'woke Wednesday, October 21, 2026',
         ),
       ),

@@ -11,7 +11,9 @@ import 'package:sleepy3/features/health/application/health_sync_store_provider.d
 import 'package:sleepy3/features/health/application/sleep_data_source_controller.dart';
 import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
+import 'package:sleepy3/features/settings/application/sleep_goal_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
+import 'package:sleepy3/features/sleep_tracking/domain/sleep_goal.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
 import 'package:sleepy3/features/stats/application/stats_summary_controller.dart';
@@ -57,6 +59,7 @@ void main() {
     bool dark = false,
     bool settle = true,
     StatsSummaryOption summaryOption = StatsSummaryOption.averageSleep,
+    Duration goal = defaultSleepGoal,
   }) async {
     tester.view.physicalSize = size * 3;
     tester.view.devicePixelRatio = 3;
@@ -94,6 +97,7 @@ void main() {
                 initialStatsSummaryOptionProvider.overrideWithValue(
                   summaryOption,
                 ),
+                initialSleepGoalProvider.overrideWithValue(goal),
               ],
               child: M3EMaterialApp(
                 title: 'Sleepy3',
@@ -418,6 +422,21 @@ void main() {
     // These fake sessions have no Drift row id, so Local mode treats them as
     // read-only copies.
     expect(find.byIcon(M3EIcons.edit_outlined), findsNothing);
+  });
+
+  testWidgets('uses the configured goal in the stats metrics', (tester) async {
+    await pumpStats(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      initial: SleepSnapshot(closedSessions: sessions),
+      summaryOption: StatsSummaryOption.keyMetrics,
+      goal: const Duration(hours: 6),
+    );
+
+    expect(find.text('100%'), findsOneWidget);
+    expect(find.text('3 of 3 nights'), findsOneWidget);
+    expect(find.text('+4h 3m'), findsOneWidget);
+    expect(find.text('surplus · vs 6h goal'), findsOneWidget);
   });
 
   testWidgets('renders the sleep window, weekday and insights cards', (

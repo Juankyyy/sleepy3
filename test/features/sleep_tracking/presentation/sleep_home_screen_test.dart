@@ -12,9 +12,11 @@ import 'package:sleepy3/features/health/application/sleep_data_source_controller
 import 'package:sleepy3/features/health/domain/health_sleep_session.dart';
 import 'package:sleepy3/features/health/domain/sleep_data_source.dart';
 import 'package:sleepy3/features/settings/application/settings_providers.dart';
+import 'package:sleepy3/features/settings/application/sleep_goal_controller.dart';
 import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleeping_notification_controller.dart';
+import 'package:sleepy3/features/sleep_tracking/domain/sleep_goal.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart';
 import 'package:sleepy3/features/sleep_tracking/presentation/sleep_home_screen.dart';
@@ -34,6 +36,7 @@ void main() {
     SleepDataSource source = SleepDataSource.local,
     FakeHealthConnectGateway? gateway,
     FakeHealthSyncStore? healthSyncStore,
+    Duration goal = defaultSleepGoal,
     bool settle = true,
   }) async {
     final sleepStore = store ?? FakeSleepSessionStore(snapshot: initial);
@@ -51,6 +54,7 @@ void main() {
           initialTimeFormatProvider.overrideWithValue(
             AppTimeFormat.forSystem(use24HourFormat),
           ),
+          initialSleepGoalProvider.overrideWithValue(goal),
           initialSleepDataSourceProvider.overrideWithValue(source),
           healthConnectGatewayProvider.overrideWithValue(
             gateway ?? FakeHealthConnectGateway(),
@@ -364,6 +368,36 @@ void main() {
     expect(find.text('8h 0m'), findsOneWidget);
     expect(find.text('7h 0m'), findsOneWidget);
     expect(find.text('—'), findsOneWidget);
+  });
+
+  testWidgets('draws the home bars against the configured goal', (
+    tester,
+  ) async {
+    final today = DateTime(2026, 10, 21);
+    await pumpHome(
+      tester,
+      clock: () => DateTime(2026, 10, 21, 10),
+      goal: const Duration(hours: 6),
+      initial: SleepSnapshot(
+        closedSessions: [
+          SleepSession(
+            startedAt: today,
+            endedAt: today.add(const Duration(hours: 6)),
+          ),
+        ],
+      ),
+    );
+
+    final bar = tester.widget<FractionallySizedBox>(
+      find.descendant(
+        of: find.descendant(
+          of: find.byKey(const Key('home-history-summary')),
+          matching: find.byKey(const ValueKey('sleep-summary-bar-0')),
+        ),
+        matching: find.byType(FractionallySizedBox),
+      ),
+    );
+    expect(bar.widthFactor, 1);
   });
 
   testWidgets('shows the day copy and chip during the day', (tester) async {

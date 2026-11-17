@@ -5,7 +5,6 @@ import 'package:material_ui/material_ui.dart';
 import '../../../../l10n/l10n.dart';
 import '../../../sleep_tracking/domain/session_edit.dart';
 import '../../../sleep_tracking/domain/session_night_context.dart';
-import '../../../sleep_tracking/domain/sleep_goal.dart';
 import '../session_edit_error_text.dart';
 import 'sleep_goal_mark.dart';
 
@@ -22,10 +21,18 @@ import 'sleep_goal_mark.dart';
 /// history list; there is no published M3 reduce-motion swap rule, so
 /// following the Android setting is also a product decision.
 class SessionHero extends StatefulWidget {
-  const SessionHero({super.key, required this.duration, required this.endedAt});
+  const SessionHero({
+    super.key,
+    required this.duration,
+    required this.endedAt,
+    required this.goal,
+  });
 
   final Duration duration;
   final DateTime endedAt;
+
+  /// The nightly goal chosen in Settings.
+  final Duration goal;
 
   @override
   State<SessionHero> createState() => _SessionHeroState();
@@ -62,7 +69,7 @@ class _SessionHeroState extends State<SessionHero>
     super.dispose();
   }
 
-  bool get _met => widget.duration >= dailySleepGoal;
+  bool get _met => widget.duration >= widget.goal;
 
   bool get _motionEnabled => !MediaQuery.disableAnimationsOf(context);
 
@@ -90,7 +97,7 @@ class _SessionHeroState extends State<SessionHero>
       container: true,
       label: l10n.sessionHeroSpoken(
         l10n.formatSpokenSleepDuration(widget.duration),
-        _spokenGoal(l10n, widget.duration),
+        _spokenGoal(l10n, widget.duration, widget.goal),
         spokenDate,
       ),
       child: ExcludeSemantics(
@@ -106,6 +113,7 @@ class _SessionHeroState extends State<SessionHero>
                 children: [
                   SleepGoalMark(
                     duration: widget.duration,
+                    goal: widget.goal,
                     size: 56,
                     strokeWidth: 5,
                     color: scheme.primary,
@@ -131,7 +139,7 @@ class _SessionHeroState extends State<SessionHero>
               ),
               const SizedBox(height: 8),
               Text(
-                _goalLabel(l10n, widget.duration),
+                _goalLabel(l10n, widget.duration, widget.goal),
                 style: theme.typography.baseline.bodyMedium.copyWith(
                   color: scheme.onPrimaryContainer,
                 ),
@@ -154,28 +162,36 @@ class _SessionHeroState extends State<SessionHero>
 }
 
 /// The goal line under the duration, for example `Goal met · 13m over the
-/// 8h goal` or `58m short of the 8h goal`.
-String _goalLabel(AppLocalizations l10n, Duration duration) {
-  if (duration <= Duration.zero) return l10n.goalDefault;
+/// 8h goal` or `58m short of the 10h goal`, using the goal from Settings.
+String _goalLabel(AppLocalizations l10n, Duration duration, Duration goal) {
+  final goalLabel = l10n.formatGoalDelta(goal);
+  if (duration <= Duration.zero) return l10n.goalDefault(goalLabel);
 
-  final difference = duration - dailySleepGoal;
+  final difference = duration - goal;
   if (difference >= Duration.zero) {
     if (difference == Duration.zero) return l10n.goalMet;
-    return l10n.goalOver(l10n.formatGoalDelta(difference));
+    return l10n.goalOver(l10n.formatGoalDelta(difference), goalLabel);
   }
-  return l10n.goalUnder(l10n.formatGoalDelta(-difference));
+  return l10n.goalUnder(l10n.formatGoalDelta(-difference), goalLabel);
 }
 
 /// The same comparison for screen readers.
-String _spokenGoal(AppLocalizations l10n, Duration duration) {
-  if (duration <= Duration.zero) return l10n.spokenGoalDefault;
+String _spokenGoal(AppLocalizations l10n, Duration duration, Duration goal) {
+  final goalLabel = l10n.formatSpokenGoal(goal);
+  if (duration <= Duration.zero) return l10n.spokenGoalDefault(goalLabel);
 
-  final difference = duration - dailySleepGoal;
+  final difference = duration - goal;
   if (difference == Duration.zero) return l10n.spokenGoalMet;
   if (difference > Duration.zero) {
-    return l10n.spokenGoalOver(l10n.formatSpokenSleepDuration(difference));
+    return l10n.spokenGoalOver(
+      l10n.formatSpokenSleepDuration(difference),
+      goalLabel,
+    );
   }
-  return l10n.spokenGoalUnder(l10n.formatSpokenSleepDuration(-difference));
+  return l10n.spokenGoalUnder(
+    l10n.formatSpokenSleepDuration(-difference),
+    goalLabel,
+  );
 }
 
 /// One labelled date and time pair.

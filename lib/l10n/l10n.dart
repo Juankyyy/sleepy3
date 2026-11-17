@@ -42,6 +42,15 @@ extension SleepDurationLocalizations on AppLocalizations {
     return spokenDurationHoursMinutes(hours, minutes);
   }
 
+  /// A spoken goal without a zero minute part: `8 hours`, `6 hours 30 minutes`.
+  String formatSpokenGoal(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    if (hours == 0) return spokenDurationMinutes(minutes);
+    if (minutes == 0) return spokenDurationHours(hours);
+    return spokenDurationHoursMinutes(hours, minutes);
+  }
+
   /// A goal delta without a zero minute part: `13m`, `1h`, `1h 12m`.
   String formatGoalDelta(Duration duration) {
     final hours = duration.inHours;

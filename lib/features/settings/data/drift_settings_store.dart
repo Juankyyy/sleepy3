@@ -1,6 +1,7 @@
 import '../../health/domain/sleep_data_source.dart';
 import '../../reminders/domain/sleep_reminder.dart';
 import '../../sleep_tracking/data/sleepy3_database.dart';
+import '../../sleep_tracking/domain/sleep_goal.dart';
 import '../../stats/domain/stats_summary_option.dart';
 import '../domain/app_language.dart';
 import '../domain/app_theme_mode.dart';
@@ -24,6 +25,7 @@ class DriftSettingsStore implements SettingsStore {
   static const _sleepingNotificationEnabledKey =
       'sleep_status_notification_enabled';
   static const _statsSummaryOptionKey = 'stats_summary_option';
+  static const _sleepGoalMinutesKey = 'sleep_goal_minutes';
 
   @override
   Future<AppThemeMode> loadThemeMode() async {
@@ -112,6 +114,16 @@ class DriftSettingsStore implements SettingsStore {
   @override
   Future<void> saveStatsSummaryOption(StatsSummaryOption option) {
     return _write(_statsSummaryOptionKey, option.name);
+  }
+
+  @override
+  Future<Duration> loadSleepGoal() async {
+    return parseSleepGoalMinutes(await _read(_sleepGoalMinutesKey));
+  }
+
+  @override
+  Future<void> saveSleepGoal(Duration goal) {
+    return _write(_sleepGoalMinutesKey, goal.inMinutes.toString());
   }
 
   Future<String?> _read(String key) async {
