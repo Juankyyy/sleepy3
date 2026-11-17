@@ -831,11 +831,18 @@ Reglas:
   la fila pero no abre el modal.
 - El modal es un diálogo básico compuesto con los tokens de `M3EDialog`: radio de 28 dp,
   padding de 24 dp, `surfaceContainerHigh`, headline small, body medium y divisores de
-  1 dp. Se usa `M3EDialog.show` para el scrim, la transición, el foco y el cierre por
-  barrera/atrás. La cabecera lleva la `X` arriba a la derecha, el título
+  1 dp en `outlineVariant`. Se usa `M3EDialog.show` para el scrim, la transición, el foco y
+  el cierre por barrera/atrás. La cabecera lleva la `X` arriba a la derecha, el título
   `Nueva versión disponible`, el subtítulo `Sleepy3 {version} · {tema}` y `Ver en GitHub`
   debajo. Después hay una sección `Novedades` con el primer párrafo de las notas (sin
   Markdown, máximo 4 líneas) y una sección de acciones separada por otro divisor.
+- La sección de acciones usa el mismo `OverflowBar` que `M3EDialogActions`, con
+  `alignment: end` y `overflowDirection: up`. A 360 dp, `No recordar otra vez` es un text
+  button en `onSurfaceVariant` con padding compacto a la izquierda y `Descargar` es un
+  filled button a la derecha, ambos en la misma línea base. Si no caben (200 % de texto o
+  ventanas de 320 dp), se apilan con `Descargar` arriba y `No recordar` debajo, ambos al
+  borde derecho. El filled de `Descargar` es una decisión de producto para dar jerarquía
+  frente a la opt-out; el resto de acciones del modal son text buttons.
 - La `X` y el toque en la barrera o el botón atrás cierran el modal y guardan un snooze de
   24 h solo para esa versión (`update_prompt_snoozed_version` y
   `update_prompt_snoozed_until`). No hay texto visible que explique el snooze; el tooltip
@@ -2035,7 +2042,8 @@ dart run tool/generate_brand_assets.dart
   nueva que ignora el descarte/snooze anterior, `No recordar otra vez` solo para esa
   versión, descarga/GitHub que marcan la versión solo si el enlace se abre, APK ausente que
   cae en la página de la release, fila oculta sin versión, fila disponible que descarga,
-  persistencia de las tres claves y modal a 360 dp con 200 % de texto en inglés/español.
+  persistencia de las tres claves, acciones en fila con `Descargar` filled y `No recordar`
+  text a 360 dp, apiladas al borde derecho al 200 % y modal en inglés/español.
 - Notificación de sueño: tarjeta `RemoteViews` con cronómetro grande, fallback estándar con
   texto grande, importancia baja, publicación al dormir, cancelación al despertar,
   actualización al retimar o cambiar idioma/formato, permiso pedido una sola vez y copy en

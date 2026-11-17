@@ -64,7 +64,7 @@ class UpdateAvailableDialog extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _Header(title: l10n.updateDialogTitle, subtitle: subtitle),
-                    _divider(appearance, dialogTheme, scheme),
+                    _divider(dialogTheme, scheme),
                     Padding(
                       padding: EdgeInsets.fromLTRB(
                         dialogTheme.padding.left,
@@ -95,13 +95,13 @@ class UpdateAvailableDialog extends StatelessWidget {
                 ),
               ),
             ),
-            _divider(appearance, dialogTheme, scheme),
+            _divider(dialogTheme, scheme),
             Padding(
               padding: EdgeInsets.fromLTRB(
                 dialogTheme.padding.left,
                 12,
                 dialogTheme.padding.right,
-                20,
+                16,
               ),
               child: _Actions(
                 onDontRemind: () =>
@@ -117,13 +117,9 @@ class UpdateAvailableDialog extends StatelessWidget {
     );
   }
 
-  Widget _divider(
-    M3EDialogAppearance appearance,
-    M3EDialogTheme dialogTheme,
-    M3EColorScheme scheme,
-  ) {
+  Widget _divider(M3EDialogTheme dialogTheme, M3EColorScheme scheme) {
     return M3EDivider(
-      color: appearance.resolveDivider(scheme),
+      color: scheme.outlineVariant,
       thickness: dialogTheme.dividerThickness,
     );
   }
@@ -208,42 +204,37 @@ class _Actions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final scheme = M3ETheme.of(context).colorScheme;
     final dontRemind = M3EButton(
       style: M3EButtonStyle.text,
       size: M3EButtonSize.sm,
+      decoration: M3EButtonDecoration(
+        foregroundColor: WidgetStatePropertyAll<Color?>(
+          scheme.onSurfaceVariant,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        minimumSize: const Size(0, 40),
+      ),
       onPressed: onDontRemind,
       child: Text(l10n.updateDontRemind),
     );
     final download = M3EButton(
-      style: M3EButtonStyle.text,
+      style: M3EButtonStyle.filled,
       size: M3EButtonSize.sm,
       onPressed: onDownload,
       child: Text(l10n.updateDownload),
     );
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // The long opt-out and the download do not fit side by side on a
-        // compact dialog. Stacking also follows the M3 rule for long actions:
-        // the confirming action stays above the dismissive one.
-        final stacked = textScale >= 1.5 || constraints.maxWidth < 440;
-        if (stacked) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Align(alignment: AlignmentDirectional.centerEnd, child: download),
-              const SizedBox(height: 4),
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: dontRemind,
-              ),
-            ],
-          );
-        }
-
-        return Row(children: [dontRemind, const Spacer(), download]);
-      },
+    // This is the same primitive M3EDialogActions uses: a row when both fit,
+    // and a trailing stack with the confirming action above the dismissive one
+    // when they do not.
+    return OverflowBar(
+      spacing: 8,
+      overflowSpacing: 4,
+      alignment: MainAxisAlignment.end,
+      overflowAlignment: OverflowBarAlignment.end,
+      overflowDirection: VerticalDirection.up,
+      children: [dontRemind, download],
     );
   }
 }

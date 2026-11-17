@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
@@ -15,6 +16,23 @@ class _DialogResult {
 }
 
 void main() {
+  setUpAll(() async {
+    // Use the production metrics so the action row is measured with the same
+    // font as the app.
+    final loader = FontLoader('SpaceGrotesk');
+    loader.addFont(
+      rootBundle.load('assets/fonts/SpaceGrotesk-VariableFont.ttf'),
+    );
+    await loader.load();
+  });
+
+  Finder actionButton(String label) {
+    return find.ancestor(
+      of: find.text(label),
+      matching: find.byType(M3EButton),
+    );
+  }
+
   Future<_DialogResult> pumpDialog(
     WidgetTester tester, {
     AppRelease? release,
@@ -78,6 +96,41 @@ void main() {
     expect(find.byIcon(M3EIcons.close), findsOneWidget);
   });
 
+  testWidgets('aligns the filled download to the right of the opt-out', (
+    tester,
+  ) async {
+    await pumpDialog(tester);
+
+    final download = actionButton('Download');
+    final optOut = actionButton("Don't remind me again");
+
+    expect(tester.widget<M3EButton>(download).style, M3EButtonStyle.filled);
+    expect(tester.widget<M3EButton>(optOut).style, M3EButtonStyle.text);
+    expect(
+      tester.getCenter(download).dy,
+      closeTo(tester.getCenter(optOut).dy, 1),
+    );
+    expect(
+      tester.getRect(download).right,
+      greaterThan(tester.getRect(optOut).right),
+    );
+  });
+
+  testWidgets('stacks the actions to the trailing edge at 200%', (
+    tester,
+  ) async {
+    await pumpDialog(tester, textScale: 2);
+
+    final download = actionButton('Download');
+    final optOut = actionButton("Don't remind me again");
+    final downloadRect = tester.getRect(download);
+    final optOutRect = tester.getRect(optOut);
+
+    expect(downloadRect.center.dy, lessThan(optOutRect.center.dy));
+    expect(downloadRect.right, closeTo(optOutRect.right, 1));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('the close button snoozes the dialog', (tester) async {
     final state = await pumpDialog(tester);
 
@@ -133,6 +186,13 @@ void main() {
     expect(find.text('Ver en GitHub'), findsOneWidget);
     expect(find.text('No recordar otra vez'), findsOneWidget);
     expect(find.text('Descargar'), findsOneWidget);
+
+    final download = actionButton('Descargar');
+    final optOut = actionButton('No recordar otra vez');
+    expect(
+      tester.getRect(download).right,
+      closeTo(tester.getRect(optOut).right, 1),
+    );
     expect(tester.takeException(), isNull);
   });
 }

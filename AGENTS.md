@@ -149,7 +149,10 @@ lib/
   launch dialog uses the first paragraph of the release notes as `Novedades`, a
   `View on GitHub` link, a header `X` that snoozes that version for 24 hours and a
   `Don't remind me again` action that dismisses that version only; a newer version prompts
-  again. The prompt decisions live in `preferences` as
+  again. The action row uses an `OverflowBar` with a filled `Download` and a low-emphasis
+  text `Don't remind me again`: side by side on a phone, stacked to the trailing edge at
+  200% or 320 dp; the dividers use `outlineVariant`. The prompt decisions live in
+  `preferences` as
   `update_prompt_dismissed_version`, `update_prompt_snoozed_version` and
   `update_prompt_snoozed_until`; there is no global switch and no schema migration. The
   app opens `url_launcher` for the release page/APK and never installs an APK itself.
