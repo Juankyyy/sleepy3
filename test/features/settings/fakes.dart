@@ -6,6 +6,7 @@ import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/settings/domain/settings_store.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_goal.dart';
 import 'package:sleepy3/features/stats/domain/stats_summary_option.dart';
+import 'package:sleepy3/features/updates/domain/update_prompt_preferences.dart';
 
 class FakeSettingsStore implements SettingsStore {
   FakeSettingsStore({
@@ -18,6 +19,7 @@ class FakeSettingsStore implements SettingsStore {
     this.sleepingNotificationEnabled = true,
     this.statsSummaryOption = StatsSummaryOption.defaultOption,
     this.sleepGoal = defaultSleepGoal,
+    this.updatePromptPreferences = UpdatePromptPreferences.defaults,
     this.failWrites = false,
   });
 
@@ -30,6 +32,7 @@ class FakeSettingsStore implements SettingsStore {
   bool sleepingNotificationEnabled;
   StatsSummaryOption statsSummaryOption;
   Duration sleepGoal;
+  UpdatePromptPreferences updatePromptPreferences;
   bool failWrites;
   int loads = 0;
   int timeFormatLoads = 0;
@@ -40,6 +43,7 @@ class FakeSettingsStore implements SettingsStore {
   int sleepingNotificationEnabledLoads = 0;
   int statsSummaryLoads = 0;
   int sleepGoalLoads = 0;
+  int updatePromptPreferencesLoads = 0;
   final saves = <AppThemeMode>[];
   final timeFormatSaves = <AppTimeFormat>[];
   final languageSaves = <AppLanguage>[];
@@ -49,6 +53,7 @@ class FakeSettingsStore implements SettingsStore {
   final sleepingNotificationEnabledSaves = <bool>[];
   final statsSummarySaves = <StatsSummaryOption>[];
   final sleepGoalSaves = <Duration>[];
+  final updatePromptPreferencesSaves = <UpdatePromptPreferences>[];
 
   @override
   Future<AppThemeMode> loadThemeMode() async {
@@ -165,5 +170,20 @@ class FakeSettingsStore implements SettingsStore {
     if (failWrites) throw StateError('write failed');
     sleepGoal = value;
     sleepGoalSaves.add(value);
+  }
+
+  @override
+  Future<UpdatePromptPreferences> loadUpdatePromptPreferences() async {
+    updatePromptPreferencesLoads++;
+    return updatePromptPreferences;
+  }
+
+  @override
+  Future<void> saveUpdatePromptPreferences(
+    UpdatePromptPreferences value,
+  ) async {
+    if (failWrites) throw StateError('write failed');
+    updatePromptPreferences = value;
+    updatePromptPreferencesSaves.add(value);
   }
 }

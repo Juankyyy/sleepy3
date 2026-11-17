@@ -37,11 +37,13 @@ import 'package:sleepy3/features/sleep_tracking/domain/sleep_session_store.dart'
 import 'package:sleepy3/features/stats/application/stats_summary_controller.dart';
 import 'package:sleepy3/features/stats/domain/stats_summary_option.dart';
 import 'package:sleepy3/features/stats/presentation/stats_summary_picker.dart';
+import 'package:sleepy3/features/updates/application/update_providers.dart';
 import 'package:sleepy3/l10n/l10n.dart';
 
 import '../../backup/fakes.dart';
 import '../../health/fakes.dart';
 import '../../reminders/fakes.dart';
+import '../../updates/fakes.dart';
 import '../fakes.dart';
 import '../../sleep_tracking/fakes.dart';
 
@@ -72,6 +74,8 @@ void main() {
     FakeSleepingNotificationPresenter? sleepingNotificationPresenter,
     FakeSleepHistoryFileGateway? historyFileGateway,
     FakeSleepSessionStore? sleepStore,
+    FakeAppReleaseGateway? releaseGateway,
+    FakeUpdateLinkLauncher? updateLinkLauncher,
     Duration initialSleepGoal = defaultSleepGoal,
     double textScale = 1,
     Size size = const Size(360, 800),
@@ -117,6 +121,12 @@ void main() {
           ),
           sleepHistoryFileGatewayProvider.overrideWithValue(
             historyFileGateway ?? FakeSleepHistoryFileGateway(),
+          ),
+          appReleaseGatewayProvider.overrideWithValue(
+            releaseGateway ?? FakeAppReleaseGateway(testRelease('0.1.0')),
+          ),
+          updateLinkLauncherProvider.overrideWithValue(
+            updateLinkLauncher ?? FakeUpdateLinkLauncher(),
           ),
           sleepClockProvider.overrideWithValue(
             () => DateTime(2026, 10, 21, 6, 20),
@@ -1400,9 +1410,33 @@ void main() {
     await pumpSettings(tester);
 
     expect(find.text('Version'), findsNothing);
+    expect(find.text('Check for updates'), findsNothing);
 
     await scrollToLabel(tester, 'Licenses');
     expect(find.text('Licenses'), findsOneWidget);
+  });
+
+  testWidgets('checks for updates and opens the APK download', (tester) async {
+    final launcher = FakeUpdateLinkLauncher();
+    final release = testRelease('0.4.0');
+    final store = await pumpSettings(
+      tester,
+      version: const AppVersion(version: '0.3.1', buildNumber: '1'),
+      releaseGateway: FakeAppReleaseGateway(release),
+      updateLinkLauncher: launcher,
+    );
+
+    await tapLabel(tester, 'Check for updates');
+
+    expect(
+      find.text('Version 0.4.0 is available. Tap to download the APK.'),
+      findsOneWidget,
+    );
+
+    await tapLabel(tester, 'Check for updates');
+
+    expect(launcher.uris, [release.apkUrl]);
+    expect(store.updatePromptPreferences.dismissedVersion, '0.4.0');
   });
 
   testWidgets('announces the current theme, version and source', (
@@ -1490,6 +1524,8 @@ void main() {
       'On-device only.',
       'Version',
       '0.1.0 (1)',
+      'Check for updates',
+      'See if a newer version is on GitHub.',
       'Licenses',
     ]) {
       final finder = find.text(label);

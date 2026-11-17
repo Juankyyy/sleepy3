@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../../../l10n/l10n.dart';
 import '../../../health/domain/sleep_data_source.dart';
 import '../../../health/presentation/sleep_data_source_text.dart';
+import '../../../updates/presentation/widgets/update_check_row.dart';
 import '../../domain/app_version.dart';
 import 'settings_list.dart';
 
@@ -44,6 +45,11 @@ class AboutList extends StatelessWidget {
               ),
           ],
         ),
+        if (appVersion != null) ...[
+          // 2dp keeps the update row attached to the version group.
+          const SizedBox(height: 2),
+          UpdateCheckRow(version: appVersion),
+        ],
         // The actionable row needs its own list because M3EList owns row taps.
         const SizedBox(height: 2),
         SettingsList(

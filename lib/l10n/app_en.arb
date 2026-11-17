@@ -79,6 +79,45 @@
   "privacy": "Privacy",
   "version": "Version",
   "licenses": "Licenses",
+  "updateCheckTitle": "Check for updates",
+  "updateCheckSupport": "See if a newer version is on GitHub.",
+  "updateChecking": "Checking for updates…",
+  "updateUpToDate": "Sleepy3 {version} is the latest version.",
+  "@updateUpToDate": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "0.3.1"
+      }
+    }
+  },
+  "updateAvailableDownload": "Version {version} is available. Tap to download the APK.",
+  "@updateAvailableDownload": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "0.4.0"
+      }
+    }
+  },
+  "updateCheckFailed": "Couldn't check for updates. Tap to retry.",
+  "updateOpenFailed": "Couldn't open the link. Try again.",
+  "updateDialogTitle": "New version available",
+  "updateDialogSemantic": "New version available: Sleepy3 {version}",
+  "@updateDialogSemantic": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "0.4.0"
+      }
+    }
+  },
+  "updateWhatsNew": "What's new",
+  "updateSummaryFallback": "See the full release notes on GitHub.",
+  "updateOpenGitHub": "View on GitHub",
+  "updateDownload": "Download",
+  "updateDontRemind": "Don't remind me again",
+  "updateCloseTooltip": "Close; I'll remind you in 24 hours",
   "privacyLocal": "On-device only.",
   "privacyHealth": "Stored in Health Connect. Google Health can read it.",
   "source": "Source",

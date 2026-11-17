@@ -19,12 +19,12 @@
 - **A reminder if you want one.** Choose a time in Settings and Sleepy3 sends a local notification with a **Start sleep** button, so you do not forget to tap Sleep. It never fires while a night is already in progress.
 - **Your last nights at a glance.** Home shows today, yesterday and the day before with a three-day average and bars against your sleep goal.
 - **A backup you can hold.** Export the whole history to a versioned JSON file and import it back on a new install. The file stays on your phone or wherever you choose to save it; nothing is uploaded.
-- **Nothing leaves your phone.** There is no account, no server of ours and no analytics. Health Connect is optional, and the reminder is scheduled on the device.
+- **Nothing leaves your phone.** There is no account, no server of ours and no analytics. The only network request is the GitHub release check, which sends no sleep data. Health Connect is optional, and the reminder is scheduled on the device.
 - **Designed for 3 a.m.** A big Sleep button, a slide to wake, one-hand use, a clear awake/sleeping state and light and dark themes that follow your phone.
 
 ## Download and install
 
-Sleepy3 is not on Google Play yet. Download the latest stable build from [Releases](https://github.com/Juankyyy/sleepy3/releases). Releases are published manually; development builds are not distributed.
+Sleepy3 is not on Google Play yet. Download the latest stable build from [Releases](https://github.com/Juankyyy/sleepy3/releases). Releases are published manually; development builds are not distributed. The app also checks GitHub when it opens and lets you download a newer APK from **Settings → About → Check for updates**.
 
 1. Open Releases on your phone.
 2. Download the latest `sleepy3-vX.Y.Z.apk`.
@@ -40,7 +40,9 @@ Sleepy3 runs on **Android 9 or newer**. Version **0.3.1** is the latest stable r
 
 Use the floating glass dock at the bottom to move between **Home**, **Stats** and **Settings**; the selected destination shows its label, and the content stays visible behind the dock.
 
-Settings is split into **Appearance** (theme, 12/24-hour clock and language), **Stats** (your nightly sleep goal and the block shown in the Stats summary), **Reminders** (the optional nightly notification and the sleep status switch), **Sleep data** (Local or Google Health, and Import), **Data** (export or import your history), **Google Health** (connection status, Sync and Add) and **About** (privacy, version and open-source licenses).
+Settings is split into **Appearance** (theme, 12/24-hour clock and language), **Stats** (your nightly sleep goal and the block shown in the Stats summary), **Reminders** (the optional nightly notification and the sleep status switch), **Sleep data** (Local or Google Health, and Import), **Data** (export or import your history), **Google Health** (connection status, Sync and Add) and **About** (privacy, version, the update check and open-source licenses).
+
+When Sleepy3 opens, it asks GitHub for the latest stable release. If it is newer than the installed version, a dialog shows the version, its theme and the first lines of the release notes, with **View on GitHub** and **Download** actions. The **X** closes it and waits 24 hours; **Don't remind me again** hides that version's dialog until a newer release appears. **Check for updates** in **About** checks at any time and downloads the APK when a release is available. The app never installs an APK by itself: the browser downloads it and Android asks you to confirm. The check only contacts GitHub and never sends sleep data.
 
 **Settings → Stats → Sleep goal** offers 6 to 10 hours in 30-minute steps, with 8 hours as the default. The goal is used by Home, the Stats metrics and charts, the night details and the sleep notification, and changing it recalculates the history with the new goal; the sleep notification updates right away if a night is open.
 
@@ -142,6 +144,7 @@ Health Connect hides records older than 30 days unless you give Sleepy3 the hist
 - [x] Export and import your sleep history as a versioned JSON file, plus Android auto-backup rules (0.3.1).
 - [x] Configurable sleep goal from 6 to 10 hours across Home, Stats and the notification (0.3.1).
 - [x] Start sleep and wake from the notifications, including cold starts (0.3.1).
+- [x] Check for updates from GitHub, with a 24-hour snooze and per-version dismissal.
 - [ ] Home-screen widget with Sleep and Wake buttons (0.4.0).
 - [ ] Motion and accessibility polish.
 

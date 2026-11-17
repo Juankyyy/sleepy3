@@ -33,6 +33,8 @@ import 'features/sleep_tracking/domain/sleep_session.dart';
 import 'features/sleep_tracking/domain/sleep_session_store.dart';
 import 'features/stats/application/stats_summary_controller.dart';
 import 'features/stats/domain/stats_summary_option.dart';
+import 'features/updates/application/update_providers.dart';
+import 'features/updates/domain/update_prompt_preferences.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,6 +57,9 @@ Future<void> main() async {
   );
   final statsSummaryOption = await _loadStatsSummaryOption(settingsStore);
   final sleepGoal = await _loadSleepGoal(settingsStore);
+  final updatePromptPreferences = await _loadUpdatePromptPreferences(
+    settingsStore,
+  );
   final packageInfo = await _loadPackageInfo();
   final appVersion = _appVersionFrom(packageInfo);
 
@@ -78,6 +83,9 @@ Future<void> main() async {
         ),
         initialStatsSummaryOptionProvider.overrideWithValue(statsSummaryOption),
         initialSleepGoalProvider.overrideWithValue(sleepGoal),
+        initialUpdatePromptPreferencesProvider.overrideWithValue(
+          updatePromptPreferences,
+        ),
         appVersionProvider.overrideWithValue(appVersion),
         currentAppPackageProvider.overrideWithValue(
           packageInfo?.packageName ?? 'com.sleepy3.app',
@@ -227,6 +235,20 @@ Future<Duration> _loadSleepGoal(SettingsStore store) async {
   } catch (error, stackTrace) {
     debugPrint('Sleepy3: could not load the sleep goal: $error\n$stackTrace');
     return defaultSleepGoal;
+  }
+}
+
+Future<UpdatePromptPreferences> _loadUpdatePromptPreferences(
+  SettingsStore store,
+) async {
+  try {
+    return await store.loadUpdatePromptPreferences();
+  } catch (error, stackTrace) {
+    debugPrint(
+      'Sleepy3: could not load update prompt preferences: '
+      '$error\n$stackTrace',
+    );
+    return UpdatePromptPreferences.defaults;
   }
 }
 

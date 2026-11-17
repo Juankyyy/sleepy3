@@ -11,6 +11,7 @@ import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/settings/domain/settings_store.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_goal.dart';
 import 'package:sleepy3/features/stats/domain/stats_summary_option.dart';
+import 'package:sleepy3/features/updates/domain/update_prompt_preferences.dart';
 
 import '../fakes.dart';
 
@@ -179,4 +180,13 @@ class _ControlledSettingsStore implements SettingsStore {
 
   @override
   Future<void> saveSleepGoal(Duration goal) async {}
+
+  @override
+  Future<UpdatePromptPreferences> loadUpdatePromptPreferences() async =>
+      UpdatePromptPreferences.defaults;
+
+  @override
+  Future<void> saveUpdatePromptPreferences(
+    UpdatePromptPreferences preferences,
+  ) async {}
 }

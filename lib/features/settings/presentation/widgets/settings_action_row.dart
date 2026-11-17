@@ -15,6 +15,7 @@ class SettingsActionRow extends StatelessWidget {
     required this.headline,
     required this.supporting,
     required this.onTap,
+    this.trailing,
   });
 
   final bool showLeading;
@@ -22,6 +23,10 @@ class SettingsActionRow extends StatelessWidget {
   final String headline;
   final String supporting;
   final VoidCallback onTap;
+
+  /// Optional status or action icon. Defaults to the chevron used by
+  /// navigation rows.
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -69,11 +74,12 @@ class SettingsActionRow extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Icon(
-                    M3EIcons.chevron_right,
-                    size: 24,
-                    color: scheme.onSurfaceVariant,
-                  ),
+                  trailing ??
+                      Icon(
+                        M3EIcons.chevron_right,
+                        size: 24,
+                        color: scheme.onSurfaceVariant,
+                      ),
                 ],
               ),
             ),

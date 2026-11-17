@@ -3,6 +3,7 @@ import '../../reminders/domain/sleep_reminder.dart';
 import '../../sleep_tracking/data/sleepy3_database.dart';
 import '../../sleep_tracking/domain/sleep_goal.dart';
 import '../../stats/domain/stats_summary_option.dart';
+import '../../updates/domain/update_prompt_preferences.dart';
 import '../domain/app_language.dart';
 import '../domain/app_theme_mode.dart';
 import '../domain/app_time_format.dart';
@@ -26,6 +27,9 @@ class DriftSettingsStore implements SettingsStore {
       'sleep_status_notification_enabled';
   static const _statsSummaryOptionKey = 'stats_summary_option';
   static const _sleepGoalMinutesKey = 'sleep_goal_minutes';
+  static const _updateDismissedVersionKey = 'update_prompt_dismissed_version';
+  static const _updateSnoozedVersionKey = 'update_prompt_snoozed_version';
+  static const _updateSnoozedUntilKey = 'update_prompt_snoozed_until';
 
   @override
   Future<AppThemeMode> loadThemeMode() async {
@@ -124,6 +128,40 @@ class DriftSettingsStore implements SettingsStore {
   @override
   Future<void> saveSleepGoal(Duration goal) {
     return _write(_sleepGoalMinutesKey, goal.inMinutes.toString());
+  }
+
+  @override
+  Future<UpdatePromptPreferences> loadUpdatePromptPreferences() async {
+    final dismissedVersion = _nonEmpty(await _read(_updateDismissedVersionKey));
+    final snoozedVersion = _nonEmpty(await _read(_updateSnoozedVersionKey));
+    final untilMillis = int.tryParse(await _read(_updateSnoozedUntilKey) ?? '');
+
+    return UpdatePromptPreferences(
+      dismissedVersion: dismissedVersion,
+      snoozedVersion: snoozedVersion,
+      snoozedUntil: untilMillis == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(untilMillis),
+    );
+  }
+
+  @override
+  Future<void> saveUpdatePromptPreferences(
+    UpdatePromptPreferences preferences,
+  ) async {
+    await _write(
+      _updateDismissedVersionKey,
+      preferences.dismissedVersion ?? '',
+    );
+    await _write(_updateSnoozedVersionKey, preferences.snoozedVersion ?? '');
+    await _write(
+      _updateSnoozedUntilKey,
+      preferences.snoozedUntil?.millisecondsSinceEpoch.toString() ?? '',
+    );
+  }
+
+  String? _nonEmpty(String? value) {
+    return value == null || value.isEmpty ? null : value;
   }
 
   Future<String?> _read(String key) async {

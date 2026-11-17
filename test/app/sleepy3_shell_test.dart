@@ -8,12 +8,19 @@ import 'package:sleepy3/app/sleepy3_app.dart';
 import 'package:sleepy3/core/notifications/notification_providers.dart';
 import 'package:sleepy3/features/health/application/health_connect_gateway_provider.dart';
 import 'package:sleepy3/features/health/application/health_sync_store_provider.dart';
+import 'package:sleepy3/features/settings/application/app_version_provider.dart';
+import 'package:sleepy3/features/settings/application/settings_providers.dart';
+import 'package:sleepy3/features/settings/domain/app_version.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleeping_notification_controller.dart';
+import 'package:sleepy3/features/updates/application/update_providers.dart';
+import 'package:sleepy3/features/updates/domain/update_prompt_preferences.dart';
 
 import '../core/notifications/fakes.dart';
 import '../features/health/fakes.dart';
+import '../features/settings/fakes.dart';
 import '../features/sleep_tracking/fakes.dart';
+import '../features/updates/fakes.dart';
 
 void main() {
   const labels = {
@@ -22,10 +29,16 @@ void main() {
     Sleepy3Destination.settings: 'Settings',
   };
 
-  Future<void> pumpApp(
+  Future<FakeSettingsStore> pumpApp(
     WidgetTester tester, {
     Size size = const Size(360, 800),
     double textScale = 1,
+    AppVersion? version,
+    FakeSettingsStore? settingsStore,
+    FakeAppReleaseGateway? releaseGateway,
+    FakeUpdateLinkLauncher? updateLinkLauncher,
+    UpdatePromptPreferences initialPreferences =
+        UpdatePromptPreferences.defaults,
   }) async {
     tester.view.physicalSize = size * 3;
     tester.view.devicePixelRatio = 3;
@@ -35,6 +48,7 @@ void main() {
     tester.platformDispatcher.textScaleFactorTestValue = textScale;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
+    final store = settingsStore ?? FakeSettingsStore();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -52,11 +66,23 @@ void main() {
             FakeHealthConnectGateway(),
           ),
           healthSyncStoreProvider.overrideWithValue(FakeHealthSyncStore()),
+          settingsStoreProvider.overrideWithValue(store),
+          appVersionProvider.overrideWithValue(version),
+          appReleaseGatewayProvider.overrideWithValue(
+            releaseGateway ?? FakeAppReleaseGateway.upToDate('0.1.0'),
+          ),
+          updateLinkLauncherProvider.overrideWithValue(
+            updateLinkLauncher ?? FakeUpdateLinkLauncher(),
+          ),
+          initialUpdatePromptPreferencesProvider.overrideWithValue(
+            initialPreferences,
+          ),
         ],
         child: Sleepy3App(splashStartSignal: Future<void>.value()),
       ),
     );
     await tester.pumpAndSettle();
+    return store;
   }
 
   PillNavigationBar navigationBar(WidgetTester tester) {
@@ -73,6 +99,40 @@ void main() {
   ValueKey<String> navKey(Sleepy3Destination destination) {
     return ValueKey('nav-${destination.name}');
   }
+
+  testWidgets('shows the update dialog and the X snoozes that version', (
+    tester,
+  ) async {
+    final store = await pumpApp(
+      tester,
+      version: const AppVersion(version: '0.3.1', buildNumber: '1'),
+      releaseGateway: FakeAppReleaseGateway(testRelease('0.4.0')),
+    );
+
+    expect(find.text('New version available'), findsOneWidget);
+    expect(find.text("What's new"), findsOneWidget);
+
+    await tester.tap(find.byIcon(M3EIcons.close));
+    await tester.pumpAndSettle();
+
+    expect(find.text('New version available'), findsNothing);
+    expect(store.updatePromptPreferences.snoozedVersion, '0.4.0');
+    expect(store.updatePromptPreferences.snoozedUntil, isNotNull);
+  });
+
+  testWidgets('No recordar dismisses only the current version', (tester) async {
+    final store = await pumpApp(
+      tester,
+      version: const AppVersion(version: '0.3.1', buildNumber: '1'),
+      releaseGateway: FakeAppReleaseGateway(testRelease('0.4.0')),
+    );
+
+    await tester.tap(find.text("Don't remind me again"));
+    await tester.pumpAndSettle();
+
+    expect(find.text('New version available'), findsNothing);
+    expect(store.updatePromptPreferences.dismissedVersion, '0.4.0');
+  });
 
   testWidgets('starts on Home with three labelled destinations', (
     tester,

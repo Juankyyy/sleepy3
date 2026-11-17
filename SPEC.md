@@ -722,11 +722,13 @@ Reglas:
 - `About` contiene `Privacy` con apoyo `On-device only.` en `Local` o
   `Stored in Health Connect. Google Health can read it.` en `Google Health`, `Version`
   con `{version} ({build})` cuando el plugin de información de la app responde (la fila se
-  oculta si no hay dato) y `Licenses`, que abre la página de licencias de Flutter con el
-  nombre, la versión y la leyenda GPLv3.
-- El modo de tema, la fuente de datos, el objetivo de sueño y el bloque del resumen de
-  Stats se guardan en la tabla `preferences` de la misma base Drift; no se usa
-  `shared_preferences`.
+  oculta si no hay dato), `Check for updates` y `Licenses`, que abre la página de licencias
+  de Flutter con el nombre, la versión y la leyenda GPLv3. `Check for updates` muestra el
+  estado de la última comprobación y descarga el APK cuando hay una versión nueva; se
+  oculta junto con `Version` si no hay dato. Los detalles están en §3.4.3.
+- El modo de tema, la fuente de datos, el objetivo de sueño, el bloque del resumen de
+  Stats y las decisiones del aviso de actualización se guardan en la tabla `preferences`
+  de la misma base Drift; no se usa `shared_preferences`.
 
 #### 3.4.1 Recordatorios de sueño
 
@@ -809,6 +811,57 @@ Reglas:
 - Tras reiniciar el teléfono la notificación no se restaura por sí sola: vuelve a aparecer
   al abrir Sleepy3 si la sesión sigue abierta. No se añade un receiver nativo ni un
   foreground service en esta iteración.
+
+#### 3.4.3 Comprobación de actualizaciones
+
+- Fuente: la release estable más reciente del repositorio público, leída de
+  `GET https://api.github.com/repos/Juankyyy/sleepy3/releases/latest`. No se usa token ni
+  backend propio; la API pública permite 60 peticiones por hora e IP. La app hace una
+  petición por apertura y otra por cada toque en `Check for updates`.
+- La petición usa `Accept: application/vnd.github+json`,
+  `X-GitHub-Api-Version: 2022-11-28` y un `User-Agent` de Sleepy3. Se leen `tag_name`,
+  `name`, `html_url`, `assets` (el `.apk` y su URL) y `body`.
+- `AppVersionNumber` compara solo `major.minor.patch`; acepta el prefijo `v`, ignora
+  `-debug`, `+build` y pre-releases. Si la versión instalada no se puede leer, no se
+  comprueba nada y la fila se oculta. Si la última release no es más nueva, el estado es
+  `al día`; nunca se ofrece una versión anterior.
+- La comprobación automática se lanza una vez por apertura, después del splash, sin
+  bloquear el primer frame. `Sleepy3App` la arranca y `Sleepy3Shell` muestra el modal solo
+  si el controlador deja un aviso pendiente. La comprobación manual desde `About` actualiza
+  la fila pero no abre el modal.
+- El modal es un diálogo básico compuesto con los tokens de `M3EDialog`: radio de 28 dp,
+  padding de 24 dp, `surfaceContainerHigh`, headline small, body medium y divisores de
+  1 dp. Se usa `M3EDialog.show` para el scrim, la transición, el foco y el cierre por
+  barrera/atrás. La cabecera lleva la `X` arriba a la derecha, el título
+  `Nueva versión disponible`, el subtítulo `Sleepy3 {version} · {tema}` y `Ver en GitHub`
+  debajo. Después hay una sección `Novedades` con el primer párrafo de las notas (sin
+  Markdown, máximo 4 líneas) y una sección de acciones separada por otro divisor.
+- La `X` y el toque en la barrera o el botón atrás cierran el modal y guardan un snooze de
+  24 h solo para esa versión (`update_prompt_snoozed_version` y
+  `update_prompt_snoozed_until`). No hay texto visible que explique el snooze; el tooltip
+  y la etiqueta accesible de la `X` sí lo dicen. Si aparece una versión más nueva antes de
+  las 24 h, se avisa igualmente porque el snooze es por versión.
+- `No recordar otra vez` guarda `update_prompt_dismissed_version` y no vuelve a mostrar el
+  modal de esa versión; una versión posterior vuelve a preguntar. No hay interruptor global
+  de avisos. La fila de `About` siempre sigue disponible y descarga al tocarla.
+- `Descargar` abre el `browser_download_url` del APK y `Ver en GitHub` abre la página de la
+  release; ambos usan `url_launcher` con el navegador externo y, si se abren, marcan esa
+  versión como vista. Si el enlace falla, no se marca y la fila permite reintentar; el
+  snackbar `No se pudo abrir el enlace` explica el fallo. La app nunca instala el APK: el
+  navegador lo descarga y Android pide confirmar la instalación.
+- El resumen de `Novedades` es el primer párrafo de `body`, sin comentarios HTML, enlaces,
+  énfasis ni código. Las notas curadas están en inglés, así que ese párrafo se muestra en
+  inglés aunque la UI esté en español; el resto de la release se lee en GitHub. No se añade
+  un renderizador Markdown.
+- Las preferencias se cargan antes de `runApp` y se guardan en `preferences` sin migración
+  de esquema. La fila no muestra una hora de última comprobación: solo el estado. Un fallo
+  de red, un 404, un límite de la API o un JSON inválido se registran y dejan el estado de
+  error; no interrumpen el arranque.
+- Android necesita `INTERNET` en el manifiesto principal (las builds release no lo heredan
+  del manifiesto debug) y una consulta `ACTION_VIEW` con `https` para resolver el navegador.
+  La comprobación no envía datos de sueño; solo la IP y las cabeceras de la petición a
+  GitHub. En debug la versión local es `0.1.0-debug`, así que la app puede ofrecer una
+  release más nueva aunque la última sea la misma que la del APK de release.
 
 ### 3.5 Widget de pantalla de inicio (0.4.0)
 
@@ -1392,6 +1445,7 @@ Reglas:
 | Estado | Riverpod |
 | Persistencia | Drift + SQLite (`drift_flutter`, `sqlite3`) |
 | Info de la app | `package_info_plus` 10.x |
+| Actualizaciones | `http` 1.6 sobre `api.github.com` y `url_launcher` 6.3 |
 | Archivos | `file_picker` 13.x (selector SAF de Android) |
 | Widget | `home_widget` + Jetpack Glance nativo |
 | Salud | `health` 13.x sobre Health Connect `SleepSessionRecord` |
@@ -1462,6 +1516,11 @@ lib/
     │   ├── data/           # timezone-aware reminder scheduler
     │   ├── application/    # reminder controller and providers
     │   └── presentation/   # Reminders section and switch row
+    ├── updates/
+    │   ├── domain/         # release, version comparison, prompt decisions and actions
+    │   ├── data/           # GitHub Releases gateway and url_launcher links
+    │   ├── application/    # update check controller and providers
+    │   └── presentation/   # About row and launch dialog
     └── widget/             # 0.4.0
 assets/
 ├── brand/                 # fuentes del logo, marca del splash e iconos generados
@@ -1477,13 +1536,15 @@ assets/
    (`purgeUnrecordableSessions`); un fallo solo se registra y no bloquea el arranque.
 4. Carga un `SleepSnapshot` con la sesión abierta y todas las sesiones cerradas,
    ordenadas de más antigua a más reciente.
-5. Carga el modo de tema, el formato de hora, el idioma, la fuente de datos y el
-   recordatorio de `preferences`, y la versión instalada con `package_info_plus`. Si no
-   hay formato o idioma guardado, resuelve el valor del teléfono y lo persiste. Después
-   replica el modo de tema en el modo nocturno por aplicación de Android (API 31+), para
-   que el próximo arranque en frío resuelva el splash con el mismo modo.
+5. Carga el modo de tema, el formato de hora, el idioma, la fuente de datos, el
+   recordatorio, las decisiones del aviso de actualización de `preferences`, y la versión
+   instalada con `package_info_plus`. Si no hay formato o idioma guardado, resuelve el
+   valor del teléfono y lo persiste. Después replica el modo de tema en el modo nocturno
+   por aplicación de Android (API 31+), para que el próximo arranque en frío resuelva el
+   splash con el mismo modo.
 6. Inyecta los stores, el snapshot, el tema inicial, el formato de hora, el idioma, la
-   fuente, el recordatorio y la versión en `ProviderScope`.
+   fuente, el recordatorio, las decisiones de actualización y la versión en
+   `ProviderScope`.
 7. Muestra el shell envuelto por `SplashGate`; la intro espera al primer frame
    rasterizado, reproduce el zoom de marca y se retira sobre la app ya construida. El
    fondo de lanzamiento nativo ya usaba el color de cuerpo del tema, así que el handoff
@@ -1608,14 +1669,17 @@ splash.
   rellena el paquete de origen de una copia descargada sin tocar sus horas.
 - `SettingsStore` es la interfaz de preferencias y `DriftSettingsStore` su implementación.
   Usa la tabla `preferences` de la misma base; no hay `shared_preferences`. Guarda
-  `theme_mode`, `time_format`, `language` y `sleep_data_source`.
+  `theme_mode`, `time_format`, `language`, `sleep_data_source` y las decisiones del aviso
+  de actualización (`update_prompt_dismissed_version`, `update_prompt_snoozed_version` y
+  `update_prompt_snoozed_until`).
 - `SleepHistoryTransferService` compone el archivo versionado con
   `SleepSessionStore.loadClosedSessions()`, calcula la vista previa de importación y
   escribe las filas locales o descargadas. `FilePickerHistoryFileGateway` aísla el
   selector SAF de Android. `HistoryDataSettings` vive en `features/backup` y usa
   `SettingsActionRow` en la sección `Data`.
 - Los tests usan `FakeSleepSessionStore`, `FakeSettingsStore`, `FakeHealthConnectGateway`,
-  `FakeHealthSyncStore` o una base Drift en memoria.
+  `FakeHealthSyncStore`, `FakeAppReleaseGateway`, `FakeUpdateLinkLauncher` o una base Drift
+  en memoria.
 
 ### Widget y Health Connect
 
@@ -1699,6 +1763,11 @@ dart run build_runner build
   `480` (8 h). No requiere migración de esquema.
 - Clave `stats_summary_option` con el nombre de la opción del resumen de Stats; ausente o
   desconocida equivale a `sleepDuration`. No requiere migración de esquema.
+- Clave `update_prompt_dismissed_version` con la versión cuyo modal no se vuelve a mostrar;
+  ausente o vacía equivale a ninguna. Una versión distinta vuelve a avisar.
+- Claves `update_prompt_snoozed_version` y `update_prompt_snoozed_until` con la versión
+  snoozed y su instante límite en milisegundos Unix; si falta una, están vacías o el
+  instante ya pasó, el aviso se vuelve a mostrar para esa versión.
 - La migración de v1 a v2 crea `preferences`; las sesiones existentes no se tocan.
 - El modo de tema y la fuente se guardan en la misma base para no abrir un segundo
   almacén.
@@ -1959,6 +2028,14 @@ dart run tool/generate_brand_assets.dart
   hora malformada, permiso concedido/denegado, programación/cancelación, cambio de hora,
   pausa mientras se duerme, notificaciones bloqueadas, copy en inglés/español, próxima
   ocurrencia con reloj fijo y layout de la sección al 200 %.
+- Actualizaciones: comparación semver con prefijos y sufijos, versiones instaladas más
+  nuevas, parseo del JSON de GitHub, cabeceras, 404/403/500, timeout, JSON inválido,
+  extracción del primer párrafo de las notas, comprobación automática única por apertura,
+  comprobación manual sin modal, descarte por versión, snooze de 24 h por versión, versión
+  nueva que ignora el descarte/snooze anterior, `No recordar otra vez` solo para esa
+  versión, descarga/GitHub que marcan la versión solo si el enlace se abre, APK ausente que
+  cae en la página de la release, fila oculta sin versión, fila disponible que descarga,
+  persistencia de las tres claves y modal a 360 dp con 200 % de texto en inglés/español.
 - Notificación de sueño: tarjeta `RemoteViews` con cronómetro grande, fallback estándar con
   texto grande, importancia baja, publicación al dormir, cancelación al despertar,
   actualización al retimar o cambiar idioma/formato, permiso pedido una sola vez y copy en

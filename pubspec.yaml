@@ -21,6 +21,7 @@ dependencies:
   # Resolves the device's IANA zone so the daily reminder keeps wall-clock time.
   flutter_timezone: ^5.1.1
   health: 13.3.2
+  http: ^1.6.0
   intl: ^0.20.3
   material_3_expressive: ^1.1.7
   # 1.8.0 introduced a RoundedPolygon symbol that conflicts with
@@ -28,6 +29,7 @@ dependencies:
   material_ui: 1.7.0
   package_info_plus: ^10.2.2
   timezone: ^0.11.2
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

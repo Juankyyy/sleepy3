@@ -22,6 +22,7 @@ import '../features/settings/domain/app_theme_mode.dart';
 import '../l10n/l10n.dart';
 import '../features/sleep_tracking/application/sleep_tracking_controller.dart';
 import '../features/sleep_tracking/application/sleeping_notification_controller.dart';
+import '../features/updates/application/app_update_controller.dart';
 import 'sleepy3_shell.dart';
 import 'splash_gate.dart';
 
@@ -139,6 +140,12 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
   /// Connect; it never uploads a new local session automatically. Google
   /// Health mode also re-reads the history permission, because the user can
   /// change it in Health Connect settings while the app is in the background.
+  /// Starts the once-per-launch GitHub release check after the splash.
+  Future<void> _checkForUpdates() async {
+    if (!mounted) return;
+    await ref.read(appUpdateControllerProvider.notifier).checkOnLaunch();
+  }
+
   Future<void> _retryPendingUploads() async {
     if (!mounted) return;
 
@@ -264,6 +271,7 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
             if (!mounted) return;
             ref.read(splashCompletedProvider.notifier).complete();
             unawaited(_retryPendingUploads());
+            unawaited(_checkForUpdates());
           },
           child: const Sleepy3Shell(),
         ),

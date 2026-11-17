@@ -25,7 +25,8 @@ local session history, and Health Connect as an optional data source.
   `Data` section that exports and imports the local history, the silent ongoing sleep-status
   notification with a live timer, goal time and Wake action, the reminder's Start sleep
   action, Health Connect (Local/Google Health, pending uploads, copy actions,
-  full history access and per-build record ownership), the glass dock, the Space Grotesk /
+  full history access and per-build record ownership), the GitHub update check and its
+  release dialog, the glass dock, the Space Grotesk /
   Google Sans Flex type, the branded launcher icon and splash, and the manual release
   workflow (`minor`, `patch`, `exact`) work. The Glance widget is the next milestone
   (0.4.0). Sessions, preferences and Health Connect metadata live in `sleepy3.sqlite`
@@ -69,6 +70,7 @@ lib/
     ├── health/          # sources, Health Connect gateway, sync, copy, history access
     ├── reminders/       # nightly local notification, scheduler and Settings section
     ├── backup/          # versioned history file, Android picker gateway and Data section
+    ├── updates/         # GitHub release check, About row and launch dialog
     └── widget/          # home_widget bridge and pending events
 ```
 
@@ -140,6 +142,20 @@ lib/
   one-time prompt flag in `preferences` as `sleep_notification_permission_asked`, so do not
   prompt again. It is independent from the nightly reminder. After a phone reboot it
   reappears when the app opens.
+- Updates: `lib/features/updates/` reads the latest stable release from
+  `https://api.github.com/repos/Juankyyy/sleepy3/releases/latest` (public, no token) once
+  after the splash and from the `Check for updates` row in Settings > About. The row shows
+  idle/checking/up to date/available/failure and downloads the `.apk` asset on tap. The
+  launch dialog uses the first paragraph of the release notes as `Novedades`, a
+  `View on GitHub` link, a header `X` that snoozes that version for 24 hours and a
+  `Don't remind me again` action that dismisses that version only; a newer version prompts
+  again. The prompt decisions live in `preferences` as
+  `update_prompt_dismissed_version`, `update_prompt_snoozed_version` and
+  `update_prompt_snoozed_until`; there is no global switch and no schema migration. The
+  app opens `url_launcher` for the release page/APK and never installs an APK itself.
+  Release builds need `android.permission.INTERNET` in the main manifest (debug has its
+  own). The release notes are English, so the `Novedades` paragraph is English even when
+  the UI is Spanish; the full notes stay on GitHub.
 - History backup: `lib/features/backup/` owns the versioned JSON file
   (`format: sleepy3.sleep-history`, `version: 1`), the `file_picker` gateway and the
   Settings `Data` section. Export uses the visible list in `SleepTrackingController`

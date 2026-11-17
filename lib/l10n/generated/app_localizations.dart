@@ -458,6 +458,96 @@ abstract class AppLocalizations {
   /// **'Licenses'**
   String get licenses;
 
+  /// No description provided for @updateCheckTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check for updates'**
+  String get updateCheckTitle;
+
+  /// No description provided for @updateCheckSupport.
+  ///
+  /// In en, this message translates to:
+  /// **'See if a newer version is on GitHub.'**
+  String get updateCheckSupport;
+
+  /// No description provided for @updateChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking for updates…'**
+  String get updateChecking;
+
+  /// No description provided for @updateUpToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleepy3 {version} is the latest version.'**
+  String updateUpToDate(String version);
+
+  /// No description provided for @updateAvailableDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version} is available. Tap to download the APK.'**
+  String updateAvailableDownload(String version);
+
+  /// No description provided for @updateCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check for updates. Tap to retry.'**
+  String get updateCheckFailed;
+
+  /// No description provided for @updateOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open the link. Try again.'**
+  String get updateOpenFailed;
+
+  /// No description provided for @updateDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New version available'**
+  String get updateDialogTitle;
+
+  /// No description provided for @updateDialogSemantic.
+  ///
+  /// In en, this message translates to:
+  /// **'New version available: Sleepy3 {version}'**
+  String updateDialogSemantic(String version);
+
+  /// No description provided for @updateWhatsNew.
+  ///
+  /// In en, this message translates to:
+  /// **'What\'s new'**
+  String get updateWhatsNew;
+
+  /// No description provided for @updateSummaryFallback.
+  ///
+  /// In en, this message translates to:
+  /// **'See the full release notes on GitHub.'**
+  String get updateSummaryFallback;
+
+  /// No description provided for @updateOpenGitHub.
+  ///
+  /// In en, this message translates to:
+  /// **'View on GitHub'**
+  String get updateOpenGitHub;
+
+  /// No description provided for @updateDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get updateDownload;
+
+  /// No description provided for @updateDontRemind.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t remind me again'**
+  String get updateDontRemind;
+
+  /// No description provided for @updateCloseTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Close; I\'ll remind you in 24 hours'**
+  String get updateCloseTooltip;
+
   /// No description provided for @privacyLocal.
   ///
   /// In en, this message translates to:

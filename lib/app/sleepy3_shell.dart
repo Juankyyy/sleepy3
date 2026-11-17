@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
@@ -7,6 +9,10 @@ import '../features/settings/presentation/settings_screen.dart';
 import '../features/sleep_tracking/presentation/sleep_home_screen.dart';
 import '../features/stats/presentation/stats_screen.dart';
 import '../features/stats/presentation/widgets/new_session_fab.dart';
+import '../features/updates/application/app_update_controller.dart';
+import '../features/updates/domain/app_release.dart';
+import '../features/updates/domain/update_prompt_action.dart';
+import '../features/updates/presentation/update_available_dialog.dart';
 import '../l10n/l10n.dart';
 import 'navigation/pill_navigation_bar.dart';
 import 'navigation/sleepy3_destination.dart';
@@ -31,6 +37,7 @@ class _Sleepy3ShellState extends ConsumerState<Sleepy3Shell> {
 
   int _selectedIndex = _homeIndex;
   final _built = <int>{_homeIndex};
+  bool _updatePromptOpen = false;
 
   void _selectDestination(int index) {
     if (index == _selectedIndex) return;
@@ -38,6 +45,36 @@ class _Sleepy3ShellState extends ConsumerState<Sleepy3Shell> {
       _selectedIndex = index;
       _built.add(index);
     });
+  }
+
+  Future<void> _showUpdatePrompt(AppRelease release) async {
+    if (_updatePromptOpen || !mounted) return;
+    _updatePromptOpen = true;
+    try {
+      final action = await M3EDialog.show<UpdatePromptAction>(
+        context,
+        dialog: UpdateAvailableDialog(release: release),
+      );
+      if (!mounted) return;
+
+      final opened = await ref
+          .read(appUpdateControllerProvider.notifier)
+          .handlePromptAction(action);
+      if (!mounted) return;
+
+      final triedToOpen =
+          action == UpdatePromptAction.download ||
+          action == UpdatePromptAction.openRelease;
+      if (!opened && triedToOpen) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(content: Text(context.l10n.updateOpenFailed)),
+          );
+      }
+    } finally {
+      _updatePromptOpen = false;
+    }
   }
 
   @override
@@ -50,6 +87,17 @@ class _Sleepy3ShellState extends ConsumerState<Sleepy3Shell> {
       if (previous == next) return;
       _selectDestination(_homeIndex);
     });
+
+    ref.listen<AppRelease?>(
+      appUpdateControllerProvider.select((state) => state.pendingPrompt),
+      (previous, next) {
+        if (next == null) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          unawaited(_showUpdatePrompt(next));
+        });
+      },
+    );
 
     return PopScope<Object?>(
       canPop: _selectedIndex == _homeIndex,

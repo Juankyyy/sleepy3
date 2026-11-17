@@ -10,6 +10,7 @@ import 'package:sleepy3/features/stats/domain/stats_summary_option.dart';
 import 'package:sleepy3/features/sleep_tracking/data/drift_sleep_session_store.dart';
 import 'package:sleepy3/features/sleep_tracking/data/sleepy3_database.dart';
 import 'package:sleepy3/features/sleep_tracking/domain/sleep_goal.dart';
+import 'package:sleepy3/features/updates/domain/update_prompt_preferences.dart';
 
 void main() {
   group('DriftSettingsStore', () {
@@ -335,6 +336,71 @@ void main() {
         }
       },
     );
+
+    test('has no update prompt decisions on an empty database', () async {
+      expect(
+        await store.loadUpdatePromptPreferences(),
+        UpdatePromptPreferences.defaults,
+      );
+    });
+
+    test('round-trips update prompt decisions', () async {
+      final preferences = UpdatePromptPreferences(
+        dismissedVersion: '0.4.1',
+        snoozedVersion: '0.4.2',
+        snoozedUntil: DateTime.fromMillisecondsSinceEpoch(123456789),
+      );
+
+      await store.saveUpdatePromptPreferences(preferences);
+
+      expect(await store.loadUpdatePromptPreferences(), preferences);
+    });
+
+    test('stores update prompt decisions under their keys', () async {
+      final until = DateTime.fromMillisecondsSinceEpoch(1700000000000);
+      await store.saveUpdatePromptPreferences(
+        UpdatePromptPreferences(
+          dismissedVersion: '0.4.1',
+          snoozedVersion: '0.4.2',
+          snoozedUntil: until,
+        ),
+      );
+
+      final rows = await database.select(database.preferences).get();
+      expect(
+        {for (final row in rows) row.settingKey: row.settingValue},
+        {
+          'update_prompt_dismissed_version': '0.4.1',
+          'update_prompt_snoozed_version': '0.4.2',
+          'update_prompt_snoozed_until': until.millisecondsSinceEpoch
+              .toString(),
+        },
+      );
+    });
+
+    test('treats empty update prompt values as null', () async {
+      await store.saveUpdatePromptPreferences(UpdatePromptPreferences.defaults);
+
+      expect(
+        await store.loadUpdatePromptPreferences(),
+        UpdatePromptPreferences.defaults,
+      );
+    });
+
+    test('ignores a malformed snooze timestamp', () async {
+      await database
+          .into(database.preferences)
+          .insert(
+            PreferencesCompanion.insert(
+              settingKey: 'update_prompt_snoozed_until',
+              settingValue: 'late',
+            ),
+          );
+
+      final preferences = await store.loadUpdatePromptPreferences();
+
+      expect(preferences.snoozedUntil, isNull);
+    });
 
     test('stores the theme and the source side by side', () async {
       await store.saveThemeMode(AppThemeMode.dark);

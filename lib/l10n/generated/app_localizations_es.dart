@@ -205,6 +205,61 @@ class AppLocalizationsEs extends AppLocalizations {
   String get licenses => 'Licencias';
 
   @override
+  String get updateCheckTitle => 'Buscar actualizaciones';
+
+  @override
+  String get updateCheckSupport =>
+      'Comprueba si hay una versión más reciente en GitHub.';
+
+  @override
+  String get updateChecking => 'Comprobando actualizaciones…';
+
+  @override
+  String updateUpToDate(String version) {
+    return 'Sleepy3 $version es la última versión.';
+  }
+
+  @override
+  String updateAvailableDownload(String version) {
+    return 'La versión $version está disponible. Toca para descargar el APK.';
+  }
+
+  @override
+  String get updateCheckFailed =>
+      'No se pudieron buscar actualizaciones. Toca para reintentar.';
+
+  @override
+  String get updateOpenFailed =>
+      'No se pudo abrir el enlace. Inténtalo de nuevo.';
+
+  @override
+  String get updateDialogTitle => 'Nueva versión disponible';
+
+  @override
+  String updateDialogSemantic(String version) {
+    return 'Nueva versión disponible: Sleepy3 $version';
+  }
+
+  @override
+  String get updateWhatsNew => 'Novedades';
+
+  @override
+  String get updateSummaryFallback =>
+      'Consulta las novedades completas en GitHub.';
+
+  @override
+  String get updateOpenGitHub => 'Ver en GitHub';
+
+  @override
+  String get updateDownload => 'Descargar';
+
+  @override
+  String get updateDontRemind => 'No recordar otra vez';
+
+  @override
+  String get updateCloseTooltip => 'Cerrar; te lo recordaré en 24 horas';
+
+  @override
   String get privacyLocal => 'Solo en este dispositivo.';
 
   @override
