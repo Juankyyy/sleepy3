@@ -30,7 +30,7 @@ Sleepy3 is not on Google Play yet. Download the latest stable build from [Releas
 2. Download the latest `sleepy3-vX.Y.Z.apk`.
 3. Open the file and allow installs from your browser or file manager when Android asks.
 
-Sleepy3 runs on **Android 9 or newer**. Version **0.3.1** is the latest stable release; the home-screen widget is planned for a later update.
+Sleepy3 runs on **Android 9 or newer**. Version **0.3.2** is the latest stable release; the home-screen widget is planned for 0.4.0.
 
 ## How to use it
 
@@ -144,7 +144,7 @@ Health Connect hides records older than 30 days unless you give Sleepy3 the hist
 - [x] Export and import your sleep history as a versioned JSON file, plus Android auto-backup rules (0.3.1).
 - [x] Configurable sleep goal from 6 to 10 hours across Home, Stats and the notification (0.3.1).
 - [x] Start sleep and wake from the notifications, including cold starts (0.3.1).
-- [x] Check for updates from GitHub, with a 24-hour snooze and per-version dismissal.
+- [x] Check for updates from GitHub, with a 24-hour snooze and per-version dismissal (0.3.2).
 - [ ] Home-screen widget with Sleep and Wake buttons (0.4.0).
 - [ ] Motion and accessibility polish.
 
@@ -280,7 +280,7 @@ Releases are created manually from `main` with `.github/workflows/release.yml`; 
 - Notes are generated from conventional commits since the previous tag. The curated body and `vX.Y.Z - The <Theme> Update` title are applied afterwards from `release-notes/vX.Y.Z.md` (ignored by Git):
 
 ```bash
-dart run tool/apply_release_notes.dart v0.3.1
+dart run tool/apply_release_notes.dart v0.3.2
 ```
 
 - Development builds are not published; use `flutter run` or a local APK to test `dev`.
