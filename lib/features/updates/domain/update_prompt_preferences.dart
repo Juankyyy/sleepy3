@@ -1,7 +1,8 @@
 /// Persisted decisions about the automatic update prompt.
 ///
 /// Both decisions are per version: a newer release prompts again even when the
-/// previous one was snoozed or dismissed.
+/// previous one was snoozed or dismissed. An explicit manual check ignores
+/// these decisions and can show the dialog for the same version again.
 class UpdatePromptPreferences {
   const UpdatePromptPreferences({
     this.dismissedVersion,
@@ -11,7 +12,7 @@ class UpdatePromptPreferences {
 
   static const defaults = UpdatePromptPreferences();
 
-  /// The version whose dialog must not be shown again.
+  /// The version whose dialog the automatic check must not show again.
   final String? dismissedVersion;
 
   /// The version snoozed by the close button.
@@ -20,7 +21,7 @@ class UpdatePromptPreferences {
   /// When the snooze for [snoozedVersion] expires.
   final DateTime? snoozedUntil;
 
-  /// Whether a release with [version] should show the dialog at [now].
+  /// Whether the automatic check should show the dialog at [now].
   bool shouldPrompt(String version, DateTime now) {
     if (dismissedVersion == version) return false;
 

@@ -536,6 +536,12 @@ abstract class AppLocalizations {
   /// **'New version available: Sleepy3 {version}'**
   String updateDialogSemantic(String version);
 
+  /// No description provided for @updateDialogSemanticRange.
+  ///
+  /// In en, this message translates to:
+  /// **'New version available: Sleepy3 {current} to {latest}'**
+  String updateDialogSemanticRange(String current, String latest);
+
   /// No description provided for @updateWhatsNew.
   ///
   /// In en, this message translates to:

@@ -179,6 +179,13 @@ void main() {
       expect(gateway.calls, 2);
       expect(launcher.uris, isEmpty);
       expect(find.text('Download'), findsOneWidget);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(AboutCard)),
+      );
+      expect(
+        container.read(appUpdateControllerProvider).pendingPrompt?.version,
+        '0.4.0',
+      );
     } finally {
       semantics.dispose();
     }

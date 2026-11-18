@@ -15,7 +15,9 @@ void main() {
     'tag_name': 'v0.4.0',
     'name': 'v0.4.0 - The Widget Update',
     'html_url': uri.toString(),
-    'body': '<!-- title: v0.4.0 -->\n\nA short summary.',
+    'body':
+        '<!-- title: v0.4.0 -->\n\nA short summary.\n\n'
+        '## Highlights\n\n- First change.',
     'assets': [
       {
         'name': 'sleepy3-v0.4.0.apk',
@@ -54,7 +56,8 @@ void main() {
     expect(release.version, '0.4.0');
     expect(release.displayName, 'The Widget Update');
     expect(release.apkUrl, isNotNull);
-    expect(release.summary, 'A short summary.');
+    expect(release.notes, contains('A short summary.'));
+    expect(release.notes, contains('## Highlights'));
   });
 
   test('maps GitHub statuses to failures', () async {

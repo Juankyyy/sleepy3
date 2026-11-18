@@ -29,6 +29,19 @@ void main() {
     Sleepy3Destination.settings: 'Settings',
   };
 
+  Future<void> pumpUntilFound(
+    WidgetTester tester,
+    Finder finder, {
+    Duration step = const Duration(milliseconds: 100),
+    int maxSteps = 40,
+  }) async {
+    for (var stepIndex = 0; stepIndex < maxSteps; stepIndex++) {
+      await tester.pump(step);
+      if (finder.evaluate().isNotEmpty) return;
+    }
+    expect(finder, findsOneWidget);
+  }
+
   Future<FakeSettingsStore> pumpApp(
     WidgetTester tester, {
     Size size = const Size(360, 800),
@@ -39,6 +52,7 @@ void main() {
     FakeUpdateLinkLauncher? updateLinkLauncher,
     UpdatePromptPreferences initialPreferences =
         UpdatePromptPreferences.defaults,
+    bool settle = true,
   }) async {
     tester.view.physicalSize = size * 3;
     tester.view.devicePixelRatio = 3;
@@ -81,7 +95,16 @@ void main() {
         child: Sleepy3App(splashStartSignal: Future<void>.value()),
       ),
     );
-    await tester.pumpAndSettle();
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      // The version sheen loops while the update dialog is open, so
+      // pumpAndSettle would never finish. Pump the splash and the launch
+      // check instead; callers can wait for the dialog with pumpUntilFound.
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 1100));
+      await tester.pump(const Duration(milliseconds: 700));
+    }
     return store;
   }
 
@@ -107,7 +130,10 @@ void main() {
       tester,
       version: const AppVersion(version: '0.3.1', buildNumber: '1'),
       releaseGateway: FakeAppReleaseGateway(testRelease('0.4.0')),
+      settle: false,
     );
+    await pumpUntilFound(tester, find.text('New version available'));
+    await tester.pump(const Duration(milliseconds: 600));
 
     expect(find.text('New version available'), findsOneWidget);
     expect(find.text("What's new"), findsOneWidget);
@@ -125,13 +151,54 @@ void main() {
       tester,
       version: const AppVersion(version: '0.3.1', buildNumber: '1'),
       releaseGateway: FakeAppReleaseGateway(testRelease('0.4.0')),
+      settle: false,
     );
+    await pumpUntilFound(tester, find.text('New version available'));
+    await tester.pump(const Duration(milliseconds: 600));
 
     await tester.tap(find.text("Don't remind me again"));
     await tester.pumpAndSettle();
 
     expect(find.text('New version available'), findsNothing);
     expect(store.updatePromptPreferences.dismissedVersion, '0.4.0');
+  });
+
+  testWidgets('the refresh action reopens the update dialog', (tester) async {
+    final preferences = UpdatePromptPreferences.defaults.withSnooze(
+      version: '0.4.0',
+      until: DateTime(2026, 10, 21, 22, 30),
+    );
+    await pumpApp(
+      tester,
+      version: const AppVersion(version: '0.3.1', buildNumber: '1'),
+      releaseGateway: FakeAppReleaseGateway(testRelease('0.4.0')),
+      initialPreferences: preferences,
+      settingsStore: FakeSettingsStore(updatePromptPreferences: preferences),
+      settle: false,
+    );
+
+    expect(find.text('New version available'), findsNothing);
+
+    await tester.tap(find.byKey(navKey(Sleepy3Destination.settings)));
+    await tester.pumpAndSettle();
+
+    final settingsScrollable = find.descendant(
+      of: find.byKey(const ValueKey('settings-home-list')),
+      matching: find.byType(Scrollable),
+    );
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('settings-about-card')),
+      300,
+      scrollable: settingsScrollable,
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('settings-about-update-check')));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await pumpUntilFound(tester, find.text('New version available'));
+
+    expect(find.text('New version available'), findsOneWidget);
   });
 
   testWidgets('starts on Home with three labelled destinations', (

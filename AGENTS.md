@@ -151,23 +151,36 @@ lib/
   idle/checking/up to date/available/failure; when a release is available, `Download` is the
   primary full-width action and a `refresh` icon button on its left checks again without
   downloading. Manual checks keep `Checking…` for at least 1 s; the automatic launch check
-  is not delayed. `Download` opens the `.apk` asset; the GitHub icon opens
+  is not delayed. A manual check that finds a newer release opens the dialog again, even
+  for a version that was snoozed or dismissed; those preferences only suppress the
+  automatic prompt. `Download` opens the `.apk` asset; the GitHub icon opens
   `https://github.com/Juankyyy/sleepy3` and `Licenses` opens the Flutter license page. The
   visible version omits the build number; the license page keeps
   it for diagnostics. The
-  launch dialog uses the first paragraph of the release notes as `Novedades`, a
-  `View on GitHub` link, a header `X` that snoozes that version for 24 hours and a
-  `Don't remind me again` action that dismisses that version only; a newer version prompts
-  again. The action row uses an `OverflowBar` with a filled `Download` and a low-emphasis
-  text `Don't remind me again`: side by side on a phone, stacked to the trailing edge at
-  200% or 320 dp; the dividers use `outlineVariant`. The prompt decisions live in
-  `preferences` as
+  launch dialog shows the installed and target versions (`v0.4.0 → v0.4.1`, the installed
+  one at 80 % opacity), the release theme when it exists, a `View on GitHub` link, a
+  header `X` that snoozes that version for 24 hours and a `Don't remind me again` action
+  that dismisses that version only; a newer version prompts again. The title loops a slow,
+  wide sheen (~2.2 s sweep every ~5 s; `primary` in dark, a light band in light) and the
+  target version breathes a strong `primary` glow while the dialog is open; both are off
+  with Remove animations. The `Novedades` body is a 20 dp rounded card inset 8 dp on
+  `surfaceDim`, with a 1 dp `outlineVariant` frame and no dividers around it; it renders the
+  full release notes in a scrollable region while the header and actions stay pinned, and
+  the dialog is capped at 85 % of the screen height (a product decision; M3 has no
+  basic-dialog max height). The small renderer covers the curated Markdown subset
+  (headings, bold/italic,
+  inline code, lists, quotes, code fences, rules and links) and opens links with
+  `url_launcher`; a failed link shows `Couldn't open the link` inline. It uses no Markdown
+  package because this Flutter 3.47 app runs on `material_ui`. The action row uses an
+  `OverflowBar` with a filled `Download` and a low-emphasis text `Don't remind me again`:
+  side by side on a phone, stacked to the trailing edge at 200% or 320 dp; the body frame
+  uses `outlineVariant`. The prompt decisions live in `preferences` as
   `update_prompt_dismissed_version`, `update_prompt_snoozed_version` and
   `update_prompt_snoozed_until`; there is no global switch and no schema migration. The
   app opens `url_launcher` for the release page/APK and never installs an APK itself.
   Release builds need `android.permission.INTERNET` in the main manifest (debug has its
-  own). The release notes are English, so the `Novedades` paragraph is English even when
-  the UI is Spanish; the full notes stay on GitHub.
+  own). The release notes are English, so the `Novedades` body is English even when the UI
+  is Spanish; the full notes also stay on GitHub.
 - History backup: `lib/features/backup/` owns the versioned JSON file
   (`format: sleepy3.sleep-history`, `version: 1`), the `file_picker` gateway and the
   `Data` section of the Settings `Sleep data` page. Export uses the visible list in `SleepTrackingController`

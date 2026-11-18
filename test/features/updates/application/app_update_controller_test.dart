@@ -74,7 +74,7 @@ void main() {
     expect(gateway.calls, 1);
   });
 
-  test('a manual check updates the row without opening the dialog', () async {
+  test('a manual check opens the dialog when an update is available', () async {
     final gateway = FakeAppReleaseGateway(testRelease('0.4.0'));
     final app = container(
       gateway: gateway,
@@ -86,7 +86,34 @@ void main() {
     final state = app.read(appUpdateControllerProvider);
 
     expect(state.phase, AppUpdatePhase.available);
-    expect(state.pendingPrompt, isNull);
+    expect(state.pendingPrompt?.version, '0.4.0');
+  });
+
+  test('a manual check overrides a snoozed or dismissed version', () async {
+    final until = now.add(const Duration(hours: 24));
+    final preferences = [
+      UpdatePromptPreferences.defaults.withSnooze(
+        version: '0.4.1',
+        until: until,
+      ),
+      UpdatePromptPreferences.defaults.withDismissedVersion('0.4.1'),
+    ];
+
+    for (final previous in preferences) {
+      final app = container(
+        gateway: FakeAppReleaseGateway(testRelease('0.4.1')),
+        launcher: FakeUpdateLinkLauncher(),
+        store: FakeSettingsStore(updatePromptPreferences: previous),
+        preferences: previous,
+      );
+
+      await app.read(appUpdateControllerProvider.notifier).checkNow();
+
+      expect(
+        app.read(appUpdateControllerProvider).pendingPrompt?.version,
+        '0.4.1',
+      );
+    }
   });
 
   test('reports up to date and never goes backwards', () async {

@@ -124,6 +124,19 @@
       }
     }
   },
+  "updateDialogSemanticRange": "New version available: Sleepy3 {current} to {latest}",
+  "@updateDialogSemanticRange": {
+    "placeholders": {
+      "current": {
+        "type": "String",
+        "example": "0.4.0"
+      },
+      "latest": {
+        "type": "String",
+        "example": "0.4.1"
+      }
+    }
+  },
   "updateWhatsNew": "What's new",
   "updateSummaryFallback": "See the full release notes on GitHub.",
   "updateOpenGitHub": "View on GitHub",

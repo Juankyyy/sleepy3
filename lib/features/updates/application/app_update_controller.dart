@@ -28,8 +28,11 @@ class AppUpdateState {
   /// The newer release when [phase] is [AppUpdatePhase.available].
   final AppRelease? release;
 
-  /// The release whose dialog must be shown once. It is set only by the
-  /// automatic launch check.
+  /// The release whose dialog must be shown once.
+  ///
+  /// The automatic launch check sets it when the prompt preferences allow it;
+  /// any manual check that finds a newer release also sets it, even when that
+  /// version was snoozed or dismissed before.
   final AppRelease? pendingPrompt;
 
   final UpdatePromptPreferences preferences;
@@ -38,8 +41,9 @@ class AppUpdateState {
 /// Checks GitHub for a newer release and owns the update dialog decisions.
 ///
 /// The launch check runs once per controller lifetime; the Settings row can
-/// always force another check. A manual check updates the row but never opens
-/// the dialog by itself.
+/// always force another check. A manual check that finds a newer release also
+/// opens the dialog, even when that version was snoozed or dismissed; those
+/// decisions only suppress the automatic prompt.
 class AppUpdateController extends Notifier<AppUpdateState> {
   Future<void>? _inFlight;
   bool _launchCheckStarted = false;
@@ -59,10 +63,14 @@ class AppUpdateController extends Notifier<AppUpdateState> {
   }
 
   /// Forces a check from Settings.
+  ///
+  /// A newer release opens the update dialog again, even if that version was
+  /// snoozed or dismissed by an earlier automatic prompt.
   Future<void> checkNow() => _check(manual: true);
 
   /// Runs the row action: download when a release is available, otherwise
-  /// check again. The row's checking state ignores taps.
+  /// check again. A check that finds a newer release opens the dialog. The
+  /// row's checking state ignores taps.
   Future<bool> handleRowTap() async {
     if (state.phase == AppUpdatePhase.available && state.release != null) {
       return openDownload();
@@ -190,7 +198,7 @@ class AppUpdateController extends Notifier<AppUpdateState> {
         );
       } else {
         final now = ref.read(sleepClockProvider)();
-        final prompt = !manual && preferences.shouldPrompt(release.version, now)
+        final prompt = manual || preferences.shouldPrompt(release.version, now)
             ? release
             : null;
 

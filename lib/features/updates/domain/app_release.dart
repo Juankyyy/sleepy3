@@ -1,5 +1,5 @@
 import 'app_version_number.dart';
-import 'release_summary.dart';
+import 'release_notes.dart';
 
 /// The latest stable release published on GitHub.
 class AppRelease {
@@ -9,7 +9,7 @@ class AppRelease {
     required this.name,
     required this.pageUrl,
     required this.apkUrl,
-    required this.summary,
+    required this.notes,
   });
 
   /// The Git tag, for example `v0.4.0`.
@@ -27,8 +27,8 @@ class AppRelease {
   /// The APK asset, when the release includes one.
   final Uri? apkUrl;
 
-  /// The first paragraph of the release notes, without Markdown.
-  final String? summary;
+  /// The full release notes Markdown, without the metadata comments.
+  final String? notes;
 
   /// The curated release theme (`The Widget Update`), or the app and version
   /// when the release has no separate name.
@@ -91,7 +91,7 @@ class AppRelease {
       name: name is String && name.trim().isNotEmpty ? name : tag.trim(),
       pageUrl: pageUrl,
       apkUrl: apkUrl,
-      summary: extractReleaseSummary(body is String ? body : null),
+      notes: normalizeReleaseNotes(body is String ? body : null),
     );
   }
 }

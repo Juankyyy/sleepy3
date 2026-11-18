@@ -6,7 +6,9 @@ void main() {
     String tag = 'v0.4.0',
     String name = 'v0.4.0 - The Widget Update',
     String page = 'https://github.com/Juankyyy/sleepy3/releases/tag/v0.4.0',
-    String? body = '<!-- title: v0.4.0 -->\n\nA short summary.',
+    String? body =
+        '<!-- title: v0.4.0 -->\n\nA short summary.\n\n'
+        '## Highlights\n\n- First change.',
     List<Map<String, String>>? assets,
   }) {
     return {
@@ -33,7 +35,7 @@ void main() {
     };
   }
 
-  test('reads the tag, page, APK and summary', () {
+  test('reads the tag, page, APK and the full notes', () {
     final release = AppRelease.fromJson(json());
 
     expect(release.tag, 'v0.4.0');
@@ -50,7 +52,25 @@ void main() {
         'sleepy3-v0.4.0.apk',
       ),
     );
-    expect(release.summary, 'A short summary.');
+    expect(release.notes, contains('A short summary.'));
+    expect(release.notes, contains('## Highlights'));
+    expect(release.notes, isNot(contains('<!--')));
+  });
+
+  test('keeps the body without its title comment', () {
+    final release = AppRelease.fromJson(
+      json(body: '<!-- title: v0.4.0 -->\n\nOnly the body.'),
+    );
+
+    expect(release.notes, 'Only the body.');
+  });
+
+  test('has no notes when the body is missing or empty', () {
+    expect(AppRelease.fromJson(json(body: null)).notes, isNull);
+    expect(
+      AppRelease.fromJson(json(body: '<!-- title: v0.4.0 -->\n\n')).notes,
+      isNull,
+    );
   });
 
   test('accepts a release without an APK asset', () {

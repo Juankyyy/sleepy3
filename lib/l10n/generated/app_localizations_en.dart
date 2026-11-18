@@ -252,6 +252,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String updateDialogSemanticRange(String current, String latest) {
+    return 'New version available: Sleepy3 $current to $latest';
+  }
+
+  @override
   String get updateWhatsNew => 'What\'s new';
 
   @override

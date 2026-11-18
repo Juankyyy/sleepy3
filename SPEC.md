@@ -851,16 +851,30 @@ Reglas:
 - La comprobación automática se lanza una vez por apertura, después del splash, sin
   bloquear el primer frame. `Sleepy3App` la arranca y `Sleepy3Shell` muestra el modal solo
   si el controlador deja un aviso pendiente. La comprobación manual desde la tarjeta
-  `About` actualiza el estado pero no abre el modal. Toda comprobación manual mantiene
-  `Checking…` al menos 1 segundo aunque GitHub responda antes, para que el progreso sea
-  visible; la comprobación automática del arranque no se retrasa.
+  `About`, tanto el botón único como el icon button de refresh, actualiza el estado y deja
+  un aviso pendiente si GitHub devuelve una versión más nueva, así que el modal vuelve a
+  salir. Toda comprobación manual mantiene `Checking…` al menos 1 segundo aunque GitHub
+  responda antes, para que el progreso sea visible; la comprobación automática del arranque
+  no se retrasa.
 - El modal es un diálogo básico compuesto con los tokens de `M3EDialog`: radio de 28 dp,
-  padding de 24 dp, `surfaceContainerHigh`, headline small, body medium y divisores de
-  1 dp en `outlineVariant`. Se usa `M3EDialog.show` para el scrim, la transición, el foco y
-  el cierre por barrera/atrás. La cabecera lleva la `X` arriba a la derecha, el título
-  `Nueva versión disponible`, el subtítulo `Sleepy3 {version} · {tema}` y `Ver en GitHub`
-  debajo. Después hay una sección `Novedades` con el primer párrafo de las notas (sin
-  Markdown, máximo 4 líneas) y una sección de acciones separada por otro divisor.
+  padding de 24 dp, `surfaceContainerHigh`, headline small y body medium. No lleva
+  divisores; el cuerpo es una tarjeta de 20 dp de radio insertada 8 dp, con borde de 1 dp
+  en `outlineVariant`. Se usa `M3EDialog.show` para el scrim, la transición, el foco y
+  el cierre por barrera/atrás. La cabecera queda fija y lleva la `X` arriba a la derecha,
+  el título `Nueva versión disponible`, el subtítulo `v{instalada} → v{objetivo}` (más
+  ` · {tema}` si la release tiene tema) y `Ver en GitHub` debajo. La versión instalada se
+  pinta al 80 % de opacidad y la objetivo a contraste pleno; la flecha acompaña a la
+  instalada. El título repite un barrido de brillo lento y ancho de ~2,2 s cada ~5 s (banda
+  `primary` en oscuro y banda clara en el tema claro), y la versión objetivo respira con un
+  halo `primary` intenso mientras el modal está abierto; ambos empiezan ~300 ms después de
+  abrirlo. Son decisiones de producto fuera de M3 y se desactivan con Remove animations. El
+  cuerpo `Novedades` es la
+  única zona que scrollea: la tarjeta usa `surfaceDim` (más oscuro que la cabecera y las
+  acciones, que siguen en `surfaceContainerHigh`), muestra el `body` completo de la release
+  y mantiene los estilos de texto. La altura total del modal se limita al 85 % de la pantalla
+  para que no la llene; es otra decisión de producto, porque M3 no publica un máximo para
+  un diálogo básico. La cabecera y las acciones quedan fijas, como pide M3 para diálogos
+  con scroll.
 - La sección de acciones usa el mismo `OverflowBar` que `M3EDialogActions`, con
   `alignment: end` y `overflowDirection: up`. A 360 dp, `No recordar otra vez` es un text
   button en `onSurfaceVariant` con padding compacto a la izquierda y `Descargar` es un
@@ -872,21 +886,30 @@ Reglas:
   24 h solo para esa versión (`update_prompt_snoozed_version` y
   `update_prompt_snoozed_until`). No hay texto visible que explique el snooze; el tooltip
   y la etiqueta accesible de la `X` sí lo dicen. Si aparece una versión más nueva antes de
-  las 24 h, se avisa igualmente porque el snooze es por versión.
+  las 24 h, se avisa igualmente porque el snooze es por versión. Una comprobación manual
+  vuelve a abrir el modal aunque el snooze siga activo.
 - `No recordar otra vez` guarda `update_prompt_dismissed_version` y no vuelve a mostrar el
-  modal de esa versión; una versión posterior vuelve a preguntar. No hay interruptor global
-  de avisos. La tarjeta `About` mantiene la comprobación manual: con una versión disponible,
-  `Download` es la acción principal y el icon button `Check for updates` de su izquierda
-  vuelve a consultar GitHub sin descargar; sin versión disponible, el botón único comprueba.
+  modal de esa versión desde la comprobación automática; una versión posterior vuelve a
+  preguntar. Una comprobación manual también puede reabrir el modal de esa misma versión.
+  No hay interruptor global de avisos. La tarjeta `About` mantiene la comprobación manual:
+  con una versión disponible, `Download` es la acción principal y el icon button
+  `Check for updates` de su izquierda vuelve a consultar GitHub sin descargar y reabre el
+  modal si la release sigue disponible; sin versión disponible, el botón único comprueba y
+  abre el modal si encuentra una versión más nueva.
 - `Descargar` abre el `browser_download_url` del APK y `Ver en GitHub` abre la página de la
   release; ambos usan `url_launcher` con el navegador externo y, si se abren, marcan esa
   versión como vista. Si el enlace falla, no se marca y el botón permite reintentar; el
   snackbar `No se pudo abrir el enlace` explica el fallo. La app nunca instala el APK: el
   navegador lo descarga y Android pide confirmar la instalación.
-- El resumen de `Novedades` es el primer párrafo de `body`, sin comentarios HTML, enlaces,
-  énfasis ni código. Las notas curadas están en inglés, así que ese párrafo se muestra en
-  inglés aunque la UI esté en español; el resto de la release se lee en GitHub. No se añade
-  un renderizador Markdown.
+- `Novedades` renderiza el `body` completo, sin el comentario HTML del título. El
+  renderizador propio cubre el subconjunto curado: párrafos, encabezados, negrita, cursiva,
+  código inline, listas, citas, bloques de código, reglas y enlaces; lo que no reconoce se
+  mantiene como texto. Los enlaces abren con `url_launcher`; si falla, el modal muestra
+  `No se pudo abrir el enlace` encima de las acciones. Si `body` falta o no tiene bloques,
+  se muestra `Consulta las novedades completas en GitHub`. Las notas curadas están en
+  inglés, así que el cuerpo se muestra en inglés aunque la UI esté en español; las notas
+  completas siguen en GitHub. No se añade una dependencia de Markdown porque los renderers
+  publicados usan `package:flutter/material.dart` y esta app usa `material_ui`.
 - Las preferencias se cargan antes de `runApp` y se guardan en `preferences` sin migración
   de esquema. El botón no muestra una hora de última comprobación: solo el estado. Un fallo
   de red, un 404, un límite de la API o un JSON inválido se registran y dejan el estado de
@@ -2040,13 +2063,18 @@ dart run tool/generate_brand_assets.dart
   ocurrencia con reloj fijo y layout de la sección al 200 %.
 - Actualizaciones: comparación semver con prefijos y sufijos, versiones instaladas más
   nuevas, parseo del JSON de GitHub, cabeceras, 404/403/500, timeout, JSON inválido,
-  extracción del primer párrafo de las notas, comprobación automática única por apertura,
-  comprobación manual sin modal, descarte por versión, snooze de 24 h por versión, versión
-  nueva que ignora el descarte/snooze anterior, `No recordar otra vez` solo para esa
+  parseo del body completo y de su subconjunto Markdown, scroll del cuerpo con cabecera y
+  acciones fijas, enlaces de las notas y error inline, comprobación automática única por
+  apertura, comprobación manual que reabre el modal incluso sobre snooze/descarte, descarte
+  por versión, snooze de 24 h por versión,
+  versión nueva que ignora el descarte/snooze anterior, `No recordar otra vez` solo para esa
   versión, descarga/GitHub que marcan la versión solo si el enlace se abre, APK ausente que
   cae en la página de la release, fila oculta sin versión, fila disponible que descarga,
-  persistencia de las tres claves, acciones en fila con `Descargar` filled y `No recordar`
-  text a 360 dp, apiladas al borde derecho al 200 % y modal en inglés/español.
+  persistencia de las tres claves, rango de versiones con la instalada atenuada, el sheen
+  en loop del título y el glow de la objetivo, el body como tarjeta redondeada sobre
+  `surfaceDim` y el alto máximo, acciones
+  en fila con `Descargar` filled y `No recordar` text a 360 dp, apiladas al borde derecho
+  al 200 % y modal en inglés/español.
 - Notificación de sueño: tarjeta `RemoteViews` con cronómetro grande, fallback estándar con
   texto grande, importancia baja, publicación al dormir, cancelación al despertar,
   actualización al retimar o cambiar idioma/formato, permiso pedido una sola vez y copy en

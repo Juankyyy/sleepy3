@@ -5,6 +5,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../core/notifications/notification_providers.dart';
+import '../features/settings/application/app_version_provider.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/sleep_tracking/presentation/sleep_home_screen.dart';
 import '../features/stats/presentation/stats_screen.dart';
@@ -47,13 +48,21 @@ class _Sleepy3ShellState extends ConsumerState<Sleepy3Shell> {
     });
   }
 
+  Future<bool> _openNoteLink(Uri uri) {
+    return ref.read(updateLinkLauncherProvider).open(uri);
+  }
+
   Future<void> _showUpdatePrompt(AppRelease release) async {
     if (_updatePromptOpen || !mounted) return;
     _updatePromptOpen = true;
     try {
       final action = await M3EDialog.show<UpdatePromptAction>(
         context,
-        dialog: UpdateAvailableDialog(release: release),
+        dialog: UpdateAvailableDialog(
+          release: release,
+          installedVersion: ref.read(appVersionProvider)?.version,
+          onOpenLink: _openNoteLink,
+        ),
       );
       if (!mounted) return;
 

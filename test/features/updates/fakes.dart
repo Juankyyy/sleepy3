@@ -48,7 +48,7 @@ class FakeUpdateLinkLauncher implements UpdateLinkLauncher {
   }
 }
 
-AppRelease testRelease(String version, {String? summary}) {
+AppRelease testRelease(String version, {String? notes}) {
   final tag = 'v$version';
   return AppRelease(
     tag: tag,
@@ -59,6 +59,17 @@ AppRelease testRelease(String version, {String? summary}) {
       'https://github.com/Juankyyy/sleepy3/releases/download/$tag/'
       'sleepy3-$tag.apk',
     ),
-    summary: summary ?? 'Test release $version.',
+    notes:
+        notes ??
+        '''
+Test release $version.
+
+## Highlights
+
+- First change.
+- Second change.
+
+**Full changelog**: https://example.com/compare/$tag
+''',
   );
 }
