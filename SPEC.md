@@ -3,16 +3,16 @@
 **Proyecto:** Sleepy3
 **Plataforma:** Android
 **Stack principal:** Flutter + Material 3 Expressive
-**Estado:** v0.3.2, última release estable (sin widget). Home (con una sola acción
+**Estado:** v0.4.0, última release estable (sin widget). Home (con una sola acción
 contextual), Stats (resumen configurable y dashboard avanzado de cinco rangos con gráficos
 de duración, ventana y día de la semana, insights, historial tonal con marcas de objetivo
 animadas, pull-to-refresh, alta manual, edición y borrado de sesiones y detalles de solo
 lectura para registros de otras apps), la notificación silenciosa de sueño en curso con la
-acción `Wake` y el recordatorio con `Start sleep`, Settings (con el objetivo de sueño
-configurable, la sección `Data` para exportar e importar el historial y la comprobación de
-actualizaciones desde GitHub), la persistencia
-local y Health Connect (Local/Google Health) funcionan. El
-widget de pantalla de inicio es el siguiente bloque (0.4.0).
+acción `Wake` y el recordatorio con `Start sleep`, Settings (el bento de tarjetas tonales
+con las páginas `Sleep data` y `Appearance`, el objetivo de sueño configurable, la sección
+`Data` para exportar e importar el historial y la comprobación de actualizaciones desde
+GitHub), la persistencia local y Health Connect (Local/Google Health) funcionan. El
+widget de pantalla de inicio es el siguiente bloque (0.5.0).
 
 ---
 
@@ -119,7 +119,7 @@ ci(release): publish the APK
 - Después de publicar, aplicar notas y título con:
 
 ```bash
-dart run tool/apply_release_notes.dart v0.3.2
+dart run tool/apply_release_notes.dart v0.4.0
 ```
 
   El script lee el título de la primera línea y ejecuta `gh release edit`; no toca el APK.
@@ -330,7 +330,7 @@ Reglas:
 
 - `Stats` es un resumen de una sola columna: cabecera con la acción `View advanced stats`,
   cinco filtros de rango, un único bloque de resumen configurable y el historial. El
-  bloque se elige en `Settings > Stats > Stats summary` entre `Average sleep`, `Key
+  bloque se elige con la tarjeta `Stats summary` de `Settings` entre `Average sleep`, `Key
   metrics`, `Sleep duration`, `Sleep window`, `By weekday` y `Key data`. Solo se muestra
   uno; el valor inicial es `Sleep duration`. Las cuatro métricas completas, los tres
   gráficos y los insights siguen viviendo en una modal sheet arrastrable que se abre
@@ -891,7 +891,7 @@ Reglas:
   GitHub. En debug la versión local es `0.1.0-debug`, así que la app puede ofrecer una
   release más nueva aunque la última sea la misma que la del APK de release.
 
-### 3.5 Widget de pantalla de inicio (0.4.0)
+### 3.5 Widget de pantalla de inicio (0.5.0)
 
 - Dos acciones: **Sleep** y **Wake**.
 - El toque registra la hora sin abrir la app.
@@ -915,7 +915,8 @@ Reglas:
 - Las acciones de copia son explícitas y no cambian la fuente: `Sync` sube la sesión local
   pendiente más reciente, `Add` sube todas las pendientes de la más antigua a la más
   reciente e `Import` descarga todas las sesiones de Health Connect a la copia local.
-- La importación de un archivo de historial (`Settings > Data`) es independiente de la
+- La importación de un archivo de historial (la sección `Data` de `Settings → Sleep data`)
+  es independiente de la
   fuente: solo escribe en la base local y no llama a Health Connect. Las sesiones locales
   importadas quedan bloqueadas para el reintento automático; `Add` es la acción explícita
   que las envía y las desbloquea.
@@ -1523,7 +1524,7 @@ lib/
     │   ├── data/           # GitHub Releases gateway and url_launcher links
     │   ├── application/    # update check controller and providers
     │   └── presentation/   # update button in the About card and launch dialog
-    └── widget/             # 0.4.0
+    └── widget/             # 0.5.0
 assets/
 ├── brand/                 # fuentes del logo, marca del splash e iconos generados
 └── fonts/                 # Space Grotesk, Google Sans Flex para títulos y licencias OFL
@@ -1851,7 +1852,7 @@ dart run build_runner build
 
 ---
 
-## 8. Widget de pantalla de inicio (0.4.0)
+## 8. Widget de pantalla de inicio (0.5.0)
 
 - Implementación nativa con Jetpack Glance y `RemoteViews`; no usa el engine de Flutter.
 - Dos acciones: Sleep/Wake.
@@ -2143,12 +2144,14 @@ dart run tool/generate_brand_assets.dart
   `Night context`, y la notificación de sueño en curso; la 0.3.1 añade la exportación e
   importación del historial, el objetivo de sueño configurable y las acciones `Start
   sleep`/`Wake`; la 0.3.2 añade la comprobación de actualizaciones desde GitHub, con aviso
-  al abrir y descarga del APK. Ninguna incluye el widget.
+  al abrir y descarga del APK; la 0.4.0 rediseña `Settings` como un bento de tarjetas
+  tonales con las páginas `Sleep data` y `Appearance` y la tarjeta `About`. Ninguna incluye
+  el widget.
 - Tests de estado, persistencia y UI.
 
 ### Siguiente
 
-1. Widget de pantalla de inicio con Glance y `home_widget` (0.4.0).
+1. Widget de pantalla de inicio con Glance y `home_widget` (0.5.0).
 
 ---
 
