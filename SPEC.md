@@ -592,13 +592,23 @@ Reglas:
 
 ### 3.4 Settings
 
-- La pantalla tiene cabecera `Settings` y línea de apoyo
-  `Theme, stats, reminders, sleep data, backup and app info.`, seguida de siete
-  secciones: `Appearance`, `Stats`, `Reminders`, `Sleep data`, `Data`, `Google Health` y
-  `About`.
-- Cada sección usa un encabezado `titleMedium` emphasized y una lista agrupada
-  `M3EList`/`M3EListItem` con radio exterior 16 dp, interior 4 dp y gap 2 dp.
-- `Appearance` contiene:
+- La pantalla tiene cabecera `Settings` y un bento de tarjetas tonales; no hay
+  línea de apoyo. Las tarjetas usan 24 dp de radio, 12 dp de separación y un icono
+  en un badge `BentoBadge` con la misma forma M3 que la figura de fondo. La figura de la
+  esquina es una forma distinta de `MaterialShapes` por tarjeta (`Arch`, `SoftBurst`,
+  `Puffy`, `ClamShell`, `Cookie7Sided`, `PuffyDiamond` y `Clover4Leaf`); es decorativa, no
+  recibe toques y queda fuera del árbol de semántica. Cada tarjeta usa un tono
+  fijo de Ajustes (lavanda, cielo, menta, melocotón, rosa o neutro) con pareja
+  clara/oscura y contraste ≥ 4.5:1 para el texto. Es una extensión fija de la
+  paleta Sleepy3 solo para esta pantalla; no es color dinámico. Las tarjetas de
+  navegación se anuncian como un botón; en las de control toda la tarjeta es el
+  objetivo del interruptor y el chip de hora es una acción separada.
+- El bento tiene `Sleep goal` (ancha), `Sleep reminder` y `Sleep in progress`
+  (dos mitades), `Sleep data` (ancha), `Appearance` y `Stats summary` (dos
+  mitades) y `About` (ancha). `Sleep data` y `Appearance` abren su propia página;
+  el resto usa el diálogo, la hoja o el selector que ya existía. `About` cierra
+  la pantalla.
+- La página `Appearance` contiene:
   - `Theme`, cuyo supporting text muestra el modo actual: `System`, `Light` o `Dark`.
     Al tocarla se abre un diálogo M3 de selección con opciones de radio y acciones
     `Cancel` / `Apply`. `Apply` aplica y persiste el modo; `Cancel` no cambia nada. El
@@ -611,17 +621,17 @@ Reglas:
     ofrece esos dos idiomas, sin `System`. Si no hay preferencia guardada, el primer
     arranque resuelve el idioma del teléfono (`es` → Español; cualquier otro → English),
     lo persiste en `preferences` (`language`) y lo aplica a toda la app.
-- `Stats` incluye la fila `Sleep goal`, cuyo supporting text muestra `{objetivo} a night`
-  (`8h a night`). Al tocarla se abre un diálogo M3 de selección con las nueve opciones de
-  6 a 10 h en pasos de 30 min y `Cancel` / `Apply`. El valor por defecto es 8 h. `Apply`
+- La tarjeta ancha `Sleep goal` muestra `{objetivo}` y `a night` (`8h a night`). Al
+  tocarla se abre un diálogo M3 de selección con las nueve opciones de 6 a 10 h en pasos
+  de 30 min y `Cancel` / `Apply`. El valor por defecto es 8 h. `Apply`
   guarda la preferencia y el objetivo se aplica de inmediato a Home, Stats (métricas,
   gráficos y marcas), al panel de sesión y a la notificación de sueño en curso. El
   historial se recalcula con el objetivo actual: no se guarda un objetivo por noche, así
   que cambiar el objetivo puede cambiar qué noches cuentan como cumplidas y el balance.
   Es una decisión de producto. Si hay una sesión abierta, la notificación se vuelve a
   publicar con la nueva hora meta.
-- La fila `Stats summary`, cuyo supporting text muestra el bloque
-  actual. Al tocarla se abre una modal sheet M3 de altura completa, con esquinas
+- La tarjeta `Stats summary` muestra el bloque actual. Al tocarla se abre una modal sheet
+  M3 de altura completa, con esquinas
   superiores de 28 dp, ancho máximo de 640 dp, márgenes de 72/56 dp arriba y 56 dp a los
   lados, scrim y aspa de cierre. Abrir a altura completa es una decisión Sleepy3, como el
   70 % inicial de la hoja avanzada, para que las vistas previas quepan sin convertir el
@@ -639,24 +649,27 @@ Reglas:
   completa se ve en Stats. El valor inicial es
   `Duración del sueño`. La preferencia se guarda en `preferences` como
   `stats_summary_option`; no hay migración de esquema.
-- `Reminders` contiene:
-  - `Sleep reminder`, un interruptor con apoyo `Off` o `Every day at {time}`. Al
+- Las tarjetas de control son:
+  - `Sleep reminder`, una tarjeta con interruptor y apoyo `Every day` u `Off`. Al
     activarlo se pide permiso de notificaciones si hace falta y se programa el aviso
     diario; si se deniega, el interruptor sigue apagado y un snackbar ofrece
-    `Open settings`. El valor por defecto es desactivado a las 22:00.
-  - `Reminder time`, visible solo con el recordatorio activo, muestra la hora actual y
-    abre `M3ETimePicker`. Cambiar la hora cancela la programación anterior y guarda la
-    nueva.
-  - `Sleep in progress`, un interruptor con apoyo `Shows a live timer while you sleep.` o
-    `Off`. Está activado por defecto. Al activarlo se pide permiso de notificaciones si
-    hace falta; si se deniega, sigue apagado y un snackbar ofrece `Open settings`. Al
-    desactivarlo se cancela la tarjeta al momento y no se publica en el siguiente Sleep.
-    Es independiente de `Sleep reminder`.
-  - Si Android bloquea las notificaciones de la app, aparece una fila
-    `Notifications are off` con `Allow Sleepy3 to send the notification.` que abre los
-    ajustes de notificaciones del sistema. La fila se muestra cuando el recordatorio
-    está activo; la tarjeta de sueño usa el aviso de permiso al intentar activarse.
-- `Sleep data` contiene:
+    `Open settings`. El valor por defecto es desactivado a las 22:00. La tarjeta se puede
+    tocar para activar o desactivar; el switch es visual y la semántica de la tarjeta
+    anuncia el estado.
+  - El chip de hora, visible solo con el recordatorio activo, muestra la hora actual y
+    abre `M3ETimePicker` como acción separada. Cambiar la hora cancela la programación
+    anterior y guarda la nueva.
+  - `Sleep in progress`, una tarjeta con interruptor y apoyo
+    `Shows a live timer while you sleep.` u `Off`. Está activado por defecto. Al
+    activarlo se pide permiso de notificaciones si hace falta; si se deniega, sigue
+    apagado y un snackbar ofrece `Open settings`. Al desactivarlo se cancela la tarjeta
+    al momento y no se publica en el siguiente Sleep. Es independiente de
+    `Sleep reminder`.
+  - Si Android bloquea las notificaciones de la app, la tarjeta del recordatorio muestra
+    `Notifications are off` con `Allow Sleepy3 to send the notification.` y abre los
+    ajustes de notificaciones del sistema. La tarjeta de sueño usa el aviso de permiso al
+    intentar activarse.
+- La página `Sleep data` contiene:
   - `Source`, cuyo supporting text muestra `Local` o `Google Health`. Al tocarla se abre
     el diálogo `Sleep data source` con una fila de radio por fuente y `Cancel` / `Apply`.
     Al elegir `Google Health` se comprueba la disponibilidad y se piden `READ_SLEEP` y
@@ -666,7 +679,7 @@ Reglas:
   - `Import` con apoyo `Download from Google Health to the local copy.`. Ejecuta la
     descarga de todas las sesiones de Health Connect. Pide el permiso de historial antes
     de descargar; si se deniega, baja solo los últimos 30 días y el resultado lo indica.
-- `Data` contiene:
+- La sección `Data` de la página `Sleep data` contiene:
   - `Export history` con apoyo `Save the history shown in Stats to a file.`. Exporta la
     lista que Stats tiene cargada para la fuente elegida, no una lectura aparte de la base
     local. En `Local` son las sesiones cerradas de Drift, incluidas las copias descargadas,
@@ -696,12 +709,12 @@ Reglas:
     Health quedan como copias de solo lectura. La importación no llama a Health Connect ni
     sube nada. El resultado muestra añadidas, omitidas y fallidas. Un archivo inválido,
     vacío o de una versión más reciente se explica con un diálogo y no escribe.
-- Las filas de `Data` usan `SettingsActionRow`, la misma superficie rellena que
-  `SettingsToggleRow`: `M3EListItem` recorta el titular a una línea y `Exportar
+- Las filas de la sección `Data` usan `SettingsActionRow`, la misma superficie rellena
+  que `SettingsToggleRow`: `M3EListItem` recorta el titular a una línea y `Exportar
   historial` no cabe al 200 % de texto. El titular y el apoyo envuelven y la fila
   conserva un objetivo táctil de 72 dp.
-- La sección `Google Health` se muestra en ambos modos: el estado de conexión y las
-  acciones de copia no dependen de la fuente activa.
+- La sección `Google Health` de la página `Sleep data` se muestra en ambos modos: el
+  estado de conexión y las acciones de copia no dependen de la fuente activa.
 - `Google Health` contiene:
   - `Status`, con `Checking…`, `Connected`, `Connected · {n} pending`,
     `Connected · Last sync {time}`, `Permission needed`, `Not available` o
@@ -720,12 +733,17 @@ Reglas:
 - El primer cambio a `Google Health` con sesiones locales pendientes muestra el diálogo
   opcional `Copy local sessions?` con `Sync`, `Add` y `Not now`. Los botones de copia
   siguen disponibles después en la sección `Google Health`.
-- `About` contiene `Privacy` con apoyo `On-device only.` en `Local` o
-  `Stored in Health Connect. Google Health can read it.` en `Google Health`, `Version`
-  con `{version} ({build})` cuando el plugin de información de la app responde (la fila se
-  oculta si no hay dato), `Check for updates` y `Licenses`, que abre la página de licencias
-  de Flutter con el nombre, la versión y la leyenda GPLv3. `Check for updates` muestra el
-  estado de la última comprobación y descarga el APK cuando hay una versión nueva; se
+- La tarjeta `About` cierra la pantalla. Muestra el logo de Sleepy3, el nombre, `Version
+  {version}` sin el número de build cuando el plugin de información de la app responde
+  (se oculta si no hay dato), la descripción
+  `One tap to sleep. Everything stays on your device.`, `Repository`, `Check for updates`,
+  `Licenses`, el estado de la comprobación, la nota de que las actualizaciones se instalan
+  manualmente y la línea de privacidad de la fuente (`On-device only.` en `Local` o
+  `Stored in Health Connect. Google Health can read it.` en `Google Health`).
+  `Repository` abre `https://github.com/Juankyyy/sleepy3` con el navegador y `Licenses`
+  abre la página de licencias de Flutter con el nombre, la versión completa (incluido el
+  build) y la leyenda GPLv3. `Check for updates` muestra el estado de la última
+  comprobación, comprueba de nuevo y pasa a `Download` cuando hay una versión nueva; se
   oculta junto con `Version` si no hay dato. Los detalles están en §3.4.3.
 - El modo de tema, la fuente de datos, el objetivo de sueño, el bloque del resumen de
   Stats y las decisiones del aviso de actualización se guardan en la tabla `preferences`
@@ -754,7 +772,7 @@ Reglas:
   notificación entregada. El toque en el cuerpo abre `Home` sin iniciar nada. La capa de
   notificación nunca escribe una sesión por sí sola.
 - Si el usuario revoca las notificaciones después de activarlo, la preferencia sigue
-  activa pero Settings muestra la fila de aviso.
+  activa pero la tarjeta del recordatorio muestra el aviso.
 - El canal de Android se llama `Sleep reminder` y usa importancia alta para que el aviso
   se vea; el usuario puede ajustarlo en los ajustes del sistema. Es una decisión de
   producto, no un token M3.
@@ -794,9 +812,10 @@ Reglas:
   sesión abierta (por ejemplo, tras un crash) y se cancela al despertar o al descartar la
   sesión. También se vuelve a publicar si cambia la hora de inicio de la sesión abierta, el
   idioma o el formato horario.
-- El interruptor `Sleep in progress` de Ajustes se guarda en `preferences` como
-  `sleep_status_notification_enabled` (ausente = activado). Desactivarlo cancela la
-  tarjeta al momento y evita publicarla; activarlo la muestra si hay una sesión abierta.
+- La tarjeta `Sleep in progress` de Ajustes, con su interruptor, se guarda en
+  `preferences` como `sleep_status_notification_enabled` (ausente = activado).
+  Desactivarlo cancela la tarjeta al momento y evita publicarla; activarlo la muestra si
+  hay una sesión abierta.
   Al activarlo se pide permiso si falta; una denegación deja el interruptor apagado y
   ofrece abrir los ajustes de Android. Es independiente del recordatorio nocturno.
 - En Android 13+ el permiso se pide al activar el interruptor o en el primer Sleep con la
@@ -824,12 +843,12 @@ Reglas:
   `name`, `html_url`, `assets` (el `.apk` y su URL) y `body`.
 - `AppVersionNumber` compara solo `major.minor.patch`; acepta el prefijo `v`, ignora
   `-debug`, `+build` y pre-releases. Si la versión instalada no se puede leer, no se
-  comprueba nada y la fila se oculta. Si la última release no es más nueva, el estado es
+  comprueba nada y el botón de actualizar se oculta. Si la última release no es más nueva, el estado es
   `al día`; nunca se ofrece una versión anterior.
 - La comprobación automática se lanza una vez por apertura, después del splash, sin
   bloquear el primer frame. `Sleepy3App` la arranca y `Sleepy3Shell` muestra el modal solo
-  si el controlador deja un aviso pendiente. La comprobación manual desde `About` actualiza
-  la fila pero no abre el modal.
+  si el controlador deja un aviso pendiente. La comprobación manual desde la tarjeta
+  `About` actualiza el estado pero no abre el modal.
 - El modal es un diálogo básico compuesto con los tokens de `M3EDialog`: radio de 28 dp,
   padding de 24 dp, `surfaceContainerHigh`, headline small, body medium y divisores de
   1 dp en `outlineVariant`. Se usa `M3EDialog.show` para el scrim, la transición, el foco y
@@ -851,10 +870,11 @@ Reglas:
   las 24 h, se avisa igualmente porque el snooze es por versión.
 - `No recordar otra vez` guarda `update_prompt_dismissed_version` y no vuelve a mostrar el
   modal de esa versión; una versión posterior vuelve a preguntar. No hay interruptor global
-  de avisos. La fila de `About` siempre sigue disponible y descarga al tocarla.
+  de avisos. El botón `Check for updates` de la tarjeta `About` siempre sigue disponible y
+  descarga al tocarlo.
 - `Descargar` abre el `browser_download_url` del APK y `Ver en GitHub` abre la página de la
   release; ambos usan `url_launcher` con el navegador externo y, si se abren, marcan esa
-  versión como vista. Si el enlace falla, no se marca y la fila permite reintentar; el
+  versión como vista. Si el enlace falla, no se marca y el botón permite reintentar; el
   snackbar `No se pudo abrir el enlace` explica el fallo. La app nunca instala el APK: el
   navegador lo descarga y Android pide confirmar la instalación.
 - El resumen de `Novedades` es el primer párrafo de `body`, sin comentarios HTML, enlaces,
@@ -862,7 +882,7 @@ Reglas:
   inglés aunque la UI esté en español; el resto de la release se lee en GitHub. No se añade
   un renderizador Markdown.
 - Las preferencias se cargan antes de `runApp` y se guardan en `preferences` sin migración
-  de esquema. La fila no muestra una hora de última comprobación: solo el estado. Un fallo
+  de esquema. El botón no muestra una hora de última comprobación: solo el estado. Un fallo
   de red, un 404, un límite de la API o un JSON inválido se registran y dejan el estado de
   error; no interrumpen el arranque.
 - Android necesita `INTERNET` en el manifiesto principal (las builds release no lo heredan
@@ -1240,53 +1260,27 @@ Reglas:
     pendiente, permiso necesario o sesión borrada.
   - Sin datos, el empty state reutiliza `Sleepy3EmptyState` con icono, headline y apoyo.
 - Pantalla Settings:
-  - Título `Settings` en `headlineMedium` emphasized y apoyo en `bodyMedium`; márgenes
+  - Título `Settings` en `headlineMedium` emphasized, sin línea de apoyo. Márgenes
     laterales de 16 dp, y 24 dp desde 600 dp de ancho (decisión de layout).
-  - Secciones `Appearance`, `Reminders`, `Sleep data`, `Google Health` y `About` con
-    encabezado `titleMedium` emphasized y 8 dp hasta la lista.
-  - Filas `M3EListItem` dentro de `M3EList` con radio exterior 16 dp, interior 4 dp y gap
-    2 dp. Las filas crecen con el texto del sistema.
-  - Las filas de interruptor (`Sleep reminder` y `Sleep in progress`) no usan `M3EListItem`:
-    el item agrupado recorta la etiqueta a una línea y excluye la semántica de sus hijos,
-    así que el interruptor desaparecería para TalkBack. Comparten
-    `SettingsToggleRow`, con la misma superficie rellena de 16 dp, texto `bodyLarge` /
-    `bodyMedium`, mínimo de 72 dp y un `M3ESwitch` de 32 × 52 dp con objetivo de 48 dp;
-    la fila entera es el objetivo táctil y anuncia `toggled` al lector de pantalla. Las
-    filas de hora y de aviso usan la misma composición con texto que envuelve, para que
-    las etiquetas largas no se recorten al 200 %.
-  - La fila `Theme` usa el supporting text para el valor actual (`System`, `Light` o
-    `Dark`), de modo que el lector de pantalla lo anuncie como parte de la etiqueta. El
-    diálogo de selección usa opciones cortas para caber al 200 % de texto.
-  - La fila `Time format` usa el supporting text para `12-hour` o `24-hour` y reutiliza
-    el mismo diálogo de selección. El formato elegido se aplica también a los selectores
-    de hora.
-  - La fila `Language` usa el supporting text para el idioma actual y abre un diálogo con
-    `English` / `Español`, `Cancel` y `Apply`. El cambio se aplica al instante; el idioma
-    elegido se persiste y no hay opción `System`.
-  - `Sleep reminder` usa un interruptor M3 Expressive y supporting text con el estado:
-    `Off` o `Every day at {time}`, con el formato 12/24 h compartido. Al activarlo
-    aparece `Reminder time`, que abre `M3ETimePicker`. Si las notificaciones están
-    bloqueadas, se añade la fila de aviso con chevron. `Sleep in progress` reutiliza la misma
-    fila, con icono de notificaciones y claves de test `sleep-reminder-switch` y
-    `sleep-status-switch` respectivamente.
-  - A partir del 150 % de texto se retiran los iconos decorativos de las filas de
-    `Settings` para que las etiquetas largas (`Importar`, `Privacidad`) no se recorten;
-    los controles de selección (radio del diálogo de fuente) se mantienen.
-  - `Sleep data` muestra `Source` con el valor actual y `Import` para bajar todas las
-    sesiones de Health Connect. El diálogo de fuente usa filas de radio a ancho completo
-    para que `Google Health` no se recorte en pantallas angostas.
-  - `Google Health` muestra `Status` y, si hace falta, `Connect` o `Install`. Debajo,
-    `Sync` y `Add` son acciones de copia, no de conexión. Las tres acciones de copia
-    (incluida `Import`) usan diálogos M3E de confirmación, progreso y resultado.
-  - El progreso no se puede descartar mientras la copia está en curso. El resultado
-    distingue añadidas, actualizadas, omitidas y fallidas, y no promete éxito parcial.
-  - `About` muestra `Privacy` con el texto que corresponde a la fuente (`On-device only.`
-    o `Stored in Health Connect. Google Health can read it.`), `Version` con el dato de
-    `package_info_plus` como supporting text (se oculta si no está disponible) y
-    `Licenses`, que abre `showLicensePage` (API estándar de Flutter, no un componente
-    M3E).
-  - Al 200 % de texto las etiquetas y los supporting text caben sin elipsis; la pantalla
-    se desplaza verticalmente.
+  - Bento de tarjetas `BentoCard` con radio de 24 dp, gap de 12 dp, figura `BentoFigure`
+    (`MaterialShapes`) y badge `BentoBadge` con la misma `BentoFigureShape` que la figura.
+    Los tonos viven en
+    `SettingsPalette`, con variantes clara/oscura y contraste comprobado en tests.
+  - Tarjetas de navegación (`Sleep goal`, `Sleep data`, `Appearance`, `Stats summary`):
+    toda la tarjeta es el objetivo y se anuncia como botón. `Sleep data` y `Appearance`
+    abren su página con `SettingsPage`; `Sleep goal` abre el diálogo y `Stats summary` la
+    hoja que ya existían.
+  - Tarjetas de control (`Sleep reminder`, `Sleep in progress`): toda la tarjeta es el
+    objetivo del interruptor y expone `toggled`; el switch es visual. El chip de hora y el
+    aviso de notificaciones quedan fuera de esa semántica como acciones separadas.
+  - `About` es una tarjeta no accionable con logo, versión sin build, repositorio,
+    actualización, licencias y privacidad; sus botones usan `M3EButton`.
+  - Las páginas `Appearance` y `Sleep data` conservan las filas
+    `M3EList`/`SettingsList` y `SettingsActionRow`/`SettingsToggleRow` para sus acciones.
+  - La figura es decorativa (`MaterialShapes`/`CustomPainter`, `IgnorePointer`,
+    `ExcludeSemantics`), distinta por tarjeta, y no altera el layout. Al 200 % de texto las tarjetas crecen, las
+    etiquetas y los supporting text caben sin elipsis y la pantalla se desplaza
+    verticalmente; se probaron Home y páginas en claro/oscuro, inglés/español.
 - Copy de la interfaz en inglés (plantilla de `lib/l10n/app_en.arb`; la traducción vive en
   `app_es.arb` y no se duplica en los widgets):
 
@@ -1356,10 +1350,10 @@ Reglas:
 | Apoyo sin historial | `Your nights will appear here after you wake up.` |
 | Apoyo sin historial durmiendo | `Your first night will appear here when you wake up.` |
 | Título de Settings | `Settings` |
-| Apoyo de Settings | `Theme, reminders, sleep data and app info.` |
-| Secciones de Settings | `Appearance`, `Reminders`, `Sleep data`, `Google Health`, `About` |
-| Recordatorio | `Sleep reminder`; apoyo `Off` o `Every day at {time}` |
-| Hora del recordatorio | `Reminder time` |
+| Tarjetas de Settings | `Sleep goal`, `Sleep reminder`, `Sleep in progress`, `Sleep data`, `Appearance`, `Stats summary`, `About` |
+| About | `Sleepy3`, `Version {version}`, `Repository`, `Check for updates`, `Licenses` |
+| Recordatorio | `Sleep reminder`; apoyo `Every day` u `Off` |
+| Hora del recordatorio | Chip con la hora; tooltip `Reminder time` |
 | Notificación de sueño | `Sleep in progress`; apoyo `Shows a live timer while you sleep.` / `Off` |
 | Permiso de sueño denegado | `Allow notifications to show your sleep status.` / `Open settings` |
 | Aviso de notificaciones | `Notifications are off` / `Allow Sleepy3 to send the notification.` |
@@ -1508,12 +1502,12 @@ lib/
     │   ├── domain/         # theme, time format, language, app version and store contract
     │   ├── data/           # Drift-backed settings store
     │   ├── application/    # theme, time format and language controllers, providers
-    │   └── presentation/   # settings screen, appearance dialogs and about list
+    │   └── presentation/   # bento home, appearance/data pages, cards and about card
     ├── backup/
     │   ├── domain/         # versioned sleep history file
     │   ├── data/           # Android document picker gateway
     │   ├── application/    # export/import service and providers
-    │   └── presentation/   # Data section and preview/result dialogs
+    │   └── presentation/   # Data section inside the Sleep data page and preview/result dialogs
     ├── health/
     │   ├── domain/         # gateway, source, history access, sync store, stored session and own-source helper
     │   ├── data/           # Health Connect gateway and Drift sync store
@@ -1523,12 +1517,12 @@ lib/
     │   ├── domain/         # SleepReminder, next occurrence and scheduler contract
     │   ├── data/           # timezone-aware reminder scheduler
     │   ├── application/    # reminder controller and providers
-    │   └── presentation/   # Reminders section and switch row
+    │   └── presentation/   # reminder card and its controls
     ├── updates/
     │   ├── domain/         # release, version comparison, prompt decisions and actions
     │   ├── data/           # GitHub Releases gateway and url_launcher links
     │   ├── application/    # update check controller and providers
-    │   └── presentation/   # About row and launch dialog
+    │   └── presentation/   # update button in the About card and launch dialog
     └── widget/             # 0.4.0
 assets/
 ├── brand/                 # fuentes del logo, marca del splash e iconos generados

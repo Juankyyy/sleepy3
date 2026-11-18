@@ -20,9 +20,10 @@ local session history, and Health Connect as an optional data source.
   Stats summary with tonal cards, a draggable advanced sheet with a 70 % snap (metrics,
   charts and insights), pull-to-refresh, goal marks and their animation, the session
   panel, manual session entry from the Stats FAB, session editing/deleting and
-  read-only details for other apps' records, Settings (theme, 12/24-hour time, English /
-  Español language, the optional nightly reminder and the configurable sleep goal), the
-  `Data` section that exports and imports the local history, the silent ongoing sleep-status
+  read-only details for other apps' records, the bento Settings (tonal cards for the sleep
+  goal, reminders, sleep data, appearance and Stats summary, plus the About card with the
+  repository, update check and licenses), the `Data` section that exports and imports the
+  local history, the silent ongoing sleep-status
   notification with a live timer, goal time and Wake action, the reminder's Start sleep
   action, Health Connect (Local/Google Health, pending uploads, copy actions,
   full history access and per-build record ownership), the GitHub update check and its
@@ -66,11 +67,11 @@ lib/
 └── features/
     ├── sleep_tracking/  # domain, data, application, presentation
     ├── stats/           # application and presentation
-    ├── settings/        # theme, app version, about and preferences
+    ├── settings/        # bento home, subpages, theme, app version, about and preferences
     ├── health/          # sources, Health Connect gateway, sync, copy, history access
-    ├── reminders/       # nightly local notification, scheduler and Settings section
+    ├── reminders/       # nightly local notification, scheduler and Settings card
     ├── backup/          # versioned history file, Android picker gateway and Data section
-    ├── updates/         # GitHub release check, About row and launch dialog
+    ├── updates/         # GitHub release check, About card action and launch dialog
     └── widget/          # home_widget bridge and pending events
 ```
 
@@ -97,7 +98,9 @@ lib/
   do not replace it with a system-only check.
 - `material_ui` is pinned to 1.7.0 because 1.8.0's `RoundedPolygon` conflicts with
   `material_new_shapes` used by `material_3_expressive` 1.1.7. Do not bump it until
-  the packages are compatible.
+  the packages are compatible. `material_new_shapes` 1.0.0 is also a direct dependency:
+  it is the official M3 shape library used by the Settings card figures; keep its version
+  aligned with the transitive one.
 - State management: Riverpod.
 - Local persistence: Drift over SQLite. The schema lives in
   `lib/features/sleep_tracking/data/sleepy3_database.dart` and the generated
@@ -144,8 +147,11 @@ lib/
   reappears when the app opens.
 - Updates: `lib/features/updates/` reads the latest stable release from
   `https://api.github.com/repos/Juankyyy/sleepy3/releases/latest` (public, no token) once
-  after the splash and from the `Check for updates` row in Settings > About. The row shows
-  idle/checking/up to date/available/failure and downloads the `.apk` asset on tap. The
+  after the splash and from the `Check for updates` button in the Settings About card. The
+  button shows idle/checking/up to date/available/failure and downloads the `.apk` asset on
+  tap; `Repository` opens `https://github.com/Juankyyy/sleepy3` and `Licenses` opens the
+  Flutter license page. The visible version omits the build number; the license page keeps
+  it for diagnostics. The
   launch dialog uses the first paragraph of the release notes as `Novedades`, a
   `View on GitHub` link, a header `X` that snoozes that version for 24 hours and a
   `Don't remind me again` action that dismisses that version only; a newer version prompts
@@ -161,7 +167,7 @@ lib/
   the UI is Spanish; the full notes stay on GitHub.
 - History backup: `lib/features/backup/` owns the versioned JSON file
   (`format: sleepy3.sleep-history`, `version: 1`), the `file_picker` gateway and the
-  Settings `Data` section. Export uses the visible list in `SleepTrackingController`
+  `Data` section of the Settings `Sleep data` page. Export uses the visible list in `SleepTrackingController`
   (the same list Stats shows): Local rows keep their provenance and Google Health records
   are written as read-only copies with their UUID, client id and source. The open session
   is never included. Import previews new, duplicate and invalid entries, deduplicates by
@@ -214,8 +220,21 @@ lib/
   resolves the brightness with the fixed Sleepy3 schemes. The palette is fixed:
   light body `#EFF4F9` with `#252B81` primary, dark body `#121318` with `#C6CCF7`
   primary. Keep `M3EMaterialApp.autoTheming` disabled and do not add dynamic color.
+  The Settings bento adds a fixed pastel extension (lavender, sky, mint, peach, rose and
+  neutral) with light/dark pairs in `SettingsPalette`; it is scoped to Settings, is not
+  dynamic color and its text/icon contrast is covered by a unit test.
+- Settings: the home is a bento of tonal cards in
+  `features/settings/presentation/widgets/bento/`. Each card's background figure is a
+  different `MaterialShapes` shape (`BentoFigure`), and the `BentoBadge` uses the same
+  `BentoFigureShape` as that card's figure; both are decorative (`IgnorePointer`,
+  `ExcludeSemantics`, paths drawn with `CustomPainter`) and must not take taps or affect
+  layout. `Sleep data` and `Appearance`
+  open `SettingsPage` subpages; the reminder/status cards use the whole card as the switch
+  target, with the switch as a visual state and the time chip as a separate action. The
+  About card is the only home for version, repository, update check and licenses.
 - App version: load `package_info_plus` before `runApp`; `appVersionProvider` is null
-  when the platform cannot provide it and Settings hides the row.
+  when the platform cannot provide it, and the About card hides the version and the update
+  button.
 - Debug builds use `com.sleepy3.app.debug` (label `Sleepy3 Debug`, `-debug` version
   suffix) so they coexist with signed release APKs. Do not remove the suffix.
 - The widget uses `home_widget` and native Jetpack Glance. Widget taps are written to
