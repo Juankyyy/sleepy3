@@ -49,10 +49,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTitle => 'Settings';
 
   @override
-  String get settingsSupport =>
-      'Theme, stats, reminders, sleep data, backup and app info.';
-
-  @override
   String get appearance => 'Appearance';
 
   @override
@@ -63,6 +59,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sleepReminderOff => 'Off';
+
+  @override
+  String get sleepReminderDaily => 'Every day';
 
   @override
   String sleepReminderEveryDay(String time) {
@@ -202,7 +201,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get version => 'Version';
 
   @override
+  String versionValue(String version) {
+    return 'Version $version';
+  }
+
+  @override
   String get licenses => 'Licenses';
+
+  @override
+  String get repository => 'Repository';
+
+  @override
+  String get aboutDescription =>
+      'One tap to sleep. Everything stays on your device.';
+
+  @override
+  String get aboutUpdatesNote =>
+      'Updates are manual: download the APK from GitHub and install it over this version. Your data is preserved.';
 
   @override
   String get updateCheckTitle => 'Check for updates';
@@ -212,6 +227,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateChecking => 'Checking for updates…';
+
+  @override
+  String get updateCheckingShort => 'Checking…';
 
   @override
   String updateUpToDate(String version) {
@@ -1076,6 +1094,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sleepGoal => 'Sleep goal';
+
+  @override
+  String get sleepGoalPerNight => 'a night';
 
   @override
   String sleepGoalValue(String goal) {

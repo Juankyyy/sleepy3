@@ -2,10 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../../../core/time/clock_format.dart';
 import '../../../../l10n/l10n.dart';
 import '../../../health/application/health_sync_controller.dart';
 import '../../../health/application/sleep_copy_controller.dart';
+import '../../../health/presentation/health_status_text.dart';
 import '../../../health/presentation/sleep_copy_dialogs.dart';
 import 'settings_list.dart';
 
@@ -40,7 +40,7 @@ class _GoogleHealthStatusListState
             M3EListItem(
               leading: showLeading ? Icon(_iconFor(state.connection)) : null,
               headline: l10n.status,
-              supportingText: _statusText(context, state),
+              supportingText: healthStatusText(context, state),
             ),
           ],
         ),
@@ -89,30 +89,6 @@ class _GoogleHealthStatusListState
     );
   }
 
-  String _statusText(BuildContext context, HealthSyncState state) {
-    final l10n = context.l10n;
-    final connection = state.connection;
-    if (connection != HealthConnectConnectionStatus.connected) {
-      return _connectionLabel(l10n, connection);
-    }
-
-    if (state.pendingCount > 0) {
-      return l10n.connectedPending(state.pendingCount);
-    }
-
-    final lastSyncedAt = state.lastSyncedAt;
-    if (lastSyncedAt != null) {
-      final time = formatSessionTime(
-        lastSyncedAt,
-        use24HourFormat: MediaQuery.alwaysUse24HourFormatOf(context),
-        localeName: l10n.localeName,
-      );
-      return l10n.connectedLastSync(time);
-    }
-
-    return l10n.connected;
-  }
-
   Future<void> _run(_StatusAction action, BuildContext context) async {
     final controller = ref.read(healthSyncControllerProvider.notifier);
     switch (action) {
@@ -137,19 +113,6 @@ class _GoogleHealthStatusListState
       HealthConnectConnectionStatus.notAvailable => M3EIcons.cloud_off_outlined,
       HealthConnectConnectionStatus.updateRequired => M3EIcons.update,
       HealthConnectConnectionStatus.checking => M3EIcons.cloud_sync_outlined,
-    };
-  }
-
-  static String _connectionLabel(
-    AppLocalizations l10n,
-    HealthConnectConnectionStatus status,
-  ) {
-    return switch (status) {
-      HealthConnectConnectionStatus.connected => l10n.connected,
-      HealthConnectConnectionStatus.permissionNeeded => l10n.permissionNeeded,
-      HealthConnectConnectionStatus.notAvailable => l10n.notAvailable,
-      HealthConnectConnectionStatus.updateRequired => l10n.updateRequired,
-      HealthConnectConnectionStatus.checking => l10n.checking,
     };
   }
 

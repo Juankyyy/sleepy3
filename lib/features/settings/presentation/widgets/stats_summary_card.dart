@@ -9,28 +9,32 @@ import '../../../stats/application/stats_summary_controller.dart';
 import '../../../stats/domain/stats_summary_option.dart';
 import '../../../stats/presentation/stats_summary_labels.dart';
 import '../../../stats/presentation/stats_summary_picker.dart';
-import 'settings_list.dart';
+import 'bento/bento_card.dart';
+import 'bento/bento_figure.dart';
+import 'bento/settings_tones.dart';
 
-/// The Settings row that opens the single-block Stats summary picker.
-class StatsSummarySettings extends ConsumerWidget {
-  const StatsSummarySettings({super.key});
+/// The Stats summary card. It opens the existing full-height picker.
+class StatsSummaryCard extends ConsumerWidget {
+  const StatsSummaryCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = context.l10n;
+    final tone = SettingsPalette.of(context).stats;
     final option = ref.watch(statsSummaryControllerProvider);
-    final showLeading = showSettingsLeadingIcons(context);
+    final support = statsSummaryOptionLabel(l10n, option);
 
-    return SettingsList(
-      onTap: (_) => unawaited(_choose(context, ref, option)),
-      children: [
-        M3EListItem(
-          leading: showLeading ? const Icon(M3EIcons.insights_outlined) : null,
-          headline: l10n.statsSummary,
-          supportingText: statsSummaryOptionLabel(l10n, option),
-          trailing: const Icon(M3EIcons.chevron_right),
-        ),
-      ],
+    return BentoCard(
+      key: const ValueKey('settings-stats-card'),
+      tone: tone,
+      size: BentoCardSize.half,
+      icon: M3EIcons.insights_outlined,
+      figure: BentoFigureShape.puffyDiamond,
+      title: l10n.statsSummary,
+      supporting: support,
+      semanticLabel: '${l10n.statsSummary}. $support',
+      trailing: Icon(M3EIcons.chevron_right, size: 20, color: tone.supporting),
+      onTap: () => unawaited(_choose(context, ref, option)),
     );
   }
 

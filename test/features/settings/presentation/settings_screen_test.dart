@@ -27,6 +27,8 @@ import 'package:sleepy3/features/settings/domain/app_theme_mode.dart';
 import 'package:sleepy3/features/settings/domain/app_time_format.dart';
 import 'package:sleepy3/features/settings/domain/app_version.dart';
 import 'package:sleepy3/features/settings/presentation/settings_screen.dart';
+import 'package:sleepy3/features/settings/presentation/widgets/bento/bento_badge.dart';
+import 'package:sleepy3/features/settings/presentation/widgets/bento/bento_figure.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_controller.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_providers.dart';
 import 'package:sleepy3/features/sleep_tracking/application/sleeping_notification_controller.dart';
@@ -225,16 +227,39 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  Future<void> openSleepDataPage(WidgetTester tester) async {
+    if (find.byKey(const ValueKey('sleep-data-page')).evaluate().isNotEmpty) {
+      return;
+    }
+    await tapLabel(tester, 'Sleep data');
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> openAppearancePage(WidgetTester tester) async {
+    if (find.byKey(const ValueKey('appearance-page')).evaluate().isNotEmpty) {
+      return;
+    }
+    await tapLabel(tester, 'Appearance');
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> backFromPage(WidgetTester tester) async {
+    final navigator = tester.state<NavigatorState>(
+      find.byType(Navigator).first,
+    );
+    navigator.pop();
+    await tester.pumpAndSettle();
+  }
+
   Future<void> chooseSource(WidgetTester tester, String label) async {
+    await openSleepDataPage(tester);
     await tapLabel(tester, 'Source');
     await tapDialogLabel(tester, label);
     await tester.tap(find.text('Apply'));
     await tester.pumpAndSettle();
   }
 
-  testWidgets('shows appearance, sleep data and about sections', (
-    tester,
-  ) async {
+  testWidgets('shows the settings bento', (tester) async {
     await pumpSettings(
       tester,
       version: const AppVersion(version: '0.1.0', buildNumber: '1'),
@@ -244,49 +269,125 @@ void main() {
     final title = tester.widget<Text>(find.text('Settings'));
     expect(title.style?.fontFamily, Sleepy3Theme.brandFontFamily);
     expect(title.style?.fontVariations!.single.value, 28);
-    expect(
-      find.text('Theme, stats, reminders, sleep data, backup and app info.'),
-      findsOneWidget,
-    );
-    expect(find.text('Appearance'), findsOneWidget);
     expect(find.text('Sleep goal'), findsOneWidget);
-    expect(find.text('8h a night'), findsOneWidget);
-    expect(find.text('Stats summary'), findsOneWidget);
-    expect(find.text('Sleep duration'), findsOneWidget);
-    expect(find.text('Reminders'), findsOneWidget);
+    expect(find.text('8h'), findsOneWidget);
+    expect(find.text('a night'), findsOneWidget);
     expect(find.text('Sleep reminder'), findsOneWidget);
     expect(find.text('Off'), findsOneWidget);
-    expect(find.text('Theme'), findsOneWidget);
-    expect(find.text('System'), findsOneWidget);
-    expect(find.text('Time format'), findsOneWidget);
-    expect(find.text('12-hour'), findsOneWidget);
-    expect(find.text('Language'), findsOneWidget);
-    expect(find.text('English'), findsOneWidget);
+    expect(find.text('Sleep in progress'), findsOneWidget);
 
     await scrollToLabel(tester, 'Sleep data');
     expect(find.text('Sleep data'), findsOneWidget);
-    expect(find.text('Source'), findsOneWidget);
-    expect(find.text('Local'), findsOneWidget);
-    expect(find.text('Import'), findsOneWidget);
-    expect(find.textContaining('Download from Google Health'), findsOneWidget);
 
-    await scrollToLabel(tester, 'Google Health');
-    expect(find.text('Google Health'), findsOneWidget);
-    expect(find.text('Status'), findsOneWidget);
+    await scrollToLabel(tester, 'Appearance');
+    expect(find.text('Appearance'), findsOneWidget);
 
-    await scrollToLabel(tester, 'Add');
-    expect(find.text('Sync'), findsOneWidget);
-    expect(find.text('Add'), findsOneWidget);
+    await scrollToLabel(tester, 'Stats summary');
+    expect(find.text('Stats summary'), findsOneWidget);
+    expect(find.text('Sleep duration'), findsOneWidget);
 
-    await scrollToLabel(tester, 'About');
-    expect(find.text('About'), findsOneWidget);
-    expect(find.text('Privacy'), findsOneWidget);
+    await scrollToLabel(tester, 'Sleepy3');
+    expect(find.text('Sleepy3'), findsOneWidget);
+    expect(find.text('Version 0.1.0'), findsOneWidget);
+    expect(find.text('0.1.0 (1)'), findsNothing);
     expect(find.text('On-device only.'), findsOneWidget);
-    expect(find.text('Version'), findsOneWidget);
-    expect(find.text('0.1.0 (1)'), findsOneWidget);
 
     await scrollToLabel(tester, 'Licenses');
     expect(find.text('Licenses'), findsOneWidget);
+  });
+
+  testWidgets('each settings card uses a different M3 figure', (tester) async {
+    await pumpSettings(tester);
+
+    const expected = <(String, BentoFigureShape)>[
+      ('settings-goal-card', BentoFigureShape.arch),
+      ('settings-reminder-card', BentoFigureShape.softBurst),
+      ('settings-sleep-status-card', BentoFigureShape.puffy),
+      ('settings-data-card', BentoFigureShape.clamShell),
+      ('settings-appearance-card', BentoFigureShape.cookie7Sided),
+      ('settings-stats-card', BentoFigureShape.puffyDiamond),
+      ('settings-about-card', BentoFigureShape.clover4Leaf),
+    ];
+    expect(expected.map((entry) => entry.$2).toSet(), hasLength(7));
+    const raisedCards = {'settings-goal-card', 'settings-data-card'};
+
+    for (final (key, shape) in expected) {
+      final card = find.byKey(ValueKey(key));
+      if (card.evaluate().isEmpty) {
+        await tester.scrollUntilVisible(
+          card,
+          160,
+          scrollable: find.byType(Scrollable).first,
+        );
+      }
+      await tester.ensureVisible(card.first);
+      await tester.pumpAndSettle();
+      final figure = tester.widget<BentoFigure>(
+        find.descendant(of: card, matching: find.byType(BentoFigure)),
+      );
+      expect(figure.shape, shape, reason: '$key figure');
+      expect(
+        figure.placement,
+        raisedCards.contains(key)
+            ? BentoFigurePlacement.wideRaised
+            : key == 'settings-about-card'
+            ? BentoFigurePlacement.wide
+            : BentoFigurePlacement.half,
+        reason: '$key placement',
+      );
+
+      final badge = find.descendant(
+        of: card,
+        matching: find.byType(BentoBadge),
+      );
+      if (badge.evaluate().isEmpty) {
+        expect(key, 'settings-about-card');
+      } else {
+        expect(
+          tester.widget<BentoBadge>(badge).shape,
+          shape,
+          reason: '$key badge',
+        );
+      }
+    }
+  });
+
+  testWidgets('the whole sleep status card toggles', (tester) async {
+    final store = await pumpSettings(tester);
+
+    final card = find.byKey(const ValueKey('settings-sleep-status-card'));
+    await tester.scrollUntilVisible(
+      card,
+      160,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(card.first);
+    await tester.pumpAndSettle();
+
+    final rect = tester.getRect(card);
+    await tester.tapAt(rect.bottomLeft + const Offset(20, -16));
+    await tester.pumpAndSettle();
+
+    expect(store.sleepingNotificationEnabledSaves, [false]);
+  });
+
+  testWidgets('the reminder card padding toggles', (tester) async {
+    final store = await pumpSettings(tester);
+
+    final card = find.byKey(const ValueKey('settings-reminder-card'));
+    await tester.scrollUntilVisible(
+      card,
+      160,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.ensureVisible(card.first);
+    await tester.pumpAndSettle();
+
+    final rect = tester.getRect(card);
+    await tester.tapAt(Offset(rect.left + 7, rect.center.dy));
+    await tester.pumpAndSettle();
+
+    expect(store.reminderSaves.single.enabled, isTrue);
   });
 
   testWidgets('announces the sleep reminder as a switch', (tester) async {
@@ -326,8 +427,7 @@ void main() {
             .value,
         isTrue,
       );
-      expect(find.text('Every day at 10:00 PM'), findsOneWidget);
-      expect(find.text('Reminder time'), findsOneWidget);
+      expect(find.text('Every day'), findsOneWidget);
       expect(find.text('10:00 PM'), findsOneWidget);
     },
   );
@@ -523,7 +623,6 @@ void main() {
     for (final finder in [
       find.text('Aviso de sueño'),
       find.textContaining('Todos los días'),
-      find.text('Hora del recordatorio'),
       find.textContaining('10:00'),
       find.text('Las notificaciones están desactivadas'),
       find.text('Permite que Sleepy3 envíe la notificación.'),
@@ -533,25 +632,37 @@ void main() {
     }
   });
 
-  testWidgets('the reminder time row opens the time picker', (tester) async {
-    await pumpSettings(
+  testWidgets('the reminder time chip opens the time picker', (tester) async {
+    final store = await pumpSettings(
       tester,
       initialReminder: const SleepReminder(enabled: true, hour: 22, minute: 0),
     );
 
-    await tapLabel(tester, 'Reminder time');
+    await tester.tap(find.byKey(const ValueKey('sleep-reminder-time')));
+    await tester.pumpAndSettle();
 
     expect(find.text('OK'), findsOneWidget);
     expect(find.text('Cancel'), findsOneWidget);
 
     await tester.tap(find.text('Cancel'));
     await tester.pumpAndSettle();
+
+    expect(store.reminderSaves, isEmpty);
+    expect(
+      tester
+          .widget<M3ESwitch>(
+            find.byKey(const ValueKey('sleep-reminder-switch')),
+          )
+          .value,
+      isTrue,
+    );
   });
 
   testWidgets('opens the source dialog with Local and Google Health', (
     tester,
   ) async {
     await pumpSettings(tester);
+    await openSleepDataPage(tester);
 
     await tapLabel(tester, 'Source');
 
@@ -566,7 +677,6 @@ void main() {
 
     expect(find.text('Sleep data source'), findsNothing);
     expect(find.text('Local'), findsOneWidget);
-    expect(find.text('On-device only.'), findsOneWidget);
   });
 
   testWidgets('switching to Google Health requests permissions and saves', (
@@ -595,6 +705,7 @@ void main() {
     await scrollToLabel(tester, 'Connected');
     expect(find.text('Connected'), findsOneWidget);
 
+    await backFromPage(tester);
     await scrollToLabel(
       tester,
       'Stored in Health Connect. Google Health can read it.',
@@ -620,12 +731,13 @@ void main() {
 
     expect(store.sourceSaves, isEmpty);
     expect(find.text('Local'), findsOneWidget);
-    await scrollToLabel(tester, 'On-device only.');
-    expect(find.text('On-device only.'), findsOneWidget);
     expect(
       find.text('Google Health needs permission to read and write sleep.'),
       findsOneWidget,
     );
+    await backFromPage(tester);
+    await scrollToLabel(tester, 'On-device only.');
+    expect(find.text('On-device only.'), findsOneWidget);
   });
 
   testWidgets('reports an unavailable Health Connect', (tester) async {
@@ -690,16 +802,7 @@ void main() {
       gateway: gateway,
     );
 
-    await scrollToLabel(
-      tester,
-      'Stored in Health Connect. Google Health can read it.',
-    );
-    expect(
-      find.text('Stored in Health Connect. Google Health can read it.'),
-      findsOneWidget,
-    );
-
-    await scrollToLabel(tester, 'Source', delta: -160);
+    await openSleepDataPage(tester);
     await chooseSource(tester, 'Local');
 
     expect(store.sourceSaves, [SleepDataSource.local]);
@@ -708,6 +811,7 @@ void main() {
     expect(find.text('Local'), findsOneWidget);
     expect(find.text('Google Health'), findsOneWidget);
 
+    await backFromPage(tester);
     await scrollToLabel(tester, 'On-device only.');
     expect(find.text('On-device only.'), findsOneWidget);
   });
@@ -726,6 +830,7 @@ void main() {
       healthSyncStore: FakeHealthSyncStore()..addLocal(session),
     );
 
+    await openSleepDataPage(tester);
     await scrollToLabel(tester, 'Status');
     expect(find.text('Connected · 1 pending'), findsOneWidget);
   });
@@ -746,6 +851,7 @@ void main() {
       healthSyncStore: healthSyncStore,
     );
 
+    await openSleepDataPage(tester);
     await tapLabel(tester, 'Import');
 
     expect(find.text('Download from Google Health?'), findsOneWidget);
@@ -791,6 +897,7 @@ void main() {
       healthSyncStore: healthSyncStore,
     );
 
+    await openSleepDataPage(tester);
     await tapLabel(tester, 'Import');
     expect(
       find.textContaining('without it, only the last 30 days'),
@@ -830,6 +937,7 @@ void main() {
       healthSyncStore: healthSyncStore,
     );
 
+    await openSleepDataPage(tester);
     await tapLabel(tester, 'Sync');
     expect(find.text('Sync last session?'), findsOneWidget);
 
@@ -848,6 +956,7 @@ void main() {
 
   testWidgets('add all warns about sessions added manually', (tester) async {
     await pumpSettings(tester);
+    await openSleepDataPage(tester);
 
     await tapLabel(tester, 'Add');
 
@@ -868,6 +977,7 @@ void main() {
       ),
     );
 
+    await openSleepDataPage(tester);
     await tapLabel(tester, 'Import');
     await tapDialogLabel(tester, 'Download all');
 
@@ -941,6 +1051,7 @@ void main() {
       gateway: gateway,
     );
 
+    await openSleepDataPage(tester);
     await scrollToLabel(tester, 'Status');
     expect(find.text('Permission needed'), findsOneWidget);
     expect(find.text('Connect'), findsOneWidget);
@@ -965,6 +1076,7 @@ void main() {
       gateway: gateway,
     );
 
+    await openSleepDataPage(tester);
     await scrollToLabel(tester, 'Status');
     expect(find.text('Not available'), findsOneWidget);
     expect(find.text('Install'), findsOneWidget);
@@ -985,6 +1097,7 @@ void main() {
       ),
     );
 
+    await openSleepDataPage(tester);
     await scrollToLabel(tester, 'Status');
     expect(find.text('Update required'), findsOneWidget);
     expect(find.text('Install'), findsOneWidget);
@@ -1003,6 +1116,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
 
+    await openSleepDataPage(tester);
     await scrollToLabel(tester, 'Status');
     expect(find.text('Status'), findsOneWidget);
     expect(find.text('Permission needed'), findsOneWidget);
@@ -1194,14 +1308,15 @@ void main() {
 
     await tapLabel(tester, 'Sleep goal');
     expect(find.text('6h'), findsOneWidget);
-    expect(find.text('8h'), findsOneWidget);
+    expect(find.text('8h'), findsNWidgets(2));
 
     await tapDialogLabel(tester, '6h 30m');
     await tester.tap(find.text('Apply'));
     await tester.pumpAndSettle();
 
     expect(store.sleepGoalSaves, [const Duration(hours: 6, minutes: 30)]);
-    expect(find.text('6h 30m a night'), findsOneWidget);
+    expect(find.text('6h 30m'), findsOneWidget);
+    expect(find.text('a night'), findsOneWidget);
   });
 
   testWidgets('closing the sleep goal picker changes nothing', (tester) async {
@@ -1212,7 +1327,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(store.sleepGoalSaves, isEmpty);
-    expect(find.text('8h a night'), findsOneWidget);
+    expect(find.text('8h'), findsOneWidget);
+    expect(find.text('a night'), findsOneWidget);
   });
 
   testWidgets('the sleep goal picker fits at 200% text in Spanish', (
@@ -1229,12 +1345,13 @@ void main() {
     expect(find.text('Aplicar'), findsOneWidget);
     expect(find.text('6 h'), findsOneWidget);
     expect(find.text('10 h'), findsOneWidget);
-    expect(find.text('8 h'), findsOneWidget);
+    expect(find.text('8 h'), findsNWidgets(2));
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('applying a theme updates the row and saves it', (tester) async {
     final store = await pumpSettings(tester);
+    await openAppearancePage(tester);
 
     await tapLabel(tester, 'Theme');
 
@@ -1255,6 +1372,7 @@ void main() {
 
   testWidgets('cancelling the theme dialog changes nothing', (tester) async {
     final store = await pumpSettings(tester);
+    await openAppearancePage(tester);
 
     await tapLabel(tester, 'Theme');
     await tapLabel(tester, 'Light');
@@ -1270,6 +1388,7 @@ void main() {
     tester,
   ) async {
     final store = await pumpSettings(tester);
+    await openAppearancePage(tester);
 
     await tapLabel(tester, 'Time format');
 
@@ -1291,6 +1410,7 @@ void main() {
     tester,
   ) async {
     final store = await pumpSettings(tester);
+    await openAppearancePage(tester);
 
     await tapLabel(tester, 'Time format');
     await tapDialogLabel(tester, '24-hour');
@@ -1304,6 +1424,7 @@ void main() {
 
   testWidgets('shows the saved 24-hour format', (tester) async {
     await pumpSettings(tester, initialTimeFormat: AppTimeFormat.twentyFourHour);
+    await openAppearancePage(tester);
 
     expect(find.text('24-hour'), findsOneWidget);
     expect(find.text('12-hour'), findsNothing);
@@ -1313,6 +1434,7 @@ void main() {
     tester,
   ) async {
     await pumpSettings(tester);
+    await openAppearancePage(tester);
 
     await tapLabel(tester, 'Language');
 
@@ -1330,6 +1452,7 @@ void main() {
     tester,
   ) async {
     final store = await pumpSettings(tester);
+    await openAppearancePage(tester);
 
     await tapLabel(tester, 'Language');
     await tapLabel(tester, 'Español');
@@ -1353,63 +1476,56 @@ void main() {
 
     expect(tester.takeException(), isNull);
 
-    for (final label in [
-      'Ajustes',
-      'Apariencia',
-      'Objetivo de sueño',
-      '8 h por noche',
-      'Tema',
-      'Sistema',
-      'Formato de hora',
-      '12 horas',
-      'Idioma',
-      'Español',
-      'Recordatorios',
-      'Aviso de sueño',
-      'Desactivado',
-      'Datos de sueño',
-      'Fuente',
-      'Local',
-      'Importar',
-      'Datos',
-      'Exportar historial',
-      'Importar historial',
-      'Google Health',
-      'Estado',
-      'Sincronizar',
-      'Añadir',
-      'Acerca de',
-      'Privacidad',
-      'Solo en este dispositivo.',
-      'Versión',
-      '0.1.0 (1)',
-      'Licencias',
-    ]) {
+    Future<void> checkLabel(String label) async {
       final finder = find.text(label);
       if (finder.evaluate().isEmpty) {
         await tester.scrollUntilVisible(
           finder,
           160,
-          scrollable: find.byType(Scrollable),
+          scrollable: find.byType(Scrollable).first,
         );
-        await tester.pumpAndSettle();
       }
-      final paragraph = tester.renderObject<RenderParagraph>(finder);
+      await tester.pumpAndSettle();
+      final paragraph = tester.renderObject<RenderParagraph>(finder.first);
       expect(
         paragraph.didExceedMaxLines,
         isFalse,
         reason: '$label is truncated at 200% text',
       );
     }
+
+    for (final label in [
+      'Ajustes',
+      'Objetivo de sueño',
+      '8 h',
+      'por noche',
+      'Aviso de sueño',
+      'Desactivado',
+      'Sueño en curso',
+      'Datos de sueño',
+      'Apariencia',
+      'Sistema · 12 horas · Español',
+      'Resumen de estadísticas',
+      'Duración del sueño',
+      'Sleepy3',
+      'Versión 0.1.0',
+      'Buscar actualizaciones',
+      'Comprueba si hay una versión más reciente en GitHub.',
+      'Licencias',
+      'Solo en este dispositivo.',
+    ]) {
+      await checkLabel(label);
+    }
+
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('hides the version row when the version is unknown', (
+  testWidgets('hides the version and update action when unknown', (
     tester,
   ) async {
     await pumpSettings(tester);
 
-    expect(find.text('Version'), findsNothing);
+    expect(find.textContaining('Version'), findsNothing);
     expect(find.text('Check for updates'), findsNothing);
 
     await scrollToLabel(tester, 'Licenses');
@@ -1433,7 +1549,7 @@ void main() {
       findsOneWidget,
     );
 
-    await tapLabel(tester, 'Check for updates');
+    await tapLabel(tester, 'Download');
 
     expect(launcher.uris, [release.apkUrl]);
     expect(store.updatePromptPreferences.dismissedVersion, '0.4.0');
@@ -1449,13 +1565,17 @@ void main() {
         version: const AppVersion(version: '0.1.0', buildNumber: '1'),
       );
 
-      expect(find.bySemanticsLabel(RegExp('Theme, system')), findsOneWidget);
+      await scrollToLabel(tester, 'Appearance');
+      expect(
+        find.bySemanticsLabel('Appearance. System · 12-hour · English'),
+        findsOneWidget,
+      );
 
-      await scrollToLabel(tester, 'Version');
-      expect(find.bySemanticsLabel('Version, 0.1.0 (1)'), findsOneWidget);
+      await scrollToLabel(tester, 'Version 0.1.0');
+      expect(find.bySemanticsLabel('Version, 0.1.0'), findsOneWidget);
 
-      await scrollToLabel(tester, 'Source', delta: -160);
-      expect(find.bySemanticsLabel(RegExp('Source')), findsOneWidget);
+      await scrollToLabel(tester, 'Sleep data');
+      expect(find.bySemanticsLabel(RegExp('Sleep data')), findsWidgets);
     } finally {
       handle.dispose();
     }
@@ -1463,6 +1583,7 @@ void main() {
 
   testWidgets('theme dialog fits at 200% text', (tester) async {
     await pumpSettings(tester, textScale: 2);
+    await openAppearancePage(tester);
 
     await tapLabel(tester, 'Theme');
 
@@ -1498,46 +1619,105 @@ void main() {
 
     expect(tester.takeException(), isNull);
 
-    for (final label in [
-      'Settings',
-      'Appearance',
-      'Theme',
-      'System',
-      'Language',
-      'English',
-      'Reminders',
-      'Sleep reminder',
-      'Off',
-      'Sleep data',
-      'Source',
-      'Local',
-      'Import',
-      'Data',
-      'Export history',
-      'Import history',
-      'Google Health',
-      'Status',
-      'Sync',
-      'Add',
-      'About',
-      'Privacy',
-      'On-device only.',
-      'Version',
-      '0.1.0 (1)',
-      'Check for updates',
-      'See if a newer version is on GitHub.',
-      'Licenses',
-    ]) {
+    Future<void> checkLabel(String label) async {
       final finder = find.text(label);
       if (finder.evaluate().isEmpty) {
         await tester.scrollUntilVisible(
           finder,
           160,
-          scrollable: find.byType(Scrollable),
+          scrollable: find.byType(Scrollable).first,
         );
-        await tester.pumpAndSettle();
       }
-      final paragraph = tester.renderObject<RenderParagraph>(finder);
+      await tester.pumpAndSettle();
+      final paragraph = tester.renderObject<RenderParagraph>(finder.first);
+      expect(
+        paragraph.didExceedMaxLines,
+        isFalse,
+        reason: '$label is truncated at 200% text',
+      );
+    }
+
+    for (final label in [
+      'Settings',
+      'Sleep goal',
+      '8h',
+      'a night',
+      'Sleep reminder',
+      'Off',
+      'Sleep in progress',
+      'Sleep data',
+      'Appearance',
+      'System · 12-hour · English',
+      'Stats summary',
+      'Sleep duration',
+      'Sleepy3',
+      'Version 0.1.0',
+      'Check for updates',
+      'See if a newer version is on GitHub.',
+      'Licenses',
+      'On-device only.',
+    ]) {
+      await checkLabel(label);
+    }
+
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('appearance page fits at 200% text', (tester) async {
+    await pumpSettings(tester);
+    await openAppearancePage(tester);
+
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    for (final label in [
+      'Appearance',
+      'Theme',
+      'System',
+      'Time format',
+      '12-hour',
+      'Language',
+      'English',
+    ]) {
+      await scrollToLabel(tester, label);
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.text(label).first,
+      );
+      expect(
+        paragraph.didExceedMaxLines,
+        isFalse,
+        reason: '$label is truncated at 200% text',
+      );
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('sleep data page fits at 200% text', (tester) async {
+    await pumpSettings(tester);
+    await openSleepDataPage(tester);
+
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    for (final label in [
+      'Sleep data',
+      'Source',
+      'Local',
+      'Import',
+      'Google Health',
+      'Status',
+      'Sync',
+      'Add',
+      'Data',
+      'Export history',
+      'Import history',
+    ]) {
+      await scrollToLabel(tester, label);
+      final paragraph = tester.renderObject<RenderParagraph>(
+        find.text(label).first,
+      );
       expect(
         paragraph.didExceedMaxLines,
         isFalse,
@@ -1568,6 +1748,7 @@ void main() {
     tester,
   ) async {
     await pumpSettings(tester);
+    await openSleepDataPage(tester);
 
     await scrollToLabel(tester, 'Data');
     expect(find.text('Data'), findsOneWidget);
@@ -1589,6 +1770,7 @@ void main() {
     final handle = tester.ensureSemantics();
     try {
       await pumpSettings(tester);
+      await openSleepDataPage(tester);
       await scrollToLabel(tester, 'Export history');
 
       expect(find.bySemanticsLabel('Export history'), findsOneWidget);
@@ -1627,6 +1809,7 @@ void main() {
       historyFileGateway: gateway,
       sleepStore: sleepStore,
     );
+    await openSleepDataPage(tester);
     await tapLabel(tester, 'Export history');
 
     expect(gateway.saveCalls, 1);
@@ -1667,6 +1850,7 @@ void main() {
         gateway: gateway,
         historyFileGateway: historyGateway,
       );
+      await openSleepDataPage(tester);
       await tapLabel(tester, 'Export history');
 
       expect(historyGateway.saveCalls, 1);
@@ -1683,6 +1867,7 @@ void main() {
     final gateway = FakeSleepHistoryFileGateway();
 
     await pumpSettings(tester, historyFileGateway: gateway);
+    await openSleepDataPage(tester);
     await tapLabel(tester, 'Export history');
 
     expect(gateway.saveCalls, 0);
@@ -1708,6 +1893,7 @@ void main() {
       historyFileGateway: gateway,
       sleepStore: sleepStore,
     );
+    await openSleepDataPage(tester);
     await tapLabel(tester, 'Export history');
 
     expect(gateway.saveCalls, 1);
@@ -1735,6 +1921,7 @@ void main() {
       historyFileGateway: gateway,
       sleepStore: sleepStore,
     );
+    await openSleepDataPage(tester);
     await tapLabel(tester, 'Export history');
 
     expect(
@@ -1783,6 +1970,7 @@ void main() {
       historyFileGateway: gateway,
       sleepStore: sleepStore,
     );
+    await openSleepDataPage(tester);
     await tapLabel(tester, 'Import history');
 
     expect(gateway.pickCalls, 1);
@@ -1836,6 +2024,7 @@ void main() {
     final gateway = FakeSleepHistoryFileGateway(pickContents: file.encode());
 
     await pumpSettings(tester, historyFileGateway: gateway);
+    await openSleepDataPage(tester);
     await tapLabel(tester, 'Import history');
 
     expect(find.text('Imported sessions are stored locally.'), findsOneWidget);
@@ -1869,6 +2058,7 @@ void main() {
         snapshot: SleepSnapshot(closedSessions: [existing]),
       ),
     );
+    await openSleepDataPage(tester);
     await tapLabel(tester, 'Import history');
 
     expect(find.text('Nothing new to import.'), findsOneWidget);
@@ -1889,6 +2079,7 @@ void main() {
     );
 
     await pumpSettings(tester, historyFileGateway: gateway);
+    await openSleepDataPage(tester);
     await tapLabel(tester, 'Import history');
 
     expect(find.text("Couldn't import this file"), findsOneWidget);
@@ -1908,6 +2099,7 @@ void main() {
     );
 
     await pumpSettings(tester, historyFileGateway: gateway);
+    await openSleepDataPage(tester);
     await tapLabel(tester, 'Import history');
 
     expect(
@@ -1927,6 +2119,7 @@ void main() {
     );
 
     await pumpSettings(tester, historyFileGateway: gateway);
+    await openSleepDataPage(tester);
     await tapLabel(tester, 'Import history');
 
     expect(

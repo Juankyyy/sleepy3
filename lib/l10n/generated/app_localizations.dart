@@ -176,12 +176,6 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settingsTitle;
 
-  /// No description provided for @settingsSupport.
-  ///
-  /// In en, this message translates to:
-  /// **'Theme, stats, reminders, sleep data, backup and app info.'**
-  String get settingsSupport;
-
   /// No description provided for @appearance.
   ///
   /// In en, this message translates to:
@@ -205,6 +199,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Off'**
   String get sleepReminderOff;
+
+  /// No description provided for @sleepReminderDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Every day'**
+  String get sleepReminderDaily;
 
   /// No description provided for @sleepReminderEveryDay.
   ///
@@ -452,11 +452,35 @@ abstract class AppLocalizations {
   /// **'Version'**
   String get version;
 
+  /// No description provided for @versionValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String versionValue(String version);
+
   /// No description provided for @licenses.
   ///
   /// In en, this message translates to:
   /// **'Licenses'**
   String get licenses;
+
+  /// No description provided for @repository.
+  ///
+  /// In en, this message translates to:
+  /// **'Repository'**
+  String get repository;
+
+  /// No description provided for @aboutDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'One tap to sleep. Everything stays on your device.'**
+  String get aboutDescription;
+
+  /// No description provided for @aboutUpdatesNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Updates are manual: download the APK from GitHub and install it over this version. Your data is preserved.'**
+  String get aboutUpdatesNote;
 
   /// No description provided for @updateCheckTitle.
   ///
@@ -475,6 +499,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Checking for updates…'**
   String get updateChecking;
+
+  /// No description provided for @updateCheckingShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking…'**
+  String get updateCheckingShort;
 
   /// No description provided for @updateUpToDate.
   ///
@@ -1717,6 +1747,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sleep goal'**
   String get sleepGoal;
+
+  /// No description provided for @sleepGoalPerNight.
+  ///
+  /// In en, this message translates to:
+  /// **'a night'**
+  String get sleepGoalPerNight;
 
   /// No description provided for @sleepGoalValue.
   ///

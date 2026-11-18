@@ -24,6 +24,10 @@ dependencies:
   http: ^1.6.0
   intl: ^0.20.3
   material_3_expressive: ^1.1.7
+  # The official M3 shape library used by the Settings card figures. It is also
+  # a transitive dependency of material_3_expressive; keep it on 1.0.0 while
+  # material_ui is pinned below.
+  material_new_shapes: 1.0.0
   # 1.8.0 introduced a RoundedPolygon symbol that conflicts with
   # material_new_shapes; pin until material_3_expressive supports it.
   material_ui: 1.7.0

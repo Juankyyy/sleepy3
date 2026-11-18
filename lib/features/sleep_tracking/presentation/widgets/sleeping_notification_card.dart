@@ -1,47 +1,59 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../../l10n/l10n.dart';
-import '../../../settings/presentation/widgets/settings_list.dart';
-import '../../../settings/presentation/widgets/settings_toggle_row.dart';
+import '../../../settings/presentation/widgets/bento/bento_card.dart';
+import '../../../settings/presentation/widgets/bento/bento_figure.dart';
+import '../../../settings/presentation/widgets/bento/settings_tones.dart';
 import '../../application/sleep_tracking_controller.dart';
 import '../../application/sleeping_notification_controller.dart';
 import '../../application/sleeping_notification_enabled_controller.dart';
 
-/// The sleep-status switch in the `Reminders` section of Settings.
-///
-/// Enabling it asks for notification permission first; a denial leaves the
-/// switch off and offers the Android notification settings. Changing the
-/// switch immediately shows or hides the card when a session is open.
-class SleepingNotificationSettings extends ConsumerStatefulWidget {
-  const SleepingNotificationSettings({super.key});
+/// The `Sleep in progress` switch as a Settings bento card.
+class SleepingNotificationCard extends ConsumerStatefulWidget {
+  const SleepingNotificationCard({super.key});
 
   @override
-  ConsumerState<SleepingNotificationSettings> createState() =>
-      _SleepingNotificationSettingsState();
+  ConsumerState<SleepingNotificationCard> createState() =>
+      _SleepingNotificationCardState();
 }
 
-class _SleepingNotificationSettingsState
-    extends ConsumerState<SleepingNotificationSettings> {
+class _SleepingNotificationCardState
+    extends ConsumerState<SleepingNotificationCard> {
   bool _busy = false;
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
+    final tone = SettingsPalette.of(context).sleepStatus;
     final enabled = ref.watch(sleepingNotificationEnabledProvider);
 
-    return SettingsToggleRow(
-      showLeading: showSettingsLeadingIcons(context),
-      leadingIcon: M3EIcons.notifications_active_outlined,
-      switchKey: const ValueKey('sleep-status-switch'),
-      enabled: enabled,
-      busy: _busy,
-      headline: l10n.sleepStatusNotification,
+    return BentoCard(
+      key: const ValueKey('settings-sleep-status-card'),
+      tone: tone,
+      size: BentoCardSize.half,
+      icon: M3EIcons.timer_outlined,
+      figure: BentoFigureShape.puffy,
+      title: l10n.sleepStatusNotification,
       supporting: enabled
           ? l10n.sleepStatusNotificationSupport
           : l10n.sleepStatusNotificationOff,
-      onChanged: _setEnabled,
+      semanticLabel: l10n.sleepStatusNotification,
+      semanticHint: enabled
+          ? l10n.sleepStatusNotificationSupport
+          : l10n.sleepStatusNotificationOff,
+      toggled: enabled,
+      onTap: () => unawaited(_setEnabled(!enabled)),
+      trailing: IgnorePointer(
+        child: M3ESwitch(
+          key: const ValueKey('sleep-status-switch'),
+          value: enabled,
+          onChanged: (_) {},
+        ),
+      ),
     );
   }
 

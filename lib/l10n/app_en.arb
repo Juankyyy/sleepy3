@@ -13,11 +13,11 @@
   "navSettings": "Settings",
   "mainNavigation": "Main navigation",
   "settingsTitle": "Settings",
-  "settingsSupport": "Theme, stats, reminders, sleep data, backup and app info.",
   "appearance": "Appearance",
   "reminders": "Reminders",
   "sleepReminder": "Sleep reminder",
   "sleepReminderOff": "Off",
+  "sleepReminderDaily": "Every day",
   "sleepReminderEveryDay": "Every day at {time}",
   "@sleepReminderEveryDay": {
     "placeholders": {
@@ -78,10 +78,23 @@
   "languageSpanish": "Español",
   "privacy": "Privacy",
   "version": "Version",
+  "versionValue": "Version {version}",
+  "@versionValue": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "0.3.2"
+      }
+    }
+  },
   "licenses": "Licenses",
+  "repository": "Repository",
+  "aboutDescription": "One tap to sleep. Everything stays on your device.",
+  "aboutUpdatesNote": "Updates are manual: download the APK from GitHub and install it over this version. Your data is preserved.",
   "updateCheckTitle": "Check for updates",
   "updateCheckSupport": "See if a newer version is on GitHub.",
   "updateChecking": "Checking for updates…",
+  "updateCheckingShort": "Checking…",
   "updateUpToDate": "Sleepy3 {version} is the latest version.",
   "@updateUpToDate": {
     "placeholders": {
@@ -757,6 +770,7 @@
     }
   },
   "sleepGoal": "Sleep goal",
+  "sleepGoalPerNight": "a night",
   "sleepGoalValue": "{goal} a night",
   "@sleepGoalValue": {
     "placeholders": {

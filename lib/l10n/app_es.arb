@@ -13,11 +13,11 @@
   "navSettings": "Ajustes",
   "mainNavigation": "Navegación principal",
   "settingsTitle": "Ajustes",
-  "settingsSupport": "Tema, estadísticas, recordatorios, datos de sueño, copia de seguridad e información de la app.",
   "appearance": "Apariencia",
   "reminders": "Recordatorios",
   "sleepReminder": "Aviso de sueño",
   "sleepReminderOff": "Desactivado",
+  "sleepReminderDaily": "Todos los días",
   "sleepReminderEveryDay": "Todos los días a las {time}",
   "@sleepReminderEveryDay": {
     "placeholders": {
@@ -78,10 +78,23 @@
   "languageSpanish": "Español",
   "privacy": "Privacidad",
   "version": "Versión",
+  "versionValue": "Versión {version}",
+  "@versionValue": {
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "0.3.2"
+      }
+    }
+  },
   "licenses": "Licencias",
+  "repository": "Repositorio",
+  "aboutDescription": "Sueño en un toque. Todo se queda en tu dispositivo.",
+  "aboutUpdatesNote": "Las actualizaciones son manuales: descarga el APK desde GitHub e instálalo sobre esta versión. Tus datos se conservan.",
   "updateCheckTitle": "Buscar actualizaciones",
   "updateCheckSupport": "Comprueba si hay una versión más reciente en GitHub.",
   "updateChecking": "Comprobando actualizaciones…",
+  "updateCheckingShort": "Comprobando…",
   "updateUpToDate": "Sleepy3 {version} es la última versión.",
   "updateAvailableDownload": "La versión {version} está disponible. Toca para descargar el APK.",
   "updateCheckFailed": "No se pudieron buscar actualizaciones. Toca para reintentar.",
@@ -718,6 +731,7 @@
     }
   },
   "sleepGoal": "Objetivo de sueño",
+  "sleepGoalPerNight": "por noche",
   "sleepGoalValue": "{goal} por noche",
   "@sleepGoalValue": {
     "placeholders": {

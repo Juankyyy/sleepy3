@@ -1,44 +1,33 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../core/theme/sleepy3_theme.dart';
 import '../../../l10n/l10n.dart';
-import '../../backup/presentation/history_data_settings.dart';
-import '../../health/application/sleep_data_source_controller.dart';
-import '../../reminders/presentation/widgets/sleep_reminder_settings.dart';
-import '../../sleep_tracking/presentation/widgets/sleeping_notification_settings.dart';
-import '../application/app_version_provider.dart';
-import '../application/language_controller.dart';
-import '../application/theme_mode_controller.dart';
-import '../application/time_format_controller.dart';
-import 'widgets/about_list.dart';
-import 'widgets/appearance_settings.dart';
-import 'widgets/google_health_status_list.dart';
-import 'widgets/settings_section.dart';
-import 'widgets/sleep_data_source_setting.dart';
-import 'widgets/sleep_goal_settings.dart';
-import 'widgets/stats_summary_settings.dart';
+import '../../reminders/presentation/widgets/sleep_reminder_card.dart';
+import '../../sleep_tracking/presentation/widgets/sleeping_notification_card.dart';
+import 'widgets/about_card.dart';
+import 'widgets/appearance_card.dart';
+import 'widgets/sleep_data_card.dart';
+import 'widgets/sleep_goal_card.dart';
+import 'widgets/stats_summary_card.dart';
 
-/// The Settings destination: appearance, sleep goal and stats summary,
-/// reminders, sleep data, Google Health and app info.
-class SettingsScreen extends ConsumerWidget {
+/// The Settings destination: a bento of tonal cards plus the About card.
+///
+/// The detailed controls live in the Appearance and Sleep data pages. The
+/// home keeps only the settings that are worth seeing at a glance.
+class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = M3ETheme.of(context);
     final scheme = theme.colorScheme;
     final margin = MediaQuery.sizeOf(context).width >= 600 ? 24.0 : 16.0;
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final l10n = context.l10n;
-    final themeMode = ref.watch(themeModeControllerProvider);
-    final timeFormat = ref.watch(timeFormatControllerProvider);
-    final language = ref.watch(languageControllerProvider);
-    final dataSource = ref.watch(sleepDataSourceProvider);
-    final appVersion = ref.watch(appVersionProvider);
 
     return ListView(
+      key: const ValueKey('settings-home-list'),
       padding: EdgeInsets.fromLTRB(margin, 16, margin, 24 + bottomInset),
       children: [
         Semantics(
@@ -50,63 +39,34 @@ class SettingsScreen extends ConsumerWidget {
             ).copyWith(color: scheme.onSurface),
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          l10n.settingsSupport,
-          style: theme.typography.baseline.bodyMedium.copyWith(
-            color: scheme.onSurfaceVariant,
-          ),
-        ),
-        const SizedBox(height: 24),
-        SettingsSection(
-          title: l10n.appearance,
-          child: AppearanceSettings(
-            mode: themeMode,
-            timeFormat: timeFormat,
-            language: language,
-          ),
-        ),
-        const SizedBox(height: 24),
-        SettingsSection(
-          title: l10n.statsTitle,
-          child: const Column(
+        const SizedBox(height: 16),
+        const SleepGoalCard(),
+        const SizedBox(height: 12),
+        const IntrinsicHeight(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SleepGoalSettings(),
-              SizedBox(height: 2),
-              StatsSummarySettings(),
+              Expanded(child: SleepReminderCard()),
+              SizedBox(width: 12),
+              Expanded(child: SleepingNotificationCard()),
             ],
           ),
         ),
-        const SizedBox(height: 24),
-        SettingsSection(
-          title: l10n.reminders,
-          child: const Column(
+        const SizedBox(height: 12),
+        const SleepDataCard(),
+        const SizedBox(height: 12),
+        const IntrinsicHeight(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              SleepReminderSettings(),
-              SizedBox(height: 2),
-              SleepingNotificationSettings(),
+              Expanded(child: AppearanceCard()),
+              SizedBox(width: 12),
+              Expanded(child: StatsSummaryCard()),
             ],
           ),
         ),
-        const SizedBox(height: 24),
-        SettingsSection(
-          title: l10n.sleepData,
-          child: SleepDataSourceSetting(source: dataSource),
-        ),
-        const SizedBox(height: 24),
-        SettingsSection(title: l10n.data, child: const HistoryDataSettings()),
-        const SizedBox(height: 24),
-        SettingsSection(
-          title: l10n.googleHealth,
-          child: const GoogleHealthStatusList(),
-        ),
-        const SizedBox(height: 24),
-        SettingsSection(
-          title: l10n.about,
-          child: AboutList(version: appVersion, dataSource: dataSource),
-        ),
+        const SizedBox(height: 12),
+        const AboutCard(),
       ],
     );
   }

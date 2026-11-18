@@ -3,6 +3,7 @@ import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../../l10n/l10n.dart';
+import '../appearance_labels.dart';
 import '../../application/language_controller.dart';
 import '../../application/theme_mode_controller.dart';
 import '../../application/time_format_controller.dart';
@@ -47,19 +48,19 @@ class AppearanceSettings extends ConsumerWidget {
         M3EListItem(
           leading: showLeading ? const Icon(M3EIcons.palette_outlined) : null,
           headline: l10n.theme,
-          supportingText: _themeLabel(l10n, mode),
+          supportingText: themeModeLabel(l10n, mode),
           trailing: const Icon(M3EIcons.chevron_right),
         ),
         M3EListItem(
           leading: showLeading ? const Icon(M3EIcons.schedule_outlined) : null,
           headline: l10n.timeFormat,
-          supportingText: _timeFormatLabel(l10n, timeFormat),
+          supportingText: timeFormatLabel(l10n, timeFormat),
           trailing: const Icon(M3EIcons.chevron_right),
         ),
         M3EListItem(
           leading: showLeading ? const Icon(M3EIcons.language_outlined) : null,
           headline: l10n.language,
-          supportingText: _languageLabel(l10n, language),
+          supportingText: languageLabel(l10n, language),
           trailing: const Icon(M3EIcons.chevron_right),
         ),
       ],
@@ -72,16 +73,16 @@ class AppearanceSettings extends ConsumerWidget {
       context,
       title: l10n.theme,
       options: [
-        for (final option in AppThemeMode.values) _themeLabel(l10n, option),
+        for (final option in AppThemeMode.values) themeModeLabel(l10n, option),
       ],
-      initialSelection: [_themeLabel(l10n, mode)],
+      initialSelection: [themeModeLabel(l10n, mode)],
       cancelLabel: l10n.cancel,
       confirmLabel: l10n.apply,
     );
     if (!context.mounted || selected == null || selected.length != 1) return;
 
     for (final option in AppThemeMode.values) {
-      if (_themeLabel(l10n, option) == selected.single) {
+      if (themeModeLabel(l10n, option) == selected.single) {
         await ref.read(themeModeControllerProvider.notifier).setMode(option);
         return;
       }
@@ -95,16 +96,16 @@ class AppearanceSettings extends ConsumerWidget {
       title: l10n.timeFormat,
       options: [
         for (final option in AppTimeFormat.values)
-          _timeFormatLabel(l10n, option),
+          timeFormatLabel(l10n, option),
       ],
-      initialSelection: [_timeFormatLabel(l10n, timeFormat)],
+      initialSelection: [timeFormatLabel(l10n, timeFormat)],
       cancelLabel: l10n.cancel,
       confirmLabel: l10n.apply,
     );
     if (!context.mounted || selected == null || selected.length != 1) return;
 
     for (final option in AppTimeFormat.values) {
-      if (_timeFormatLabel(l10n, option) == selected.single) {
+      if (timeFormatLabel(l10n, option) == selected.single) {
         await ref.read(timeFormatControllerProvider.notifier).setFormat(option);
         return;
       }
@@ -117,7 +118,7 @@ class AppearanceSettings extends ConsumerWidget {
       context,
       title: l10n.language,
       options: [l10n.languageEnglish, l10n.languageSpanish],
-      initialSelection: [_languageLabel(l10n, language)],
+      initialSelection: [languageLabel(l10n, language)],
       cancelLabel: l10n.cancel,
       confirmLabel: l10n.apply,
     );
@@ -127,27 +128,5 @@ class AppearanceSettings extends ConsumerWidget {
         ? AppLanguage.spanish
         : AppLanguage.english;
     await ref.read(languageControllerProvider.notifier).setLanguage(target);
-  }
-
-  static String _themeLabel(AppLocalizations l10n, AppThemeMode mode) {
-    return switch (mode) {
-      AppThemeMode.system => l10n.themeSystem,
-      AppThemeMode.light => l10n.themeLight,
-      AppThemeMode.dark => l10n.themeDark,
-    };
-  }
-
-  static String _timeFormatLabel(AppLocalizations l10n, AppTimeFormat format) {
-    return switch (format) {
-      AppTimeFormat.twelveHour => l10n.timeFormat12,
-      AppTimeFormat.twentyFourHour => l10n.timeFormat24,
-    };
-  }
-
-  static String _languageLabel(AppLocalizations l10n, AppLanguage language) {
-    return switch (language) {
-      AppLanguage.english => l10n.languageEnglish,
-      AppLanguage.spanish => l10n.languageSpanish,
-    };
   }
 }

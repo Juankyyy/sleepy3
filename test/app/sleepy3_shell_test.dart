@@ -205,7 +205,7 @@ void main() {
 
     expect(navigationBar(tester).selectedIndex, 2);
     expect(find.text('Appearance'), findsOneWidget);
-    expect(find.text('Theme'), findsOneWidget);
+    expect(find.text('Sleep goal'), findsOneWidget);
     expect(inNavigationBar(find.byIcon(M3EIcons.settings)), findsOneWidget);
     expect(
       inNavigationBar(find.byIcon(M3EIcons.analytics_outlined)),
@@ -361,7 +361,9 @@ void main() {
 
     await tester.tap(find.byKey(navKey(Sleepy3Destination.settings)));
     await tester.pumpAndSettle();
-    final settingsList = tester.widget<ListView>(find.byType(ListView));
+    final settingsList = tester.widget<ListView>(
+      find.byKey(const ValueKey('settings-home-list')),
+    );
     expect(
       (settingsList.padding! as EdgeInsets).bottom,
       closeTo(24 + bodyBottomInset, 0.01),
