@@ -24,3 +24,13 @@ final appReleaseGatewayProvider = Provider<AppReleaseGateway>((ref) {
 final updateLinkLauncherProvider = Provider<UpdateLinkLauncher>((ref) {
   return const UrlLauncherUpdateLinks();
 });
+
+/// The minimum time a manual update check stays in the checking state.
+///
+/// A fast response can otherwise replace the spinner before it is visible. The
+/// automatic launch check is not delayed, so the new-release dialog still
+/// appears as soon as it is known. Tests that do not exercise the delay
+/// override this provider.
+final manualUpdateCheckMinimumDurationProvider = Provider<Duration>(
+  (ref) => const Duration(seconds: 1),
+);

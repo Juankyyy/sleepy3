@@ -735,16 +735,19 @@ Reglas:
   siguen disponibles después en la sección `Google Health`.
 - La tarjeta `About` cierra la pantalla. Muestra el logo de Sleepy3, el nombre, `Version
   {version}` sin el número de build cuando el plugin de información de la app responde
-  (se oculta si no hay dato), la descripción
-  `One tap to sleep. Everything stays on your device.`, `Repository`, `Check for updates`,
-  `Licenses`, el estado de la comprobación, la nota de que las actualizaciones se instalan
-  manualmente y la línea de privacidad de la fuente (`On-device only.` en `Local` o
-  `Stored in Health Connect. Google Health can read it.` en `Google Health`).
-  `Repository` abre `https://github.com/Juankyyy/sleepy3` con el navegador y `Licenses`
-  abre la página de licencias de Flutter con el nombre, la versión completa (incluido el
-  build) y la leyenda GPLv3. `Check for updates` muestra el estado de la última
-  comprobación, comprueba de nuevo y pasa a `Download` cuando hay una versión nueva; se
-  oculta junto con `Version` si no hay dato. Los detalles están en §3.4.3.
+  (se oculta si no hay dato), el botón de icono de GitHub (tooltip y etiqueta de
+  accesibilidad `Open repository`), la comprobación de actualizaciones (`Check for updates`
+  o, con una versión disponible, `Download` a ancho completo con un icon button `Check for
+  updates` a su izquierda), `Licenses`, el estado de la comprobación, la nota de que las
+  actualizaciones se instalan manualmente y la línea de privacidad de la fuente
+  (`On-device only.` en `Local` o `Stored in Health Connect. Google Health can read it.` en
+  `Google Health`). El icon button de comprobar no descarga: solo relanza la consulta,
+  que mantiene `Checking…` al menos 1 segundo. El botón de GitHub abre
+  `https://github.com/Juankyyy/sleepy3` con el navegador y
+  `Licenses` abre la página de licencias de Flutter con el nombre, la versión completa
+  (incluido el build) y la leyenda GPLv3. `Check for updates` muestra el estado de la
+  última comprobación, comprueba de nuevo y pasa a `Download` cuando hay una versión nueva;
+  se oculta junto con `Version` si no hay dato. Los detalles están en §3.4.3.
 - El modo de tema, la fuente de datos, el objetivo de sueño, el bloque del resumen de
   Stats y las decisiones del aviso de actualización se guardan en la tabla `preferences`
   de la misma base Drift; no se usa `shared_preferences`.
@@ -848,7 +851,9 @@ Reglas:
 - La comprobación automática se lanza una vez por apertura, después del splash, sin
   bloquear el primer frame. `Sleepy3App` la arranca y `Sleepy3Shell` muestra el modal solo
   si el controlador deja un aviso pendiente. La comprobación manual desde la tarjeta
-  `About` actualiza el estado pero no abre el modal.
+  `About` actualiza el estado pero no abre el modal. Toda comprobación manual mantiene
+  `Checking…` al menos 1 segundo aunque GitHub responda antes, para que el progreso sea
+  visible; la comprobación automática del arranque no se retrasa.
 - El modal es un diálogo básico compuesto con los tokens de `M3EDialog`: radio de 28 dp,
   padding de 24 dp, `surfaceContainerHigh`, headline small, body medium y divisores de
   1 dp en `outlineVariant`. Se usa `M3EDialog.show` para el scrim, la transición, el foco y
@@ -870,8 +875,9 @@ Reglas:
   las 24 h, se avisa igualmente porque el snooze es por versión.
 - `No recordar otra vez` guarda `update_prompt_dismissed_version` y no vuelve a mostrar el
   modal de esa versión; una versión posterior vuelve a preguntar. No hay interruptor global
-  de avisos. El botón `Check for updates` de la tarjeta `About` siempre sigue disponible y
-  descarga al tocarlo.
+  de avisos. La tarjeta `About` mantiene la comprobación manual: con una versión disponible,
+  `Download` es la acción principal y el icon button `Check for updates` de su izquierda
+  vuelve a consultar GitHub sin descargar; sin versión disponible, el botón único comprueba.
 - `Descargar` abre el `browser_download_url` del APK y `Ver en GitHub` abre la página de la
   release; ambos usan `url_launcher` con el navegador externo y, si se abren, marcan esa
   versión como vista. Si el enlace falla, no se marca y el botón permite reintentar; el
@@ -1275,7 +1281,8 @@ Reglas:
     objetivo del interruptor y expone `toggled`; el switch es visual. El chip de hora y el
     aviso de notificaciones quedan fuera de esa semántica como acciones separadas.
   - `About` es una tarjeta no accionable con logo, versión sin build, repositorio,
-    actualización, licencias y privacidad; sus botones usan `M3EButton`.
+    actualización, licencias y privacidad; usa `M3EButton` para las acciones y
+    `M3EIconButton` para el enlace de GitHub.
   - Las páginas `Appearance` y `Sleep data` conservan las filas
     `M3EList`/`SettingsList` y `SettingsActionRow`/`SettingsToggleRow` para sus acciones.
   - La figura es decorativa (`MaterialShapes`/`CustomPainter`, `IgnorePointer`,
@@ -1352,7 +1359,7 @@ Reglas:
 | Apoyo sin historial durmiendo | `Your first night will appear here when you wake up.` |
 | Título de Settings | `Settings` |
 | Tarjetas de Settings | `Sleep goal`, `Sleep reminder`, `Sleep in progress`, `Sleep data`, `Appearance`, `Stats summary`, `About` |
-| About | `Sleepy3`, `Version {version}`, `Repository`, `Check for updates`, `Licenses` |
+| About | `Sleepy3`, `Version {version}`, `Check for updates`, `Download`, `Licenses`; iconos de GitHub con tooltip `Open repository` y de comprobar |
 | Recordatorio | `Sleep reminder`; apoyo `Every day` u `Off` |
 | Hora del recordatorio | Chip con la hora; tooltip `Reminder time` |
 | Notificación de sueño | `Sleep in progress`; apoyo `Shows a live timer while you sleep.` / `Off` |

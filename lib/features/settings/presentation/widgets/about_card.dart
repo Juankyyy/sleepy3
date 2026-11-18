@@ -11,6 +11,7 @@ import '../../application/app_version_provider.dart';
 import '../../domain/app_version.dart';
 import 'bento/bento_figure.dart';
 import 'bento/settings_tones.dart';
+import 'github_mark.dart';
 
 /// The About card at the bottom of Settings.
 ///
@@ -36,9 +37,6 @@ class AboutCard extends ConsumerWidget {
       color: tone.supporting,
     );
     final versionStyle = theme.typography.baseline.bodySmall.copyWith(
-      color: tone.supporting,
-    );
-    final descriptionStyle = theme.typography.baseline.bodyMedium.copyWith(
       color: tone.supporting,
     );
 
@@ -114,10 +112,8 @@ class AboutCard extends ConsumerWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                Text(l10n.aboutDescription, style: descriptionStyle),
                 if (version != null) ...[
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
                   _UpdateButton(update: update),
                   const SizedBox(height: 8),
                   _StatusLine(update: update, version: version),
@@ -126,12 +122,21 @@ class AboutCard extends ConsumerWidget {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    M3EButton.icon(
-                      style: M3EButtonStyle.outlined,
-                      icon: const Icon(M3EIcons.code, size: 18),
-                      label: Text(l10n.repository),
-                      onPressed: () => _openRepository(context, ref),
+                    // Keep the label and the tap action on the icon button: its
+                    // Semantics node is not a boundary and would otherwise merge
+                    // into the About card.
+                    MergeSemantics(
+                      child: M3EIconButton(
+                        key: const ValueKey('settings-about-repository'),
+                        icon: const GithubMark(),
+                        variant: M3EIconButtonVariant.outlined,
+                        size: M3EIconButtonSize.sm,
+                        tooltip: l10n.openRepository,
+                        semanticLabel: l10n.openRepository,
+                        onPressed: () => _openRepository(context, ref),
+                      ),
                     ),
                     M3EButton.icon(
                       style: M3EButtonStyle.text,
@@ -205,21 +210,58 @@ class _UpdateButton extends ConsumerWidget {
     final l10n = context.l10n;
     final checking = update.phase == AppUpdatePhase.checking;
     final available = update.phase == AppUpdatePhase.available;
-    final label = checking
-        ? l10n.updateCheckingShort
-        : available
-        ? l10n.updateDownload
-        : l10n.updateCheckTitle;
+
+    Future<void> checkAgain() async {
+      await ref.read(appUpdateControllerProvider.notifier).checkNow();
+    }
+
+    Future<void> primaryAction() async {
+      final opened = await ref
+          .read(appUpdateControllerProvider.notifier)
+          .handleRowTap();
+      if (!context.mounted || opened) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(context.l10n.updateOpenFailed)));
+    }
+
+    if (available) {
+      return Row(
+        children: [
+          // The icon button's Semantics node is not a boundary; merge it so the
+          // label and tap stay on the button instead of the About card.
+          MergeSemantics(
+            child: M3EIconButton(
+              key: const ValueKey('settings-about-update-check'),
+              icon: const Icon(M3EIcons.refresh),
+              variant: M3EIconButtonVariant.outlined,
+              size: M3EIconButtonSize.sm,
+              tooltip: l10n.updateCheckTitle,
+              semanticLabel: l10n.updateCheckTitle,
+              onPressed: checkAgain,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: M3EButton.icon(
+              style: M3EButtonStyle.filled,
+              icon: const Icon(M3EIcons.download_outlined, size: 18),
+              label: Text(l10n.updateDownload),
+              onPressed: primaryAction,
+            ),
+          ),
+        ],
+      );
+    }
+
+    final label = checking ? l10n.updateCheckingShort : l10n.updateCheckTitle;
     final icon = checking
         ? const SizedBox(
             width: 24,
             height: 24,
             child: M3ELoadingIndicator(size: 24),
           )
-        : Icon(
-            available ? M3EIcons.download_outlined : M3EIcons.update,
-            size: 18,
-          );
+        : const Icon(M3EIcons.update, size: 18);
 
     return SizedBox(
       width: double.infinity,
@@ -228,19 +270,7 @@ class _UpdateButton extends ConsumerWidget {
         enabled: !checking,
         icon: icon,
         label: Text(label),
-        onPressed: checking
-            ? null
-            : () async {
-                final opened = await ref
-                    .read(appUpdateControllerProvider.notifier)
-                    .handleRowTap();
-                if (!context.mounted || opened) return;
-                ScaffoldMessenger.of(context)
-                  ..hideCurrentSnackBar()
-                  ..showSnackBar(
-                    SnackBar(content: Text(context.l10n.updateOpenFailed)),
-                  );
-              },
+        onPressed: checking ? null : primaryAction,
       ),
     );
   }

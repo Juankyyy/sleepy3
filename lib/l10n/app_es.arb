@@ -88,8 +88,7 @@
     }
   },
   "licenses": "Licencias",
-  "repository": "Repositorio",
-  "aboutDescription": "Sueño en un toque. Todo se queda en tu dispositivo.",
+  "openRepository": "Abrir repositorio",
   "aboutUpdatesNote": "Las actualizaciones son manuales: descarga el APK desde GitHub e instálalo sobre esta versión. Tus datos se conservan.",
   "updateCheckTitle": "Buscar actualizaciones",
   "updateCheckSupport": "Comprueba si hay una versión más reciente en GitHub.",

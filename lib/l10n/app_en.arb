@@ -88,8 +88,7 @@
     }
   },
   "licenses": "Licenses",
-  "repository": "Repository",
-  "aboutDescription": "One tap to sleep. Everything stays on your device.",
+  "openRepository": "Open repository",
   "aboutUpdatesNote": "Updates are manual: download the APK from GitHub and install it over this version. Your data is preserved.",
   "updateCheckTitle": "Check for updates",
   "updateCheckSupport": "See if a newer version is on GitHub.",

@@ -209,11 +209,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get licenses => 'Licenses';
 
   @override
-  String get repository => 'Repository';
-
-  @override
-  String get aboutDescription =>
-      'One tap to sleep. Everything stays on your device.';
+  String get openRepository => 'Open repository';
 
   @override
   String get aboutUpdatesNote =>

@@ -464,17 +464,11 @@ abstract class AppLocalizations {
   /// **'Licenses'**
   String get licenses;
 
-  /// No description provided for @repository.
+  /// No description provided for @openRepository.
   ///
   /// In en, this message translates to:
-  /// **'Repository'**
-  String get repository;
-
-  /// No description provided for @aboutDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'One tap to sleep. Everything stays on your device.'**
-  String get aboutDescription;
+  /// **'Open repository'**
+  String get openRepository;
 
   /// No description provided for @aboutUpdatesNote.
   ///

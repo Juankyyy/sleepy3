@@ -11,6 +11,7 @@ import 'package:sleepy3/features/settings/application/app_version_provider.dart'
 import 'package:sleepy3/features/settings/application/settings_providers.dart';
 import 'package:sleepy3/features/settings/domain/app_version.dart';
 import 'package:sleepy3/features/settings/presentation/widgets/about_card.dart';
+import 'package:sleepy3/features/sleep_tracking/application/sleep_tracking_providers.dart';
 import 'package:sleepy3/features/updates/application/app_update_controller.dart';
 import 'package:sleepy3/features/updates/domain/app_release.dart';
 import 'package:sleepy3/features/updates/domain/update_prompt_preferences.dart';
@@ -54,6 +55,9 @@ void main() {
           settingsStoreProvider.overrideWithValue(store),
           initialUpdatePromptPreferencesProvider.overrideWithValue(preferences),
           initialSleepDataSourceProvider.overrideWithValue(source),
+          sleepClockProvider.overrideWithValue(
+            () => DateTime(2026, 11, 17, 22),
+          ),
         ],
         child: M3EMaterialApp(
           title: 'Sleepy3',
@@ -82,7 +86,10 @@ void main() {
     expect(find.text('Version 0.3.1'), findsOneWidget);
     expect(find.text('0.3.1 (1)'), findsNothing);
     expect(find.text('Check for updates'), findsOneWidget);
-    expect(find.text('Repository'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('settings-about-repository')),
+      findsOneWidget,
+    );
     expect(find.text('Licenses'), findsOneWidget);
     expect(find.text('On-device only.'), findsOneWidget);
   });
@@ -97,6 +104,26 @@ void main() {
 
     expect(find.text('Sleepy3 0.3.1 is the latest version.'), findsOneWidget);
     expect(find.text('Check for updates'), findsOneWidget);
+  });
+
+  testWidgets('keeps the checking state for at least one second', (
+    tester,
+  ) async {
+    await pumpAbout(
+      tester,
+      gateway: FakeAppReleaseGateway(testRelease('0.4.0')),
+    );
+
+    await tester.tap(find.text('Check for updates'));
+    await tester.pump();
+    expect(find.text('Checking…'), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 900));
+    expect(find.text('Checking…'), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 200));
+    await tester.pumpAndSettle();
+    expect(find.text('Download'), findsOneWidget);
   });
 
   testWidgets('shows a newer version and downloads its APK', (tester) async {
@@ -115,6 +142,10 @@ void main() {
       find.text('Version 0.4.0 is available. Tap to download the APK.'),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey('settings-about-update-check')),
+      findsOneWidget,
+    );
     expect(find.text('Download'), findsOneWidget);
 
     await tester.tap(find.text('Download'));
@@ -122,6 +153,35 @@ void main() {
 
     expect(launcher.uris, [release.apkUrl]);
     expect(store.updatePromptPreferences.dismissedVersion, '0.4.0');
+  });
+
+  testWidgets('checks again while a release is available', (tester) async {
+    final semantics = tester.ensureSemantics();
+    try {
+      final launcher = FakeUpdateLinkLauncher();
+      final gateway = FakeAppReleaseGateway(testRelease('0.4.0'));
+      await pumpAbout(tester, gateway: gateway, launcher: launcher);
+
+      await tester.tap(find.text('Check for updates'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const ValueKey('settings-about-update-check')),
+        findsOneWidget,
+      );
+      expect(find.bySemanticsLabel('Check for updates'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey('settings-about-update-check')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(gateway.calls, 2);
+      expect(launcher.uris, isEmpty);
+      expect(find.text('Download'), findsOneWidget);
+    } finally {
+      semantics.dispose();
+    }
   });
 
   testWidgets('shows the checking state while the request is in flight', (
@@ -184,17 +244,25 @@ void main() {
   testWidgets('opens the repository with the external launcher', (
     tester,
   ) async {
-    final launcher = FakeUpdateLinkLauncher();
-    await pumpAbout(
-      tester,
-      gateway: FakeAppReleaseGateway.upToDate('0.3.1'),
-      launcher: launcher,
-    );
+    final semantics = tester.ensureSemantics();
+    try {
+      final launcher = FakeUpdateLinkLauncher();
+      await pumpAbout(
+        tester,
+        gateway: FakeAppReleaseGateway.upToDate('0.3.1'),
+        launcher: launcher,
+      );
 
-    await tester.tap(find.text('Repository'));
-    await tester.pumpAndSettle();
+      final button = find.byKey(const ValueKey('settings-about-repository'));
+      expect(find.bySemanticsLabel('Open repository'), findsOneWidget);
 
-    expect(launcher.uris, [AboutCard.repositoryUri]);
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+
+      expect(launcher.uris, [AboutCard.repositoryUri]);
+    } finally {
+      semantics.dispose();
+    }
   });
 
   testWidgets('opens the license page', (tester) async {
@@ -219,7 +287,10 @@ void main() {
     expect(find.text('Version 0.3.1'), findsNothing);
     expect(find.text('Check for updates'), findsNothing);
     expect(find.text('Sleepy3'), findsOneWidget);
-    expect(find.text('Repository'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('settings-about-repository')),
+      findsOneWidget,
+    );
     expect(find.text('Licenses'), findsOneWidget);
   });
 

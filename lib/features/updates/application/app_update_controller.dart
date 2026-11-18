@@ -164,52 +164,63 @@ class AppUpdateController extends Notifier<AppUpdateState> {
     final installedNumber = AppVersionNumber.tryParse(installed.version);
     if (installedNumber == null) return;
 
+    final preferences = state.preferences;
+    final startedAt = manual ? ref.read(sleepClockProvider)() : null;
+
     state = AppUpdateState(
       phase: AppUpdatePhase.checking,
-      preferences: state.preferences,
+      preferences: preferences,
     );
 
+    late final AppUpdateState next;
     try {
       final release = await ref.read(appReleaseGatewayProvider).fetchLatest();
       if (!ref.mounted) return;
 
       final latestNumber = AppVersionNumber.tryParse(release.version);
       if (latestNumber == null) {
-        state = AppUpdateState(
+        next = AppUpdateState(
           phase: AppUpdatePhase.failed,
-          preferences: state.preferences,
+          preferences: preferences,
         );
-        return;
-      }
-
-      if (!latestNumber.isNewerThan(installedNumber)) {
-        state = AppUpdateState(
+      } else if (!latestNumber.isNewerThan(installedNumber)) {
+        next = AppUpdateState(
           phase: AppUpdatePhase.upToDate,
-          preferences: state.preferences,
+          preferences: preferences,
         );
-        return;
+      } else {
+        final now = ref.read(sleepClockProvider)();
+        final prompt = !manual && preferences.shouldPrompt(release.version, now)
+            ? release
+            : null;
+
+        next = AppUpdateState(
+          phase: AppUpdatePhase.available,
+          release: release,
+          pendingPrompt: prompt,
+          preferences: preferences,
+        );
       }
-
-      final now = ref.read(sleepClockProvider)();
-      final prompt =
-          !manual && state.preferences.shouldPrompt(release.version, now)
-          ? release
-          : null;
-
-      state = AppUpdateState(
-        phase: AppUpdatePhase.available,
-        release: release,
-        pendingPrompt: prompt,
-        preferences: state.preferences,
-      );
     } catch (error, stackTrace) {
       debugPrint('Sleepy3: could not check for updates: $error\n$stackTrace');
       if (!ref.mounted) return;
-      state = AppUpdateState(
+      next = AppUpdateState(
         phase: AppUpdatePhase.failed,
-        preferences: state.preferences,
+        preferences: preferences,
       );
     }
+
+    if (manual) {
+      final minimum = ref.read(manualUpdateCheckMinimumDurationProvider);
+      final elapsed = ref.read(sleepClockProvider)().difference(startedAt!);
+      final remaining = minimum - elapsed;
+      if (remaining > Duration.zero) {
+        await Future<void>.delayed(remaining);
+        if (!ref.mounted) return;
+      }
+    }
+
+    state = next;
   }
 
   Future<void> _markVersionSeen(String version) async {

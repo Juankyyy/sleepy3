@@ -32,6 +32,9 @@ void main() {
         settingsStoreProvider.overrideWithValue(store),
         initialUpdatePromptPreferencesProvider.overrideWithValue(preferences),
         sleepClockProvider.overrideWithValue(() => now),
+        manualUpdateCheckMinimumDurationProvider.overrideWithValue(
+          Duration.zero,
+        ),
       ],
     );
     addTearDown(container.dispose);

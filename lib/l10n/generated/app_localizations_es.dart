@@ -209,11 +209,7 @@ class AppLocalizationsEs extends AppLocalizations {
   String get licenses => 'Licencias';
 
   @override
-  String get repository => 'Repositorio';
-
-  @override
-  String get aboutDescription =>
-      'Sueño en un toque. Todo se queda en tu dispositivo.';
+  String get openRepository => 'Abrir repositorio';
 
   @override
   String get aboutUpdatesNote =>
