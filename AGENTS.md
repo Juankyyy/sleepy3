@@ -14,7 +14,7 @@ local session history, and Health Connect as an optional data source.
 - Platform features that cannot run in Flutter (the widget, Health Connect manifest
   entries, app labels and the custom sleep notification card) stay in the Android layer
   behind small, documented bridges.
-- Current state: v0.4.0 is the latest stable release (without the home-screen widget). The
+- Current state: v0.4.1 is the latest stable release (without the home-screen widget). The
   single contextual Sleep/Wake action on Home, the live sleeping duration and its
   entrance cue, the sleep state machine, Drift persistence,
   Stats summary with tonal cards, a draggable advanced sheet with a 70 % snap (metrics,
@@ -147,10 +147,13 @@ lib/
   reappears when the app opens.
 - Updates: `lib/features/updates/` reads the latest stable release from
   `https://api.github.com/repos/Juankyyy/sleepy3/releases/latest` (public, no token) once
-  after the splash and from the `Check for updates` button in the Settings About card. The
-  button shows idle/checking/up to date/available/failure and downloads the `.apk` asset on
-  tap; `Repository` opens `https://github.com/Juankyyy/sleepy3` and `Licenses` opens the
-  Flutter license page. The visible version omits the build number; the license page keeps
+  after the splash and from the update action in the Settings About card. The action shows
+  idle/checking/up to date/available/failure; when a release is available, `Download` is the
+  primary full-width action and a `refresh` icon button on its left checks again without
+  downloading. Manual checks keep `Checking…` for at least 1 s; the automatic launch check
+  is not delayed. `Download` opens the `.apk` asset; the GitHub icon opens
+  `https://github.com/Juankyyy/sleepy3` and `Licenses` opens the Flutter license page. The
+  visible version omits the build number; the license page keeps
   it for diagnostics. The
   launch dialog uses the first paragraph of the release notes as `Novedades`, a
   `View on GitHub` link, a header `X` that snoozes that version for 24 hours and a
@@ -304,13 +307,16 @@ Detalle completo en `SPEC.md §1`.
    agente nunca toca `main` por iniciativa propia, ni siquiera con «Haz los commits». Ese
    push **no publica nada**. La release se lanza después, solo cuando el usuario lo pide y
    elige la versión: `minor` (`v0.X.0`) o `patch` (`v0.X.Y`). Antes de ejecutar, el agente
-   confirma el tag calculado; en minors, también propone el `<Tema>` y espera el OK (y en
-   patches con notas curadas).
+   confirma el tag calculado y propone el `<Tema>` de las notas. Por defecto **toda release
+   lleva tema**, también los patch; solo se omite si el usuario pide explícitamente «sin
+   tema», y entonces el título es `vX.Y.Z` y las notas se organizan por cambios, sin
+   sección temática. Espera el OK del tag y del tema/notas.
 5. **Versiones y notas**: no se toca `pubspec.yaml`; el CI calcula versión y versionCode
    desde el tag más alto y crea el tag al publicar. Las releases se lanzan a mano desde
    `main` con `.github/workflows/release.yml` (`bump=minor` o `bump=patch`). Tras publicar,
-   escribir `release-notes/vX.Y.Z.md` con el título en la primera línea y ejecutar
-   `dart run tool/apply_release_notes.dart vX.Y.Z`. La firma usa los secrets del repo; si
-   faltan, el workflow falla.
+   escribir `release-notes/vX.Y.Z.md` con la primera línea
+   `<!-- title: vX.Y.Z - The <Tema> Update -->` (o `<!-- title: vX.Y.Z -->` sin tema) y
+   ejecutar `dart run tool/apply_release_notes.dart vX.Y.Z`. La firma usa los secrets del
+   repo; si faltan, el workflow falla.
 6. **Documentación como parte del cambio**: actualiza SPEC.md si cambia el comportamiento o
    la arquitectura, y README.md si el cambio es visible para el usuario.
