@@ -30,7 +30,7 @@ Sleepy3 is not on Google Play yet. Download the latest stable build from [Releas
 2. Download the latest `sleepy3-vX.Y.Z.apk`.
 3. Open the file and allow installs from your browser or file manager when Android asks.
 
-Sleepy3 runs on **Android 9 or newer**. Version **0.4.0** is the latest stable release; the home-screen widget is planned for 0.5.0.
+Sleepy3 runs on **Android 9 or newer**. Version **0.4.3** is the latest stable release; the home-screen widget is planned for 0.5.0.
 
 ## How to use it
 
@@ -281,7 +281,7 @@ Releases are created manually from `main` with `.github/workflows/release.yml`; 
 - Notes are generated from conventional commits since the previous tag. The curated body and `vX.Y.Z - The <Theme> Update` title are applied afterwards from `release-notes/vX.Y.Z.md` (ignored by Git):
 
 ```bash
-dart run tool/apply_release_notes.dart v0.4.0
+dart run tool/apply_release_notes.dart v0.4.3
 ```
 
 - Development builds are not published; use `flutter run` or a local APK to test `dev`.

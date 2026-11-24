@@ -3,7 +3,7 @@
 **Proyecto:** Sleepy3
 **Plataforma:** Android
 **Stack principal:** Flutter + Material 3 Expressive
-**Estado:** v0.4.0, última release estable (sin widget). Home (con una sola acción
+**Estado:** v0.4.3, última release estable (sin widget). Home (con una sola acción
 contextual), Stats (resumen configurable y dashboard avanzado de cinco rangos con gráficos
 de duración, ventana y día de la semana, insights, historial tonal con marcas de objetivo
 animadas, pull-to-refresh, alta manual, edición y borrado de sesiones y detalles de solo
@@ -119,7 +119,7 @@ ci(release): publish the APK
 - Después de publicar, aplicar notas y título con:
 
 ```bash
-dart run tool/apply_release_notes.dart v0.4.0
+dart run tool/apply_release_notes.dart v0.4.3
 ```
 
   El script lee el título de la primera línea y ejecuta `gh release edit`; no toca el APK.
