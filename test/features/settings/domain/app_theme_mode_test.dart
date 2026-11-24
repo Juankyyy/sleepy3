@@ -16,13 +16,17 @@ void main() {
       );
     });
 
-    test('light and dark ignore the platform brightness', () {
+    test('pinned modes ignore the platform brightness', () {
       for (final platform in Brightness.values) {
         expect(
           AppThemeMode.light.resolveBrightness(platform),
           Brightness.light,
         );
         expect(AppThemeMode.dark.resolveBrightness(platform), Brightness.dark);
+        expect(
+          AppThemeMode.amoled.resolveBrightness(platform),
+          Brightness.dark,
+        );
       }
     });
 
@@ -30,6 +34,7 @@ void main() {
       expect(AppThemeMode.fromStorageValue('system'), AppThemeMode.system);
       expect(AppThemeMode.fromStorageValue('light'), AppThemeMode.light);
       expect(AppThemeMode.fromStorageValue('dark'), AppThemeMode.dark);
+      expect(AppThemeMode.fromStorageValue('amoled'), AppThemeMode.amoled);
       expect(AppThemeMode.fromStorageValue('sepia'), AppThemeMode.system);
       expect(AppThemeMode.fromStorageValue(null), AppThemeMode.system);
     });

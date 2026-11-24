@@ -416,6 +416,12 @@ abstract class AppLocalizations {
   /// **'Dark'**
   String get themeDark;
 
+  /// No description provided for @themeAmoled.
+  ///
+  /// In en, this message translates to:
+  /// **'AMOLED'**
+  String get themeAmoled;
+
   /// No description provided for @timeFormat12.
   ///
   /// In en, this message translates to:

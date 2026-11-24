@@ -20,7 +20,7 @@
 - **Your last nights at a glance.** Home shows today, yesterday and the day before with a three-day average and bars against your sleep goal.
 - **A backup you can hold.** Export the whole history to a versioned JSON file and import it back on a new install. The file stays on your phone or wherever you choose to save it; nothing is uploaded.
 - **Nothing leaves your phone.** There is no account, no server of ours and no analytics. The only network request is the GitHub release check, which sends no sleep data. Health Connect is optional, and the reminder is scheduled on the device.
-- **Designed for 3 a.m.** A big Sleep button, a slide to wake, one-hand use, a clear awake/sleeping state and light and dark themes that follow your phone.
+- **Designed for 3 a.m.** A big Sleep button, a slide to wake, one-hand use, a clear awake/sleeping state, light and dark themes that follow your phone, and an **AMOLED** theme with a pure-black body.
 
 ## Download and install
 
@@ -261,7 +261,7 @@ The reminder follows the same rule at a smaller scale: `SleepReminderController`
 
 ### Design and brand
 
-Sleepy3 uses a fixed Material 3 Expressive palette taken from its logo: light body `#EFF4F9` with `#252B81` primary, and dark body `#121318` with `#C6CCF7` primary. Dynamic color (Material You) is intentionally off, so the app looks the same on every device.
+Sleepy3 uses a fixed Material 3 Expressive palette taken from its logo: light body `#EFF4F9` with `#252B81` primary, dark body `#121318` with `#C6CCF7` primary, and an AMOLED body `#000000` with the same lavender accent. Dynamic color (Material You) is intentionally off, so the app looks the same on every device.
 
 Type is **Space Grotesk** for the M3 scale, bundled in the APK; the live clock uses it at weight 700. The home brand and the Stats/Settings page titles use **Google Sans Flex**, instanced at weight 900, width 112.5 and roundness 35, with only the optical-size axis left live. Both families are distributed under the SIL Open Font License (`assets/fonts/OFL-SpaceGrotesk.txt` and `assets/fonts/OFL-GoogleSansFlex.txt`); `assets/fonts/README.md` documents both assets. The launcher icon, the adaptive layers, the Android 12+ launch marks and the splash mark are generated from `assets/brand/` with:
 
@@ -269,7 +269,7 @@ Type is **Space Grotesk** for the M3 scale, bundled in the APK; the live clock u
 dart run tool/generate_brand_assets.dart
 ```
 
-Keep the native launch colors in `values/colors.xml` and `values-night/colors.xml` equal to `Sleepy3Theme.lightBackground` and `Sleepy3Theme.darkBackground`. The local M3 spec lives in `.agent-skills/m3-expressive/`; read its `SKILL.md` before changing UI.
+Keep the native launch colors in `values/colors.xml` and `values-night/colors.xml` equal to `Sleepy3Theme.lightBackground` and `Sleepy3Theme.darkBackground`. The AMOLED theme uses the same native dark splash before Flutter's first frame; `SplashGate` then draws the pure-black scheme surface. The local M3 spec lives in `.agent-skills/m3-expressive/`; read its `SKILL.md` before changing UI.
 
 ### Releasing
 

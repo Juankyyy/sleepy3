@@ -3,11 +3,13 @@ import 'dart:ui' show Brightness;
 /// The user's theme preference.
 ///
 /// [system] follows the device brightness. [light] and [dark] pin the app to
-/// that scheme regardless of the platform setting.
+/// that scheme regardless of the platform setting. [amoled] is a dark-only
+/// variant with a pure-black body for OLED panels.
 enum AppThemeMode {
   system,
   light,
-  dark;
+  dark,
+  amoled;
 
   /// The brightness to use for [platformBrightness].
   Brightness resolveBrightness(Brightness platformBrightness) {
@@ -15,6 +17,7 @@ enum AppThemeMode {
       AppThemeMode.system => platformBrightness,
       AppThemeMode.light => Brightness.light,
       AppThemeMode.dark => Brightness.dark,
+      AppThemeMode.amoled => Brightness.dark,
     };
   }
 

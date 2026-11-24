@@ -22,7 +22,8 @@ local session history, and Health Connect as an optional data source.
   panel, manual session entry from the Stats FAB, session editing/deleting and
   read-only details for other apps' records, the bento Settings (tonal cards for the sleep
   goal, reminders, sleep data, appearance and Stats summary, plus the About card with the
-  repository, update check and licenses), the `Data` section that exports and imports the
+  repository, update check and licenses), the `AMOLED` pure-black theme, the `Data`
+  section that exports and imports the
   local history, the silent ongoing sleep-status
   notification with a live timer, goal time and Wake action, the reminder's Start sleep
   action, Health Connect (Local/Google Health, pending uploads, copy actions,
@@ -96,7 +97,10 @@ lib/
 - The native splash follows the app theme on Android 12+ through
   `UiModeManager.setApplicationNightMode`. `AppNightModeBridge` (Kotlin) and
   `AndroidAppNightMode` (Dart) keep it in sync at startup and whenever the theme changes;
-  do not replace it with a system-only check.
+  do not replace it with a system-only check. AMOLED maps to Android night mode; the
+  native launch window still uses the dark brand body `#121318`, while `SplashGate`
+  draws the scheme surface `#000000`. A native pure-black splash would need its own
+  native flag or theme alias.
 - `material_ui` is pinned to 1.7.0 because 1.8.0's `RoundedPolygon` conflicts with
   `material_new_shapes` used by `material_3_expressive` 1.1.7. Do not bump it until
   the packages are compatible. `material_new_shapes` 1.0.0 is also a direct dependency:
@@ -233,13 +237,16 @@ lib/
   sessions that already have a Health Connect record and never upload new ones. In Google
   Health, all pending sessions are retried. WorkManager is reserved for future background
   work.
-- Theme: `ThemeModeController` owns `System` / `Light` / `Dark`; `Sleepy3App`
-  resolves the brightness with the fixed Sleepy3 schemes. The palette is fixed:
-  light body `#EFF4F9` with `#252B81` primary, dark body `#121318` with `#C6CCF7`
-  primary. Keep `M3EMaterialApp.autoTheming` disabled and do not add dynamic color.
-  The Settings bento adds a fixed pastel extension (lavender, sky, mint, peach, rose and
-  neutral) with light/dark pairs in `SettingsPalette`; it is scoped to Settings, is not
-  dynamic color and its text/icon contrast is covered by a unit test.
+- Theme: `ThemeModeController` owns `System` / `Light` / `Dark` / `AMOLED`; `Sleepy3App`
+  resolves the brightness with the fixed Sleepy3 schemes, and `AMOLED` pins the dark
+  accent over a pure-black body. The palette is fixed: light body `#EFF4F9` with
+  `#252B81` primary, dark body `#121318` with `#C6CCF7` primary, and AMOLED body
+  `#000000` with containers stepped from `#0D0E13` to `#26272D` (a Sleepy3 extension;
+  M3's dark body is tone 6, not black). Keep `M3EMaterialApp.autoTheming` disabled and
+  do not add dynamic color. The Settings bento adds a fixed pastel extension (lavender,
+  sky, mint, peach, rose and neutral) with light/dark pairs in `SettingsPalette`; it is
+  scoped to Settings, is not dynamic color and its text/icon contrast is covered by a
+  unit test.
 - Settings: the home is a bento of tonal cards in
   `features/settings/presentation/widgets/bento/`. Each card's background figure is a
   different `MaterialShapes` shape (`BentoFigure`), and the `BentoBadge` uses the same

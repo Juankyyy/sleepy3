@@ -72,6 +72,7 @@
   "themeSystem": "System",
   "themeLight": "Light",
   "themeDark": "Dark",
+  "themeAmoled": "AMOLED",
   "timeFormat12": "12-hour",
   "timeFormat24": "24-hour",
   "languageEnglish": "English",

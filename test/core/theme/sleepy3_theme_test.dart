@@ -7,9 +7,11 @@ void main() {
     test('uses the exact brand anchors', () {
       final light = Sleepy3Theme.light();
       final dark = Sleepy3Theme.dark();
+      final amoled = Sleepy3Theme.amoled();
 
       expect(light.brightness, Brightness.light);
       expect(dark.brightness, Brightness.dark);
+      expect(amoled.brightness, Brightness.dark);
 
       expect(light.colorScheme.surface, Sleepy3Theme.lightBackground);
       expect(light.colorScheme.primary, Sleepy3Theme.brandIndigo);
@@ -19,8 +21,13 @@ void main() {
       expect(dark.colorScheme.primary, Sleepy3Theme.darkPrimary);
       expect(dark.colorScheme.onPrimary, const Color(0xFF272B60));
 
+      expect(amoled.colorScheme.surface, Sleepy3Theme.amoledBackground);
+      expect(amoled.colorScheme.primary, Sleepy3Theme.darkPrimary);
+      expect(amoled.colorScheme.onPrimary, const Color(0xFF272B60));
+
       expect(light.colorScheme.surface, isNot(dark.colorScheme.surface));
       expect(light.colorScheme.primary, isNot(dark.colorScheme.primary));
+      expect(dark.colorScheme.surface, isNot(amoled.colorScheme.surface));
     });
 
     test('builds the neutral ramp around the exact body color', () {
@@ -109,10 +116,53 @@ void main() {
         dark.surfaceContainerHighest.computeLuminance(),
         lessThan(dark.surfaceBright.computeLuminance()),
       );
+
+      final amoled = Sleepy3Theme.amoled().colorScheme;
+
+      expect(amoled.surface, const Color(0xFF000000));
+      expect(amoled.surfaceDim, const Color(0xFF000000));
+      expect(amoled.surfaceContainerLowest, const Color(0xFF000000));
+      expect(amoled.surfaceContainerLow, const Color(0xFF0D0E13));
+      expect(amoled.surfaceContainer, const Color(0xFF121318));
+      expect(amoled.surfaceContainerHigh, const Color(0xFF1C1D23));
+      expect(amoled.surfaceContainerHighest, const Color(0xFF26272D));
+      expect(amoled.surfaceBright, const Color(0xFF313238));
+      expect(amoled.onSurface, const Color(0xFFE3E1E9));
+      expect(amoled.onSurfaceVariant, const Color(0xFFC7C6CD));
+      expect(amoled.outline, const Color(0xFF909097));
+      expect(amoled.outlineVariant, const Color(0xFF46464C));
+
+      // The AMOLED body is exactly black; the containers lift from it so the
+      // cards, sheets and navigation area keep their hierarchy.
+      expect(amoled.surface.computeLuminance(), 0);
+      expect(
+        amoled.surfaceContainerLow.computeLuminance(),
+        greaterThan(amoled.surface.computeLuminance()),
+      );
+      expect(
+        amoled.surfaceContainer.computeLuminance(),
+        greaterThan(amoled.surfaceContainerLow.computeLuminance()),
+      );
+      expect(
+        amoled.surfaceContainerHigh.computeLuminance(),
+        greaterThan(amoled.surfaceContainer.computeLuminance()),
+      );
+      expect(
+        amoled.surfaceContainerHighest.computeLuminance(),
+        greaterThan(amoled.surfaceContainerHigh.computeLuminance()),
+      );
+      expect(
+        amoled.surfaceContainerHighest.computeLuminance(),
+        lessThan(amoled.surfaceBright.computeLuminance()),
+      );
     });
 
     test('maps the expected M3 color roles accessibly', () {
-      for (final theme in [Sleepy3Theme.light(), Sleepy3Theme.dark()]) {
+      for (final theme in [
+        Sleepy3Theme.light(),
+        Sleepy3Theme.dark(),
+        Sleepy3Theme.amoled(),
+      ]) {
         final scheme = theme.colorScheme;
         final textPairs = <(Color, Color)>[
           (scheme.onSurface, scheme.surface),
@@ -140,7 +190,11 @@ void main() {
     });
 
     test('uses the flexible navigation bar roles', () {
-      for (final theme in [Sleepy3Theme.light(), Sleepy3Theme.dark()]) {
+      for (final theme in [
+        Sleepy3Theme.light(),
+        Sleepy3Theme.dark(),
+        Sleepy3Theme.amoled(),
+      ]) {
         final scheme = theme.colorScheme;
         final navigationBar = theme.navigationBarTheme;
 

@@ -27,6 +27,19 @@ void main() {
     expect(received?.arguments, {'mode': 'dark'});
   });
 
+  test('sends the AMOLED mode to the platform channel', () async {
+    MethodCall? received;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      received = call;
+      return null;
+    });
+
+    await const AndroidAppNightMode().setMode(AppThemeMode.amoled);
+
+    expect(received?.method, 'setApplicationNightMode');
+    expect(received?.arguments, {'mode': 'amoled'});
+  });
+
   test('ignores a missing platform handler', () async {
     await expectLater(
       const AndroidAppNightMode().setMode(AppThemeMode.light),

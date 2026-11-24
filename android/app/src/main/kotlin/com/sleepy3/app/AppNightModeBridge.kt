@@ -11,8 +11,10 @@ import io.flutter.plugin.common.MethodChannel
  *
  * On Android 12+ the system resolves the launch (splash) window and its
  * resources with this persisted mode, so a pinned dark theme also gets a dark
- * splash on the next cold start. Older versions have no per-app night mode;
- * the call succeeds without doing anything there.
+ * splash on the next cold start. AMOLED is dark-only and maps to night mode as
+ * well, so its native splash does not follow a light system theme. Older
+ * versions have no per-app night mode; the call succeeds without doing
+ * anything there.
  */
 object AppNightModeBridge {
     private const val CHANNEL = "com.sleepy3.app/app_night_mode"
@@ -31,7 +33,9 @@ object AppNightModeBridge {
 
             val nightMode = when (call.argument<String>("mode")) {
                 "light" -> UiModeManager.MODE_NIGHT_NO
-                "dark" -> UiModeManager.MODE_NIGHT_YES
+                // AMOLED is a dark-only theme; the native resources should
+                // resolve in night mode even when the system is light.
+                "dark", "amoled" -> UiModeManager.MODE_NIGHT_YES
                 else -> UiModeManager.MODE_NIGHT_AUTO
             }
 

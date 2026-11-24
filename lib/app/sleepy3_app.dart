@@ -29,8 +29,9 @@ import 'splash_gate.dart';
 /// Runs the app with the Sleepy3 scheme for the selected theme mode.
 ///
 /// Brightness is resolved here instead of through `M3EMaterialApp.autoTheming`
-/// because Sleepy3 has two fixed brand schemes. The light and dark palettes use
-/// different exact backgrounds and accents, so the resolved scheme is handed to
+/// because Sleepy3 has fixed brand schemes. The light and dark palettes use
+/// different exact backgrounds and accents, and the AMOLED mode pins the dark
+/// accent over a pure-black body. The resolved scheme is handed to
 /// `M3EMaterialApp` as both the expressive data and the Material theme.
 class Sleepy3App extends ConsumerStatefulWidget {
   const Sleepy3App({super.key, this.splashStartSignal});
@@ -205,9 +206,11 @@ class _Sleepy3AppState extends ConsumerState<Sleepy3App>
     final language = ref.watch(languageControllerProvider);
     final platformBrightness =
         WidgetsBinding.instance.platformDispatcher.platformBrightness;
-    final data = Sleepy3Theme.forBrightness(
-      mode.resolveBrightness(platformBrightness),
-    );
+    final data = mode == AppThemeMode.amoled
+        ? Sleepy3Theme.amoled()
+        : Sleepy3Theme.forBrightness(
+            mode.resolveBrightness(platformBrightness),
+          );
 
     // A sleep session pauses the reminder; waking or changing the language
     // re-arms it from the root so the feature stays independent from the

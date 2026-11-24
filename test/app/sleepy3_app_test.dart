@@ -141,6 +141,27 @@ void main() {
     expect(appBrightness(tester), Brightness.light);
   });
 
+  testWidgets('amoled stays dark with a pure-black body', (tester) async {
+    await pumpApp(
+      tester,
+      mode: AppThemeMode.amoled,
+      platformBrightness: Brightness.light,
+    );
+
+    final context = tester.element(find.byType(Sleepy3Shell));
+    final theme = M3ETheme.of(context);
+    expect(theme.brightness, Brightness.dark);
+    expect(theme.colorScheme.surface, Sleepy3Theme.amoledBackground);
+    expect(theme.colorScheme.primary, Sleepy3Theme.darkPrimary);
+    expect(theme.colorScheme.surface, const Color(0xFF000000));
+
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    await tester.pumpAndSettle();
+
+    final updated = M3ETheme.of(tester.element(find.byType(Sleepy3Shell)));
+    expect(updated.colorScheme.surface, Sleepy3Theme.amoledBackground);
+  });
+
   testWidgets('uses the Sleepy3 light and dark schemes', (tester) async {
     await pumpApp(
       tester,

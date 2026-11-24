@@ -4,11 +4,13 @@ import '../core/theme/sleepy3_theme.dart';
 
 /// Plays the brand mark once over the shell when the app starts.
 ///
-/// The native launch background and this splash share the same body color, and
-/// the Android 12+ splash icon is the same mark at 190 dp, so the handoff from
-/// Android to the first Flutter frame has no black gap or size jump. The intro
-/// waits until the first frame is actually on screen, then zooms the mark out
-/// and fades the overlay over the already-built shell.
+/// In light and dark, the native launch background and this splash share the
+/// same body color. AMOLED keeps the native dark window `#121318` before the
+/// first frame and then draws the pure-black scheme surface. The Android 12+
+/// splash icon is the same mark at 190 dp, so the handoff from Android to the
+/// first Flutter frame has no gap or size jump. The intro waits until the first
+/// frame is actually on screen, then zooms the mark out and fades the overlay
+/// over the already-built shell.
 ///
 /// The intervals use the M3 Expressive web fallbacks for the spatial and
 /// effects springs. A splash has no gesture to interrupt, so a spring
@@ -128,10 +130,12 @@ class _SplashGateState extends State<SplashGate>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final background = isDark
-        ? Sleepy3Theme.darkBackground
-        : Sleepy3Theme.lightBackground;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    // The scheme body is exact for every variant: light, dark, and the
+    // pure-black AMOLED surface. The Flutter intro follows the active scheme
+    // instead of the hardcoded brand backgrounds.
+    final background = theme.colorScheme.surface;
 
     Widget mark = Image(
       image: const ResizeImage(AssetImage(_markAsset), width: _cacheWidth),

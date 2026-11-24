@@ -183,6 +183,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeDark => 'Dark';
 
   @override
+  String get themeAmoled => 'AMOLED';
+
+  @override
   String get timeFormat12 => '12-hour';
 
   @override

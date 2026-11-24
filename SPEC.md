@@ -609,7 +609,8 @@ Reglas:
   el resto usa el diálogo, la hoja o el selector que ya existía. `About` cierra
   la pantalla.
 - La página `Appearance` contiene:
-  - `Theme`, cuyo supporting text muestra el modo actual: `System`, `Light` o `Dark`.
+  - `Theme`, cuyo supporting text muestra el modo actual: `System`, `Light`, `Dark` o
+    `AMOLED`.
     Al tocarla se abre un diálogo M3 de selección con opciones de radio y acciones
     `Cancel` / `Apply`. `Apply` aplica y persiste el modo; `Cancel` no cambia nada. El
     valor por defecto es `System`.
@@ -1030,14 +1031,21 @@ Reglas:
   (Material You).
 - Paleta exacta:
   - claro: `surface #EFF4F9`, `primary #252B81`, `onPrimary #FFFFFF`;
-  - oscuro: `surface #121318`, `primary #C6CCF7`, `onPrimary #272B60`.
+  - oscuro: `surface #121318`, `primary #C6CCF7`, `onPrimary #272B60`;
+  - AMOLED: cuerpo, `surfaceDim` y `surfaceContainerLowest` en `#000000`;
+    contenedores `#0D0E13`, `#121318`, `#1C1D23`, `#26272D`, `surfaceBright`
+    `#313238`, y `primary #C6CCF7` / `onPrimary #272B60`.
   Los roles `surfaceContainer*`, `surfaceDim/Bright`, `onSurface*`, `outline*` e
   `inverseSurface*` siguen los pasos tonales de superficie de M3, desplazados para que
-  `surface` sea exactamente el fondo de marca. `primaryContainer`, `secondary`,
-  `tertiary` y `error` se generan desde el indigo del logo (`#252B81`). Los pares de
-  texto mantienen al menos 4.5:1 y `outline` al menos 3:1.
+  `surface` sea exactamente el fondo de marca. La rampa AMOLED es una extensión de
+  Sleepy3: M3 no define un tema AMOLED y su cuerpo oscuro es tone 6, no negro.
+  `primaryContainer`, `secondary`, `tertiary` y `error` se generan desde el indigo del
+  logo (`#252B81`). Los pares de texto mantienen al menos 4.5:1 y `outline` al menos
+  3:1.
 - El modo sigue al sistema por defecto. Desde `Settings` se puede fijar `System`,
-  `Light` o `Dark`; la elección se aplica al instante y se conserva entre arranques.
+  `Light`, `Dark` o `AMOLED`; `AMOLED` siempre es oscuro, pinta el cuerpo de negro puro
+  y no sigue el brillo del sistema. La elección se aplica al instante y se conserva
+  entre arranques.
 - El formato de hora es `12-hour` o `24-hour`; se elige en `Settings` y se guarda en
   `preferences` (`time_format`). Sin preferencia, el primer arranque fija el formato del
   teléfono. `Sleepy3App` inyecta el valor en `MediaQuery.alwaysUse24HourFormat`, así que
@@ -1394,7 +1402,7 @@ Reglas:
 | Acción del recordatorio | `Start sleep` |
 | Acción de la tarjeta de sueño | `Wake` |
 | Fila de tema | `Theme` |
-| Modos de tema | `System`, `Light`, `Dark` |
+| Modos de tema | `System`, `Light`, `Dark`, `AMOLED` |
 | Fila de hora | `Time format` / `12-hour`, `24-hour` |
 | Fila de idioma | `Language` / `English`, `Español` |
 | Diálogo de idioma | `Language`, `English`, `Español`, `Cancel`, `Apply` |
@@ -1440,7 +1448,10 @@ Reglas:
 - Fondo de lanzamiento y splash:
   - El fondo nativo usa el color de cuerpo del tema (claro `#EFF4F9`, oscuro `#121318`)
     en `LaunchTheme`, `NormalTheme` y, desde Android 12, en
-    `windowSplashScreenBackground`.
+    `windowSplashScreenBackground`. AMOLED no tiene un recurso nativo propio: el
+    splash del sistema usa el fondo oscuro `#121318` y el `SplashGate` de Flutter ya
+    dibuja `#000000` desde el primer frame. Un splash nativo negro exigiría un flag o
+    alias de tema nativo y queda fuera de este bloque.
   - En Android 12+ `windowSplashScreenAnimatedIcon` apunta a `drawable*/launch_mark.png`:
     lienzo de 288 dp con la marca a 190 dp dentro del círculo seguro de 192 dp. La
     variante `drawable-night-*` usa `#C6CCF7`. Así el splash del sistema no reutiliza el
@@ -1455,9 +1466,10 @@ Reglas:
   - Con «reducir movimiento» activo no se muestra.
 - El tema elegido se replica en el modo nocturno por aplicación de Android
   (`UiModeManager.setApplicationNightMode`, API 31+) al arrancar y al cambiarlo en
-  Settings. Así el splash nativo del siguiente arranque en frío usa el mismo modo que la
-  app, aunque el sistema esté en el modo contrario. En Android 9–11 no existe ese modo
-  por aplicación y el splash nativo sigue al sistema.
+  Settings. `AMOLED` se mapea a modo noche, porque es un tema solo oscuro. Así el splash
+  nativo del siguiente arranque en frío usa el mismo modo que la app, aunque el sistema
+  esté en el modo contrario. En Android 9–11 no existe ese modo por aplicación y el
+  splash nativo sigue al sistema.
 - La carga real (base de datos, tema, fuente y versión) ocurre antes de `runApp`; el
   splash de Flutter es una intro de marca, no un bloqueo de carga. Si una lectura falla,
   la app arranca con el valor por defecto.
@@ -1647,12 +1659,14 @@ splash.
   volver al primer plano, al cambiar la sesión abierta, el idioma o el formato horario. El
   toque de cualquiera de las dos notificaciones incrementa
   `notificationHomeRequestProvider` y `Sleepy3Shell` selecciona `Home`.
-- `Sleepy3App` resuelve el brillo con el modo de tema y el brillo del sistema; mantiene
-  `M3EMaterialApp.autoTheming` desactivado para usar los esquemas claro/oscuro propios.
-  También envuelve la app en un `MediaQuery` con `alwaysUse24HourFormat` resuelto, de modo
-  que todas las horas y los selectores compartan el ajuste sin leerlo en cada pantalla.
-  `Sleepy3Theme` construye la paleta fija: anclas exactas de fondo y acento, y roles
-  neutrales derivados de los pasos tonales de superficie de M3.
+- `Sleepy3App` resuelve el brillo con el modo de tema y el brillo del sistema; el modo
+  `AMOLED` usa `Sleepy3Theme.amoled()`, que es oscuro fijo y no depende del brillo del
+  sistema. Mantiene `M3EMaterialApp.autoTheming` desactivado para usar los esquemas
+  claro/oscuro propios. También envuelve la app en un `MediaQuery` con
+  `alwaysUse24HourFormat` resuelto, de modo que todas las horas y los selectores
+  compartan el ajuste sin leerlo en cada pantalla. `Sleepy3Theme` construye la paleta
+  fija: anclas exactas de fondo y acento, roles neutrales derivados de los pasos tonales
+  de superficie de M3 y la rampa AMOLED de cuerpo negro.
 
 ### Datos
 
@@ -1776,8 +1790,8 @@ dart run build_runner build
 | `setting_key` | TEXT | PRIMARY KEY |
 | `setting_value` | TEXT | Valor serializado como texto |
 
-- Clave `theme_mode` con valores `system`, `light` o `dark`; un valor ausente o
-  desconocido se interpreta como `system`.
+- Clave `theme_mode` con valores `system`, `light`, `dark` o `amoled`; un valor ausente
+  o desconocido se interpreta como `system`.
 - Clave `time_format` con valores `twelveHour` o `twentyFourHour`; un valor ausente o
   desconocido se resuelve con el formato del teléfono en el primer arranque.
 - Clave `language` con valores `english` o `spanish`; un valor ausente o desconocido se
@@ -2047,7 +2061,8 @@ dart run tool/generate_brand_assets.dart
   las filas y muestra el snackbar, el empty state también se puede tirar y el layout aguanta
   el 200 % de texto.
 - Settings: tema por defecto y persistido, diálogo de selección con `Cancel`/`Apply`,
-  resolución `System`/`Light`/`Dark`, formato `12-hour`/`24-hour` por defecto y persistido,
+  resolución `System`/`Light`/`Dark`/`AMOLED`, formato `12-hour`/`24-hour` por defecto y
+  persistido,
   objetivo de sueño por defecto, 6/8/10 h persistidas, diálogo de nueve opciones,
   valores fuera de rango o de paso, recálculo de Home, Stats, panel y notificación, y
   layout del selector a 200 % de texto en español,
@@ -2143,8 +2158,8 @@ dart run tool/generate_brand_assets.dart
   borrar; las sesiones de otras apps y las copias descargadas abren una vista de solo
   lectura con la card de la app de origen. En `Google Health` solo se modifican los
   registros de Sleepy3.
-- Pantalla `Settings` con tema `System`/`Light`/`Dark` persistido, formato de hora
-  `12-hour`/`24-hour` persistido y aplicado a toda la app, idioma `English`/`Español`
+- Pantalla `Settings` con tema `System`/`Light`/`Dark`/`AMOLED` persistido, formato de
+  hora `12-hour`/`24-hour` persistido y aplicado a toda la app, idioma `English`/`Español`
   persistido (resuelto del sistema en el primer arranque, sin opción `System`), fuente de
   datos `Local`/`Google Health`, estado de Google Health, acciones de copia y `About` con
   privacidad, versión y licencias.

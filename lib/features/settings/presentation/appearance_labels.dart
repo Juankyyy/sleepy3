@@ -9,6 +9,7 @@ String themeModeLabel(AppLocalizations l10n, AppThemeMode mode) {
     AppThemeMode.system => l10n.themeSystem,
     AppThemeMode.light => l10n.themeLight,
     AppThemeMode.dark => l10n.themeDark,
+    AppThemeMode.amoled => l10n.themeAmoled,
   };
 }
 

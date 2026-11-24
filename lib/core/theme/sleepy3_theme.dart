@@ -5,10 +5,11 @@ import 'package:material_ui/material_ui.dart';
 ///
 /// The brand anchors are exact: light uses [lightBackground] with [brandIndigo]
 /// as `primary`, and dark uses [darkBackground] with [darkPrimary] as `primary`.
-/// Secondary, tertiary, error and the accent containers are generated from
-/// [brandIndigo] as the only source color. The neutral surface roles follow
-/// M3's surface tone steps, shifted so `surface` is exactly the brand body.
-/// Dynamic color is intentionally off.
+/// The AMOLED variant keeps the dark accent and uses [amoledBackground] as a
+/// pure-black body. Secondary, tertiary, error and the accent containers are
+/// generated from [brandIndigo] as the only source color. The neutral surface
+/// roles follow M3's surface tone steps, shifted so `surface` is exactly the
+/// brand body. Dynamic color is intentionally off.
 ///
 /// Type role mapping used by the screens:
 /// - page titles (Sleepy3, Stats, Settings): [brandTitle], the instanced
@@ -36,6 +37,12 @@ abstract final class Sleepy3Theme {
 
   /// The exact dark body color.
   static const darkBackground = Color(0xFF121318);
+
+  /// The exact AMOLED body color.
+  ///
+  /// Pure black turns the pixels off on an OLED panel. M3's dark scheme uses
+  /// tone 6 instead, so this is a Sleepy3 extension, not an M3 dark role.
+  static const amoledBackground = Color(0xFF000000);
 
   /// The dark `primary`, the lavender accent from the brand palette.
   static const darkPrimary = Color(0xFFC6CCF7);
@@ -86,8 +93,9 @@ abstract final class Sleepy3Theme {
     fontFeatures: const [FontFeature.tabularFigures()],
   );
 
-  static final _light = _build(Brightness.light);
-  static final _dark = _build(Brightness.dark);
+  static final _light = _build(Brightness.light, _Sleepy3Surfaces.light);
+  static final _dark = _build(Brightness.dark, _Sleepy3Surfaces.dark);
+  static final _amoled = _build(Brightness.dark, _Sleepy3Surfaces.amoled);
 
   /// The light scheme.
   static M3EThemeData light() => _light;
@@ -95,13 +103,15 @@ abstract final class Sleepy3Theme {
   /// The dark scheme.
   static M3EThemeData dark() => _dark;
 
+  /// The AMOLED scheme: the dark accent over a pure-black body.
+  static M3EThemeData amoled() => _amoled;
+
   /// The scheme that follows [brightness].
   static M3EThemeData forBrightness(Brightness brightness) =>
       brightness == Brightness.dark ? _dark : _light;
 
-  static M3EThemeData _build(Brightness brightness) {
+  static M3EThemeData _build(Brightness brightness, _Sleepy3Surfaces surfaces) {
     final isDark = brightness == Brightness.dark;
-    final surfaces = isDark ? _Sleepy3Surfaces.dark : _Sleepy3Surfaces.light;
     final accent = isDark ? darkPrimary : brandIndigo;
     final onAccent = isDark ? _darkOnPrimary : _lightOnPrimary;
 
@@ -154,7 +164,10 @@ const _darkOnPrimary = Color(0xFF272B60);
 /// bright 24. Sleepy3's light body is tone 96 instead of 98, so its container
 /// and dim roles are shifted two tones darker; the brightest roles keep 98 and
 /// 100. The dark body is already tone 6, so the dark steps are unchanged.
-/// Foreground tones stay at M3's 10/30/50/80 (light) and 90/80/60/30 (dark).
+/// The AMOLED ramp shifts the neutral surfaces down so the body, dim and lowest
+/// are tone 0, while the containers step up to keep hierarchy. That pure-black
+/// body is a Sleepy3 extension: M3's dark body is tone 6. Foreground tones stay
+/// at M3's 10/30/50/80 (light) and 90/80/60/30 (dark).
 class _Sleepy3Surfaces {
   const _Sleepy3Surfaces({
     required this.surface,
@@ -199,6 +212,28 @@ class _Sleepy3Surfaces {
     container: Color(0xFF1E1F25),
     high: Color(0xFF292A2F),
     highest: Color(0xFF34343A),
+    onSurface: Color(0xFFE3E1E9),
+    onSurfaceVariant: Color(0xFFC7C6CD),
+    outline: Color(0xFF909097),
+    outlineVariant: Color(0xFF46464C),
+    inverseSurface: Color(0xFFE3E1E9),
+    onInverseSurface: Color(0xFF2F3036),
+  );
+
+  /// The pure-black body with the dark foreground tones.
+  ///
+  /// The container steps are deliberately close to black: the body turns its
+  /// pixels off, and the small lift keeps cards, sheets and the navigation bar
+  /// distinguishable without losing the AMOLED effect.
+  static const amoled = _Sleepy3Surfaces(
+    surface: Color(0xFF000000),
+    dim: Color(0xFF000000),
+    bright: Color(0xFF313238),
+    lowest: Color(0xFF000000),
+    low: Color(0xFF0D0E13),
+    container: Color(0xFF121318),
+    high: Color(0xFF1C1D23),
+    highest: Color(0xFF26272D),
     onSurface: Color(0xFFE3E1E9),
     onSurfaceVariant: Color(0xFFC7C6CD),
     outline: Color(0xFF909097),

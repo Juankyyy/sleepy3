@@ -1360,6 +1360,7 @@ void main() {
     expect(find.text('System'), findsNWidgets(2));
     expect(find.text('Light'), findsOneWidget);
     expect(find.text('Dark'), findsOneWidget);
+    expect(find.text('AMOLED'), findsOneWidget);
 
     await tapLabel(tester, 'Dark');
     await tester.tap(find.text('Apply'));
@@ -1367,6 +1368,20 @@ void main() {
 
     expect(store.saves, [AppThemeMode.dark]);
     expect(find.text('Dark'), findsOneWidget);
+    expect(find.text('System'), findsNothing);
+  });
+
+  testWidgets('applying AMOLED updates the row and saves it', (tester) async {
+    final store = await pumpSettings(tester);
+    await openAppearancePage(tester);
+
+    await tapLabel(tester, 'Theme');
+    await tapLabel(tester, 'AMOLED');
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+
+    expect(store.saves, [AppThemeMode.amoled]);
+    expect(find.text('AMOLED'), findsOneWidget);
     expect(find.text('System'), findsNothing);
   });
 
@@ -1590,7 +1605,7 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('Cancel'), findsOneWidget);
     expect(find.text('Apply'), findsOneWidget);
-    for (final label in ['System', 'Light', 'Dark']) {
+    for (final label in ['System', 'Light', 'Dark', 'AMOLED']) {
       final paragraph = tester.renderObject<RenderParagraph>(
         find.text(label).last,
       );
@@ -1690,6 +1705,23 @@ void main() {
         reason: '$label is truncated at 200% text',
       );
     }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('the AMOLED label fits the appearance row at 200% text', (
+    tester,
+  ) async {
+    await pumpSettings(tester, initial: AppThemeMode.amoled);
+    await openAppearancePage(tester);
+
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    await tester.pumpAndSettle();
+
+    await scrollToLabel(tester, 'AMOLED');
+    final paragraph = tester.renderObject<RenderParagraph>(
+      find.text('AMOLED').first,
+    );
+    expect(paragraph.didExceedMaxLines, isFalse);
     expect(tester.takeException(), isNull);
   });
 
